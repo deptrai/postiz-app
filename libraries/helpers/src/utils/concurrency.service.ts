@@ -3,9 +3,11 @@ import Bottleneck from 'bottleneck';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { BadBody } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 
-const connection = new Bottleneck.IORedisConnection({
-  client: ioRedis,
-});
+const connection = process.env.REDIS_URL
+  ? new Bottleneck.IORedisConnection({
+      client: ioRedis,
+    })
+  : null;
 
 const mapper = {} as Record<string, Bottleneck>;
 
@@ -16,13 +18,20 @@ export const concurrency = async <T>(
   ignoreConcurrency = false
 ) => {
   const strippedIdentifier = identifier.toLowerCase().split('-')[0];
-  mapper[strippedIdentifier] ??= new Bottleneck({
-    id: strippedIdentifier + '-concurrency-new',
-    maxConcurrent,
-    datastore: 'ioredis',
-    connection,
-    minTime: 1000,
-  });
+  mapper[strippedIdentifier] ??=
+    connection === null
+      ? new Bottleneck({
+          id: strippedIdentifier + '-concurrency-new',
+          maxConcurrent,
+          minTime: 1000,
+        })
+      : new Bottleneck({
+          id: strippedIdentifier + '-concurrency-new',
+          maxConcurrent,
+          datastore: 'ioredis',
+          connection,
+          minTime: 1000,
+        });
   let load: T;
 
   if (ignoreConcurrency) {
