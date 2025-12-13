@@ -1,0 +1,101 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>3</storyId>
+    <title>Ingest daily metrics (reach/views/engagement)</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-13</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-3-ingest-daily-metrics.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>the system to ingest core metrics per post/reel per day</iWant>
+    <soThat>dashboard, trends, and recommendations have reliable time-series data</soThat>
+    <tasks>
+- Define metric fields (AC: #1)
+- Implement daily metrics ingestion job step (AC: #1)
+- Idempotency via unique constraint + upsert (AC: #2)
+- Robustness for partial data + per-integration failure isolation (AC: #3, #4)
+- Tests (AC: #1–#4)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1) Given metadata has been ingested, when the ingestion job fetches metrics, then metrics are stored in a daily time-series table keyed by date.
+2) And ingestion is idempotent (no duplicate record) by key org+integration+externalContentId+date.
+3) And missing metric fields are stored as null/default without failing the entire job.
+4) And if one integration fails, the overall org ingestion does not fail; other integrations continue.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+- path: docs/epics.md
+  title: postiz-app - Epic Breakdown
+  section: Epic 2 / Story 2.3
+  snippet: Story 2.3 requires daily ingestion of reach/views/engagement metrics, idempotent time-series storage, and partial data handling.
+- path: docs/PRD.md
+  title: postiz-app - Product Requirements Document
+  section: FR-003, FR-005
+  snippet: PRD requires daily ingestion and storing core metrics including reach/impressions/views/reactions/comments/shares (clicks optional).
+- path: docs/tech-spec.md
+  title: postiz-app — Tech Spec (Facebook Page Analytics)
+  section: Daily metrics time-series; Idempotency
+  snippet: Tech spec defines a daily metrics table keyed by (organizationId, integrationId, externalContentId, date) with unique constraint.
+- path: docs/architecture.md
+  title: Architecture
+  section: Jobs / Retry
+  snippet: Architecture emphasizes BullMQ-based ingestion and retry/backoff hooks.
+    </docs>
+
+    <code>
+- path: apps/cron/src/tasks/post.now.pending.queues.ts
+  kind: scheduled-task
+  symbol: PostNowPendingQueues.handleCron
+  lines: 12-41
+  reason: Reference for emitting jobs and ensuring per-item job state checks without blocking all processing.
+- path: apps/workers/src/main.ts
+  kind: worker-entry
+  symbol: BullMqServer
+  lines: 11-23
+  reason: Workers app processes BullMQ jobs; metrics ingestion processing should follow this.
+    </code>
+
+    <dependencies>
+- ecosystem: node
+  manifest: package.json
+  notable:
+    - bullmq
+    - redis
+    - prisma/@prisma/client
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Persist metrics as time-series per date and enforce idempotency via unique constraint (org+integration+externalContentId+date). [Source: docs/tech-spec.md#4.4-Daily-metrics-time-series]
+- Partial data must not abort the job; store null/defaults for missing fields. [Source: docs/stories/2-3-ingest-daily-metrics.md#Acceptance-Criteria]
+- Per-integration failures must not stop processing other integrations for the org. [Source: docs/tech-spec.md#6.4-Partial-failure-behavior]
+  </constraints>
+
+  <interfaces>
+- name: BullMqClient.emit
+  kind: function
+  signature: emit(queueName, { id, options, payload })
+  path: apps/cron/src/tasks/post.now.pending.queues.ts
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest. Add integration tests for idempotent upsert and partial failure behavior where one integration fails but others continue.</standards>
+    <locations>
+- Cron tasks: apps/cron/src/tasks/**
+- Workers: apps/workers/src/**
+- Jest runner: root package.json scripts.test
+    </locations>
+    <ideas>
+- AC2: same metrics payload written twice results in one record.
+- AC3: missing metrics fields stored as null without throwing.
+- AC4: simulate one integration failing and ensure others still produce stored metrics.
+    </ideas>
+  </tests>
+</story-context>

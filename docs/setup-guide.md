@@ -130,6 +130,22 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 Nếu không set, các endpoint `/copilot/*` sẽ log warning và không trả kết quả.
 
+#### 4.3.1. Dùng OpenAI-compatible proxy (v98store, Ollama, v.v.)
+
+Nếu bạn muốn dùng proxy OpenAI-compatible thay vì gọi trực tiếp OpenAI:
+
+```env
+OPENAI_API_KEY=your_proxy_api_key_here
+OPENAI_BASE_URL=https://v98store.com/v1
+# hoặc
+OPENAI_BASE_URL=http://localhost:8000/v1  # nếu dùng Ollama local
+```
+
+- `OPENAI_API_KEY`: API key của proxy service (ví dụ v98store key)
+- `OPENAI_BASE_URL`: Base URL của proxy (mặc định: `https://api.openai.com/v1` nếu không set)
+
+Điều này cho phép bạn dùng các model khác (Llama, Mistral, v.v.) thay vì OpenAI.
+
 ### 4.4. Stripe – nếu muốn test thanh toán / marketplace
 
 Nếu bạn **không dùng thanh toán / marketplace**, có thể bỏ qua Stripe (một số route sẽ không hoạt động nhưng app chính vẫn chạy).

@@ -17,6 +17,8 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import useCookie from 'react-use-cookie';
 import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { DailyBriefPlaceholder } from '@gitroom/frontend/components/analytics/daily-brief.placeholder';
+
 const allowedIntegrations = [
   'facebook',
   'instagram',
@@ -37,6 +39,7 @@ export const PlatformAnalytics = () => {
   const [current, setCurrent] = useState(0);
   const [key, setKey] = useState(7);
   const [refresh, setRefresh] = useState(false);
+  const [showDailyBrief, setShowDailyBrief] = useState(false);
   const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
   const toaster = useToaster();
   const load = useCallback(async () => {
@@ -268,29 +271,47 @@ export const PlatformAnalytics = () => {
         </div>
       </div>
       <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
-        {!!options.length && (
-          <div className="flex-1 flex flex-col gap-[14px]">
-            <div className="max-w-[200px]">
-              <Select
-                label=""
-                name="date"
-                disableForm={true}
-                hideErrors={true}
-                onChange={(e) => setKey(+e.target.value)}
-              >
-                {options.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.value}
-                  </option>
-                ))}
-              </Select>
+        <div className="flex gap-2 mb-4">
+          <Button
+            className={clsx(!showDailyBrief && 'bg-primary')}
+            onClick={() => setShowDailyBrief(false)}
+          >
+            Platform Analytics
+          </Button>
+          <Button
+            className={clsx(showDailyBrief && 'bg-primary')}
+            onClick={() => setShowDailyBrief(true)}
+          >
+            Daily Brief
+          </Button>
+        </div>
+        {showDailyBrief ? (
+          <DailyBriefPlaceholder />
+        ) : (
+          !!options.length && (
+            <div className="flex-1 flex flex-col gap-[14px]">
+              <div className="max-w-[200px]">
+                <Select
+                  label=""
+                  name="date"
+                  disableForm={true}
+                  hideErrors={true}
+                  onChange={(e) => setKey(+e.target.value)}
+                >
+                  {options.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.value}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="flex-1">
+                {!!keys && !!currentIntegration && !refresh && (
+                  <RenderAnalytics integration={currentIntegration} date={keys} />
+                )}
+              </div>
             </div>
-            <div className="flex-1">
-              {!!keys && !!currentIntegration && !refresh && (
-                <RenderAnalytics integration={currentIntegration} date={keys} />
-              )}
-            </div>
-          </div>
+          )
         )}
       </div>
     </>

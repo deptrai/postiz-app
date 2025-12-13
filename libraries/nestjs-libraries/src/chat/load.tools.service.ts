@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Agent } from '@mastra/core/agent';
-import { openai } from '@ai-sdk/openai';
+import { openai, createOpenAI } from '@ai-sdk/openai';
 import { Memory } from '@mastra/memory';
 import { pStore } from '@gitroom/nestjs-libraries/chat/mastra.store';
 import { array, object, string } from 'zod';
@@ -11,6 +11,14 @@ import dayjs from 'dayjs';
 export const AgentState = object({
   proverbs: array(string()).default([]),
 });
+
+const mastraOpenAI =
+  process.env.OPENAI_BASE_URL
+    ? createOpenAI({
+        apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
+        baseURL: process.env.OPENAI_BASE_URL,
+      })
+    : openai;
 
 const renderArray = (list: string[], show: boolean) => {
   if (!show) return '';
@@ -85,7 +93,7 @@ export class LoadToolsService {
       )}
 `;
       },
-      model: openai('gpt-4.1'),
+      model: mastraOpenAI('gpt-4.1'),
       tools,
       memory: new Memory({
         storage: pStore,

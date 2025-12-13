@@ -1,0 +1,107 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2</storyId>
+    <title>Ingest content metadata (caption/hashtags/format/publish time)</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-13</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-2-ingest-content-metadata.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>the system to ingest post/reel metadata from tracked pages</iWant>
+    <soThat>tagging and format-based analytics can be computed reliably</soThat>
+    <tasks>
+- Define metadata fields to persist (AC: #1, #2)
+- Implement ingestion pipeline step for metadata (AC: #1, #2)
+- Idempotent upsert (AC: #3)
+- Error handling + retries (AC: #4)
+- Tests (AC: #1–#4)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1) Given a list of tracked pages, when the ingestion job runs, then content metadata is stored and correctly linked to the organization and integration/page.
+2) And content format is distinguished at least as reels vs post (by type/enum).
+3) And ingestion of metadata is idempotent (no duplicates) by key org+integration+externalContentId.
+4) And if one integration fails ingestion:
+   - transient failures retry per policy
+   - permanent failures (token invalid/permission) are recorded and do not retry indefinitely
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+- path: docs/epics.md
+  title: postiz-app - Epic Breakdown
+  section: Epic 2 / Story 2.2
+  snippet: Story 2.2 defines ingesting content metadata (caption/hashtags/format/publish time) for tracked pages.
+- path: docs/PRD.md
+  title: postiz-app - Product Requirements Document
+  section: FR-004
+  snippet: PRD requires storing content metadata: caption, hashtags, format/type, publish time.
+- path: docs/tech-spec.md
+  title: postiz-app — Tech Spec (Facebook Page Analytics)
+  section: Jobs & Scheduling; Content metadata table
+  snippet: Tech spec specifies ingestion job inputs (organizationId, integrationId, date) and recommends dedicated analytics content table with unique constraints.
+- path: docs/architecture.md
+  title: Architecture
+  section: Jobs / Retry; Database
+  snippet: Architecture recommends BullMQ jobs for ingestion and unique constraints for idempotency.
+    </docs>
+
+    <code>
+- path: apps/cron/src/tasks/check.missing.queues.ts
+  kind: scheduled-task
+  symbol: CheckMissingQueues.handleCron
+  lines: 13-44
+  reason: Reference for scheduling + emitting BullMQ jobs via BullMqClient.
+- path: apps/workers/src/main.ts
+  kind: worker-entry
+  symbol: BullMqServer
+  lines: 11-23
+  reason: Workers app processes BullMQ jobs as Nest microservice; ingestion processors should follow this pattern.
+    </code>
+
+    <dependencies>
+- ecosystem: node
+  manifest: package.json
+  notable:
+    - bullmq
+    - redis
+    - @nestjs/schedule
+    - prisma/@prisma/client
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Use the existing cron → emit → workers processing pattern; do not introduce a parallel scheduling system. [Source: apps/cron/src/tasks/check.missing.queues.ts, apps/workers/src/main.ts]
+- Metadata upsert must be idempotent (org+integration+externalContentId) and should not create duplicates. [Source: docs/stories/2-2-ingest-content-metadata.md#Acceptance-Criteria]
+- On permanent failures (invalid token/permission), stop retrying indefinitely and record reason for operator/user action. [Source: docs/tech-spec.md#6.3-Retry-&-Backoff-(NFR-I1)]
+  </constraints>
+
+  <interfaces>
+- name: BullMqClient.emit
+  kind: function
+  signature: emit(queueName, { id, options, payload })
+  path: apps/cron/src/tasks/check.missing.queues.ts
+- name: Worker microservice
+  kind: transport
+  signature: BullMqServer strategy
+  path: apps/workers/src/main.ts
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest. Add tests for idempotent upsert and basic error classification behavior (transient vs permanent) at the service/processor layer.</standards>
+    <locations>
+- Cron tasks: apps/cron/src/tasks/**
+- Workers: apps/workers/src/**
+- Jest runner: root package.json scripts.test
+    </locations>
+    <ideas>
+- AC3: Inserting same externalContentId twice results in one record.
+- AC4: Simulate permanent failure and verify retry is not infinite and error state is persisted/logged.
+    </ideas>
+  </tests>
+</story-context>

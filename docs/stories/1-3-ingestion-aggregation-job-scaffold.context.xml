@@ -1,0 +1,117 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>3</storyId>
+    <title>Ingestion &amp; aggregation job scaffold (BullMQ)</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-13</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-3-ingestion-aggregation-job-scaffold.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>a BullMQ job scaffold for daily ingestion and aggregation</iWant>
+    <soThat>MVP ingestion can run reliably each day for 10–20 pages with basic retry and logging</soThat>
+    <tasks>
+- Decide job placement and scheduling approach (AC: #1)
+- Create BullMQ queue + job definitions for ingestion and aggregation (AC: #1)
+- Add retry/backoff and failure classification (AC: #2, #3)
+- Add structured logging (AC: #2, #4)
+- Testing: minimal enqueue + process smoke (AC: #1)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1) Given Redis/BullMQ is available in Postiz, when adding a daily ingestion schedule and a daily aggregation schedule, then jobs can be enqueued and run in dev.
+2) And jobs include minimal logging and a retry policy.
+3) And job failures are minimally classified:
+   - transient (network/5xx) → retry per policy
+   - permanent (invalid token/permission) → stop retry and record reason
+4) And logs include at least: organizationId, integrationId, jobId, date.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+- path: docs/epics.md
+  title: postiz-app - Epic Breakdown
+  section: Story 1.3
+  snippet: Story 1.3 requires adding daily ingestion + aggregation schedules, minimal retry/logging, failure classification, and log fields.
+- path: docs/architecture.md
+  title: Architecture
+  section: Jobs / Retry; Logging Strategy
+  snippet: Architecture specifies BullMQ for ingestion/aggregation and recommends structured logging including organizationId/integrationId and retry/backoff hooks.
+- path: docs/tech-spec.md
+  title: postiz-app — Tech Spec (Facebook Page Analytics)
+  section: Jobs & Scheduling; Retry & Backoff; Partial failure behavior
+  snippet: Tech spec defines ingestion/aggregation job inputs, retry policy baseline, and guidance for transient vs permanent failures and partial ingestion behavior.
+    </docs>
+
+    <code>
+- path: apps/workers/src/main.ts
+  kind: worker-entry
+  symbol: BullMqServer
+  lines: 11-23
+  reason: Shows workers app is a Nest microservice using BullMqServer strategy (BullMQ transport).
+- path: apps/workers/src/app/app.module.ts
+  kind: module
+  symbol: AppModule
+  lines: 10-15
+  reason: Workers app imports BullMqModule and DatabaseModule; establishes pattern for adding new worker handlers.
+- path: apps/cron/src/cron.module.ts
+  kind: module
+  symbol: CronModule
+  lines: 10-20
+  reason: Cron app uses ScheduleModule + BullMqModule; establishes scheduling approach for enqueueing jobs.
+- path: apps/cron/src/tasks/check.missing.queues.ts
+  kind: scheduled-task
+  symbol: CheckMissingQueues.handleCron
+  lines: 13-44
+  reason: Example of @Cron scheduling and emitting BullMQ jobs via BullMqClient (queue name: post).
+- path: apps/cron/src/tasks/post.now.pending.queues.ts
+  kind: scheduled-task
+  symbol: PostNowPendingQueues.handleCron
+  lines: 12-41
+  reason: Another scheduling example that emits jobs to the worker queue and checks job state.
+    </code>
+
+    <dependencies>
+- ecosystem: node
+  manifest: package.json
+  notable:
+    - bullmq ^5.12.12
+    - redis ^4.6.12
+    - @nestjs/schedule ^4.0.0
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Reuse existing queue/cron patterns in repo: cron app schedules and emits jobs; workers app processes via BullMqServer. [Source: apps/cron/src/cron.module.ts, apps/workers/src/main.ts]
+- Ensure job payload includes organizationId/integrationId/date to support later backfill and debugging. [Source: docs/stories/1-3-ingestion-aggregation-job-scaffold.md#Tasks-/-Subtasks]
+- Implement minimal retry/backoff and stop retrying on permanent failures (invalid token/permission). [Source: docs/tech-spec.md#6)-Jobs-&-Scheduling-(MVP)]
+  </constraints>
+
+  <interfaces>
+- name: BullMqClient.emit
+  kind: function
+  signature: emit(queueName, { id, options, payload })
+  path: apps/cron/src/tasks/check.missing.queues.ts
+- name: BullMqClient.getQueue
+  kind: function
+  signature: getQueue(queueName).getJobState(jobId)
+  path: apps/cron/src/tasks/check.missing.queues.ts
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest (repo default). For this story, focus on a minimal smoke test that enqueueing a job via BullMqClient reaches a worker handler (or at least validates queue wiring) in a controlled environment.</standards>
+    <locations>
+- Cron tasks: apps/cron/src/tasks/**
+- Workers app: apps/workers/src/**
+- Jest runner: root package.json scripts.test
+    </locations>
+    <ideas>
+- AC1: Smoke test that cron task can emit a job (queue exists) and job state becomes waiting/delayed.
+- AC2/AC4: Validate logs include required fields for a sample emitted job.
+    </ideas>
+  </tests>
+</story-context>

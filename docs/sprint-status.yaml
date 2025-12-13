@@ -1,0 +1,85 @@
+# generated: 2025-12-13
+# project: postiz-app
+# project_key: postiz-app
+# tracking_system: file-system
+# story_location: "{project-root}/docs/stories"
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2025-12-13
+project: postiz-app
+project_key: postiz-app
+tracking_system: file-system
+story_location: "{project-root}/docs/stories"
+
+development_status:
+  # Epic 1 — Foundation
+  epic-1: backlog
+  1-1-analytics-intelligence-module-scaffold: review
+  1-2-analytics-schema-foundation: ready-for-dev
+  1-3-ingestion-aggregation-job-scaffold: ready-for-dev
+  epic-1-retrospective: optional
+
+  # Epic 2 — Ingestion & Storage (MVP)
+  epic-2: backlog
+  2-1-track-priority-facebook-pages: ready-for-dev
+  2-2-ingest-content-metadata: ready-for-dev
+  2-3-ingest-daily-metrics: ready-for-dev
+  epic-2-retrospective: optional
+
+  # Epic 3 — Dashboard & Core Analytics (MVP)
+  epic-3: backlog
+  3-1-manage-page-groups-and-assign-pages: backlog
+  3-2-dashboard-filters-kpis-top-content: backlog
+  3-3-engagement-rate-and-format-breakdown: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4 — Insights + Daily Brief + Recommendations (MVP)
+  epic-4: backlog
+  4-1-auto-keyword-tagging-and-manual-campaign-tags: backlog
+  4-2-trending-topics-velocity: backlog
+  4-3-best-time-to-post-heatmap: backlog
+  4-4-daily-brief-endpoint-and-ui: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5 — Export Reporting (MVP)
+  epic-5: backlog
+  5-1-export-csv-report: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6 — Playbooks + Experiments (Growth)
+  epic-6: backlog
+  6-1-generate-playbooks-from-top-content: backlog
+  6-2-generate-playbook-variants: backlog
+  6-3-experiments-abc-and-win-rate: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7 — Themes (Topic Clustering) (Growth)
+  epic-7: backlog
+  7-1-cluster-themes-from-captions-and-hashtags: backlog
+  7-2-theme-manager-rename-merge-split: backlog
+  7-3-theme-trending: backlog
+  epic-7-retrospective: optional

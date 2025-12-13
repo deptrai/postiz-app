@@ -12,6 +12,7 @@ import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.reque
 import { StarsService } from '@gitroom/nestjs-libraries/database/prisma/stars/stars.service';
 import dayjs from 'dayjs';
 import { StarsListDto } from '@gitroom/nestjs-libraries/dtos/analytics/stars.list.dto';
+import { DailyBriefQueryDto } from '@gitroom/nestjs-libraries/dtos/analytics/daily-brief.query.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
@@ -49,6 +50,25 @@ export class AnalyticsController {
   ) {
     return {
       stars: await this._starsService.getStarsFilter(org.id, starsFilter),
+    };
+  }
+
+  @Get('/daily-brief')
+  async getDailyBrief(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: DailyBriefQueryDto
+  ) {
+    return {
+      date: query.date || dayjs().format('YYYY-MM-DD'),
+      organizationId: org.id,
+      summary: {
+        totalPosts: 0,
+        totalEngagement: 0,
+        topPerformer: null,
+      },
+      recommendations: [],
+      trends: [],
+      format: query.format || 'json',
     };
   }
 

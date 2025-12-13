@@ -1,0 +1,106 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>1</storyId>
+    <title>Track priority Facebook Pages (10–20) via Integrations</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-13</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-1-track-priority-facebook-pages.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>to select and manage 10–20 priority Facebook Pages/integrations for analytics</iWant>
+    <soThat>the MVP scope stays small and stable while still producing actionable insights</soThat>
+    <tasks>
+- Reuse existing integrations listing for selection UX/API (AC: #2)
+- Add org-scoped persistence for analytics tracked list (AC: #1)
+- Add analytics tracking endpoints (AC: #1, #2)
+- Validation + errors (AC: #1)
+- Tests (AC: #1, #2)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1) Given Postiz already has integrations, when the Leader selects 10–20 page integrations to enable Analytics Intelligence, then the system persists this tracked list scoped to the organization.
+2) And the API/UI can return the list of tracked pages currently being monitored.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+- path: docs/epics.md
+  title: postiz-app - Epic Breakdown
+  section: Epic 2 / Story 2.1
+  snippet: Epic 2 Story 2.1 focuses on selecting 10–20 priority pages for analytics using the existing integrations capability.
+- path: docs/PRD.md
+  title: postiz-app - Product Requirements Document
+  section: FR-001
+  snippet: PRD requires connecting and tracking 10–20 priority Facebook Pages for MVP.
+- path: docs/tech-spec.md
+  title: postiz-app — Tech Spec (Facebook Page Analytics)
+  section: Tracked Pages endpoints
+  snippet: Tech spec defines GET/PUT /analytics/tracked-pages, max 20 rule, and error handling (400/404).
+- path: docs/architecture.md
+  title: Architecture
+  section: Integration Points
+  snippet: Architecture states data sourcing should reuse Postiz integrations and keep org-scoped access.
+    </docs>
+
+    <code>
+- path: apps/backend/src/api/routes/integrations.controller.ts
+  kind: controller
+  symbol: IntegrationsController.getIntegrationList
+  lines: 87-122
+  reason: Authoritative endpoint to list integrations/channels for the org; used as selection source.
+- path: apps/frontend/src/components/platform-analytics/platform.analytics.tsx
+  kind: component
+  symbol: PlatformAnalytics
+  lines: 42-61
+  reason: FE already loads integrations via /integrations/list; reference for adding selection UI for tracked pages.
+    </code>
+
+    <dependencies>
+- ecosystem: node
+  manifest: package.json
+  notable:
+    - NestJS (controllers/services)
+    - Prisma (@prisma/client)
+    - Jest
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Do not invent a new connect flow; reuse Integrations connect/list and store analytics tracking separately (avoid breaking existing Integration semantics). [Source: docs/stories/2-1-track-priority-facebook-pages.md#Dev-Notes]
+- Enforce MVP limit: max 20 tracked integrationIds per org. [Source: docs/tech-spec.md#5.2.1-Tracked-Pages]
+- Org-scoped access: tracked list must be per organizationId. [Source: apps/backend/src/api/routes/integrations.controller.ts]
+  </constraints>
+
+  <interfaces>
+- name: GET /integrations/list
+  kind: REST endpoint
+  signature: GET /integrations/list
+  path: apps/backend/src/api/routes/integrations.controller.ts
+- name: Planned: GET /analytics/tracked-pages
+  kind: REST endpoint
+  signature: GET /analytics/tracked-pages
+  path: docs/tech-spec.md
+- name: Planned: PUT /analytics/tracked-pages
+  kind: REST endpoint
+  signature: PUT /analytics/tracked-pages { integrationIds: string[] }
+  path: docs/tech-spec.md
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest. Add backend integration tests for updating and reading tracked pages; ensure org scoping and quota validation.</standards>
+    <locations>
+- Backend routes: apps/backend/src/api/routes/**
+- Jest runner: root package.json scripts.test
+    </locations>
+    <ideas>
+- AC1: PUT /analytics/tracked-pages with >20 ids returns 400.
+- AC1: PUT with an integrationId not in org returns 404.
+- AC2: After PUT, GET /analytics/tracked-pages returns same ids.
+    </ideas>
+  </tests>
+</story-context>

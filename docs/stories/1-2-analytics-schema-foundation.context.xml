@@ -1,0 +1,115 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>Analytics schema foundation (Prisma)</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-13</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-2-analytics-schema-foundation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>foundational Prisma schema for analytics groups/tags/time-series metrics</iWant>
+    <soThat>the system can ingest and analyze data over time without breaking existing Postiz tables</soThat>
+    <tasks>
+- Confirm data-model approach for MVP content storage (AC: #1)
+- Implement minimal Prisma schema changes (AC: #1)
+- Add constraints and indexes (AC: #2)
+- Apply migration/push safely (AC: #1)
+- Tests: Prisma client smoke / integration (AC: #1, #2)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1) Given the existing Postiz Prisma schema, when adding the minimum analytics-intelligence tables/models, then schema migration/push succeeds and does not break existing tables.
+2) And basic indexes exist for querying by organization/integration/date.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+- path: docs/epics.md
+  title: postiz-app - Epic Breakdown
+  section: Story 1.2
+  snippet: Story 1.2 requires adding minimal Prisma tables for group/niche, tags, and metrics time-series, ensuring migration/push succeeds and indexes exist.
+- path: docs/architecture.md
+  title: Architecture
+  section: Database / Data Architecture
+  snippet: Architecture mandates Prisma model naming conventions and unique constraints for idempotency keys (organizationId, integrationId, externalContentId, date) for metrics time-series.
+- path: docs/tech-spec.md
+  title: postiz-app — Tech Spec (Facebook Page Analytics)
+  section: Data Model (MVP)
+  snippet: Tech spec defines candidate MVP models and constraints for tracked integrations, groups/niches, optional AnalyticsContent, and daily metrics with unique idempotency keys.
+- path: package.json
+  title: Root package.json
+  section: scripts
+  snippet: Repo provides prisma scripts for generate and db push against the central schema location.
+    </docs>
+
+    <code>
+- path: libraries/nestjs-libraries/src/database/prisma/schema.prisma
+  kind: schema
+  symbol: Organization
+  lines: 14-45
+  reason: Organization is the tenant boundary; new analytics models must be org-scoped using organizationId/orgId patterns.
+- path: libraries/nestjs-libraries/src/database/prisma/schema.prisma
+  kind: schema
+  symbol: Integration
+  lines: 308-350
+  reason: Integrations already exist and are org-scoped; analytics tables should link to integrationId where relevant.
+- path: libraries/nestjs-libraries/src/database/prisma/schema.prisma
+  kind: schema
+  symbol: Tags
+  lines: 47-60
+  reason: Existing Tags model indicates current tagging domain; analytics tagging must avoid breaking existing scheduling tags.
+- path: libraries/nestjs-libraries/src/database/prisma/schema.prisma
+  kind: schema
+  symbol: Post
+  lines: 387-437
+  reason: Existing Post model can inform decision whether to reuse posts vs maintain dedicated analytics content tables.
+    </code>
+
+    <dependencies>
+- ecosystem: node
+  manifest: package.json
+  notable:
+    - prisma/@prisma/client 6.5.0
+    - postgres datasource via DATABASE_URL
+    - scripts: prisma-generate, prisma-db-push
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Keep schema changes additive; do not modify existing domain tables in a way that breaks Postiz.
+- Ensure analytics tables are org-scoped (Organization is tenant boundary) and optionally link to Integration for per-page data. [Source: libraries/nestjs-libraries/src/database/prisma/schema.prisma]
+- Prefer idempotency via unique constraints for metrics time-series (org + integration + externalContentId + date). [Source: docs/architecture.md#Database]
+  </constraints>
+
+  <interfaces>
+- name: Prisma schema
+  kind: database schema
+  signature: Prisma schema at libraries/nestjs-libraries/src/database/prisma/schema.prisma
+  path: libraries/nestjs-libraries/src/database/prisma/schema.prisma
+- name: prisma-generate
+  kind: script
+  signature: pnpm run prisma-generate
+  path: package.json
+- name: prisma-db-push
+  kind: script
+  signature: pnpm run prisma-db-push
+  path: package.json
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest (repo test script). For this story, add a minimal smoke/integration test that Prisma client can initialize and perform basic operations against new analytics tables in a controlled test environment.</standards>
+    <locations>
+- Prisma schema: libraries/nestjs-libraries/src/database/prisma/schema.prisma
+- Jest runner: root package.json scripts.test
+    </locations>
+    <ideas>
+- AC1: Prisma generate + db push succeeds with added models (no runtime schema errors).
+- AC2: A minimal query against new tables works and indexes/unique constraints prevent duplicates for idempotency keys.
+    </ideas>
+  </tests>
+</story-context>
