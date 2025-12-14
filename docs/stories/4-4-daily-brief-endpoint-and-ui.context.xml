@@ -1,0 +1,928 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>4-4-daily-brief-endpoint-and-ui</story-key>
+    <story-title>Daily Brief Endpoint + UI</story-title>
+    <epic>Epic 4: Insights + Daily Brief + Recommendations (MVP)</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-01-14</generated-date>
+    <prerequisites>
+      <prerequisite>Story 4.1: Auto Tagging (provides topics)</prerequisite>
+      <prerequisite>Story 4.2: Trending Topics (velocity analysis)</prerequisite>
+      <prerequisite>Story 4.3: Best Time to Post (scheduling insights)</prerequisite>
+      <prerequisite>Story 3.2: Dashboard KPIs (top content)</prerequisite>
+      <prerequisite>Story 3.3: Format Breakdown (Posts vs Reels)</prerequisite>
+    </prerequisites>
+    <culmination>
+      <description>Story 4.4 is the culmination of Epic 4, aggregating all previous insights into a single actionable daily brief</description>
+      <purpose>Enable Leaders to make informed content decisions in less than 5 minutes</purpose>
+    </culmination>
+  </metadata>
+
+  <story-definition>
+    <user-story>
+      As a Leader,
+      I want a Daily Brief every day,
+      So that I can make content decisions in less than 5 minutes.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Given trending topics + best time slots + top content,
+        When Leader opens Daily Brief,
+        Then system displays:
+        - Top trending topics/pillars
+        - Best time slots for posting
+        - Top performing content templates
+      </criterion>
+      <criterion id="AC2">
+        And each recommendation has explainability (why it's recommended).
+      </criterion>
+      <criterion id="AC3">
+        And if daily ingestion is partial/incomplete, Daily Brief still returns response with indicator/explanation that data is not fully complete.
+      </criterion>
+      <criterion id="AC4">
+        And query errors/invalid dates return standard NestJS format (400 with clear message).
+      </criterion>
+      <criterion id="AC5">
+        And Brief loads in less than 3 seconds for quick decision-making.
+      </criterion>
+    </acceptance-criteria>
+
+    <technical-requirements>
+      <requirement>Aggregate data from multiple analytics services</requirement>
+      <requirement>Parallel execution for performance (Promise.all)</requirement>
+      <requirement>Data completeness checking and reporting</requirement>
+      <requirement>Generate actionable recommendations with priorities</requirement>
+      <requirement>Add explainability to all insights</requirement>
+      <requirement>Support historical brief access (date selector)</requirement>
+      <requirement>Handle partial data gracefully</requirement>
+      <requirement>Cache brief data for performance</requirement>
+    </technical-requirements>
+  </story-definition>
+
+  <daily-brief-structure>
+    <description>Five-section layout for quick scanning and decision-making</description>
+    
+    <section name="summary">
+      <purpose>Key metrics at a glance</purpose>
+      <content>Total content, trending topics count, best time slots count</content>
+      <display>Three summary cards</display>
+    </section>
+
+    <section name="trending-topics">
+      <purpose>What's hot in your niche</purpose>
+      <content>Top 3-5 trending topics from Story 4.2</content>
+      <display>Velocity scores, mention counts, explanations</display>
+    </section>
+
+    <section name="best-times">
+      <purpose>When to post today</purpose>
+      <content>Top 3 optimal time slots for current day from Story 4.3</content>
+      <display>Time ranges, confidence scores, explanations</display>
+    </section>
+
+    <section name="top-content">
+      <purpose>What's working well</purpose>
+      <content>Top 5 performing content from last 7 days</content>
+      <display>Engagement metrics, engagement rates, explanations</display>
+    </section>
+
+    <section name="format-insights">
+      <purpose>Posts vs Reels performance</purpose>
+      <content>Format comparison from Story 3.3</content>
+      <display>Winner identification, performance difference</display>
+    </section>
+
+    <section name="recommendations">
+      <purpose>Actionable next steps</purpose>
+      <content>Priority-ranked recommendations based on all insights</content>
+      <display>High/medium/low priority, titles, descriptions, CTAs</display>
+    </section>
+  </daily-brief-structure>
+
+  <service-implementation>
+    <class-name>AnalyticsDailyBriefService</class-name>
+    <location>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-daily-brief.service.ts</location>
+
+    <dependencies>
+      <service>AnalyticsTrendingService (Story 4.2)</service>
+      <service>AnalyticsBestTimeService (Story 4.3)</service>
+      <service>PrismaService (for direct queries)</service>
+    </dependencies>
+
+    <main-method>
+      <signature>
+        ```typescript
+        async getDailyBrief(
+          organizationId: string,
+          options: {
+            groupId?: string;
+            date?: string; // YYYY-MM-DD, defaults to today
+          }
+        ): Promise&lt;DailyBriefResponse&gt;
+        ```
+      </signature>
+
+      <parallel-execution>
+        <description>Use Promise.all for concurrent data fetching to minimize load time</description>
+        <pattern>
+          ```typescript
+          const [trending, bestTimes, topContent, formatInsights] = await Promise.all([
+            this.getTrendingTopics(organizationId, groupId),
+            this.getBestTimesToday(organizationId, groupId),
+            this.getTopContent(organizationId, groupId),
+            this.getFormatInsights(organizationId, groupId)
+          ]);
+          ```
+        </pattern>
+        <rationale>Reduces total load time from sequential sum to longest single query</rationale>
+      </parallel-execution>
+
+      <implementation>
+        ```typescript
+        async getDailyBrief(organizationId: string, options: DailyBriefOptions) {
+          const targetDate = options.date ? dayjs(options.date) : dayjs();
+          
+          // Check data completeness first
+          const completeness = await this.checkDataCompleteness(
+            organizationId,
+            targetDate.toDate()
+          );
+
+          // Aggregate insights in parallel
+          const [trending, bestTimes, topContent, formatInsights] = await Promise.all([
+            this.getTrendingTopics(organizationId, options.groupId),
+            this.getBestTimesToday(organizationId, options.groupId),
+            this.getTopContent(organizationId, options.groupId),
+            this.getFormatInsights(organizationId, options.groupId)
+          ]);
+
+          // Generate recommendations based on all insights
+          const recommendations = this.generateRecommendations({
+            trending,
+            bestTimes,
+            topContent,
+            formatInsights
+          });
+
+          return {
+            date: targetDate.format('YYYY-MM-DD'),
+            generatedAt: new Date().toISOString(),
+            dataCompleteness: completeness,
+            summary: {
+              totalContent: topContent.total,
+              trendingTopicsCount: trending.length,
+              bestTimeSlotsCount: bestTimes.length
+            },
+            insights: {
+              trending,
+              bestTimes,
+              topContent: topContent.items,
+              formatInsights
+            },
+            recommendations,
+            explainability: this.generateExplainability(completeness)
+          };
+        }
+        ```
+      </implementation>
+    </main-method>
+
+    <data-aggregation-methods>
+      <method name="getTrendingTopics">
+        <purpose>Fetch trending topics from last 24-48 hours</purpose>
+        <source>AnalyticsTrendingService (Story 4.2)</source>
+        <implementation>
+          ```typescript
+          private async getTrendingTopics(organizationId: string, groupId?: string) {
+            const trending = await this._trendingService.getTrendingTopics(
+              organizationId,
+              { groupId, timeWindow: '24h', limit: 5 }
+            );
+
+            return trending.map(item => ({
+              tag: item.tag.name,
+              velocityScore: item.velocityScore,
+              currentMentions: item.currentMentions,
+              explanation: `Trending up ${item.velocityScore}% with ${item.currentMentions} mentions in last 24h`
+            }));
+          }
+          ```
+        </implementation>
+      </method>
+
+      <method name="getBestTimesToday">
+        <purpose>Get optimal posting times for current day of week</purpose>
+        <source>AnalyticsBestTimeService (Story 4.3)</source>
+        <implementation>
+          ```typescript
+          private async getBestTimesToday(organizationId: string, groupId?: string) {
+            const bestTime = await this._bestTimeService.getBestTimeSlots(
+              organizationId,
+              { groupId, format: 'all', days: 7 }
+            );
+
+            // Filter for today's day of week
+            const todayDayOfWeek = dayjs().day();
+            const todaySlots = bestTime.recommendations.filter(
+              rec => rec.dayOfWeek === todayDayOfWeek
+            );
+
+            return todaySlots.slice(0, 3).map(slot => ({
+              timeRange: slot.timeRange,
+              dayName: slot.dayName,
+              avgEngagement: slot.avgEngagement,
+              confidence: slot.confidenceScore,
+              explanation: `Based on ${slot.contentCount} posts, this time achieves ${slot.avgEngagement} avg engagement`
+            }));
+          }
+          ```
+        </implementation>
+      </method>
+
+      <method name="getTopContent">
+        <purpose>Query top performing content from last 7 days</purpose>
+        <source>Direct Prisma query</source>
+        <implementation>
+          ```typescript
+          private async getTopContent(organizationId: string, groupId?: string) {
+            const startDate = dayjs().subtract(7, 'days').toDate();
+            const endDate = new Date();
+
+            const content = await this._prismaService.analyticsContent.findMany({
+              where: {
+                organizationId,
+                publishedAt: { gte: startDate, lte: endDate },
+                ...(groupId && {
+                  integration: {
+                    groupMembers: { some: { groupId } }
+                  }
+                })
+              },
+              include: {
+                metrics: { where: { date: { gte: startDate, lte: endDate } } },
+                integration: { select: { name: true, picture: true } }
+              },
+              take: 100
+            });
+
+            // Calculate engagement and rank
+            const ranked = content
+              .map(item => {
+                const totalEngagement = item.metrics.reduce((sum, m) =>
+                  sum + (m.reactions || 0) + (m.comments || 0) + (m.shares || 0), 0
+                );
+                const totalReach = item.metrics.reduce((sum, m) =>
+                  sum + (m.reach || 0), 0
+                );
+                return {
+                  ...item,
+                  totalEngagement,
+                  totalReach,
+                  engagementRate: totalReach > 0 ? (totalEngagement / totalReach) * 100 : 0
+                };
+              })
+              .sort((a, b) => b.totalEngagement - a.totalEngagement)
+              .slice(0, 5);
+
+            return {
+              total: content.length,
+              items: ranked.map(item => ({
+                id: item.id,
+                caption: item.caption?.substring(0, 100) + '...',
+                contentType: item.contentType,
+                publishedAt: item.publishedAt,
+                integration: item.integration,
+                engagement: item.totalEngagement,
+                reach: item.totalReach,
+                engagementRate: Math.round(item.engagementRate * 10) / 10,
+                explanation: `${item.totalEngagement} total engagement with ${item.engagementRate.toFixed(1)}% engagement rate`
+              }))
+            };
+          }
+          ```
+        </implementation>
+      </method>
+
+      <method name="getFormatInsights">
+        <purpose>Compare Posts vs Reels performance</purpose>
+        <source>Direct Prisma query (similar to Story 3.3)</source>
+        <implementation>
+          ```typescript
+          private async getFormatInsights(organizationId: string, groupId?: string) {
+            const startDate = dayjs().subtract(7, 'days').toDate();
+            
+            const posts = await this.getFormatPerformance(
+              organizationId, groupId, 'post', startDate
+            );
+            const reels = await this.getFormatPerformance(
+              organizationId, groupId, 'reel', startDate
+            );
+
+            const winner = reels.avgEngagementRate > posts.avgEngagementRate ? 'reels' : 'posts';
+
+            return {
+              posts,
+              reels,
+              winner,
+              explanation: winner === 'reels'
+                ? `Reels performing ${(reels.avgEngagementRate - posts.avgEngagementRate).toFixed(1)}% better`
+                : `Posts performing ${(posts.avgEngagementRate - reels.avgEngagementRate).toFixed(1)}% better`
+            };
+          }
+          ```
+        </implementation>
+      </method>
+    </data-aggregation-methods>
+
+    <recommendations-engine>
+      <description>Generate priority-ranked actionable recommendations based on all insights</description>
+      
+      <method name="generateRecommendations">
+        <implementation>
+          ```typescript
+          private generateRecommendations(data: AggregatedInsights) {
+            const recommendations = [];
+
+            // HIGH PRIORITY: Trending topic recommendation
+            if (data.trending.length > 0) {
+              const topTrending = data.trending[0];
+              recommendations.push({
+                type: 'trending',
+                priority: 'high',
+                title: `Create content about "${topTrending.tag}"`,
+                description: `This topic is trending up ${topTrending.velocityScore}% with ${topTrending.currentMentions} mentions`,
+                action: 'Create post'
+              });
+            }
+
+            // MEDIUM PRIORITY: Best time recommendation
+            if (data.bestTimes.length > 0) {
+              const nextSlot = data.bestTimes[0];
+              recommendations.push({
+                type: 'timing',
+                priority: 'medium',
+                title: `Post today at ${nextSlot.timeRange}`,
+                description: `Historically achieves ${nextSlot.avgEngagement} avg engagement`,
+                action: 'Schedule post'
+              });
+            }
+
+            // MEDIUM PRIORITY: Format recommendation
+            if (data.formatInsights.winner) {
+              recommendations.push({
+                type: 'format',
+                priority: 'medium',
+                title: `Focus on ${data.formatInsights.winner}`,
+                description: data.formatInsights.explanation,
+                action: `Create ${data.formatInsights.winner}`
+              });
+            }
+
+            // LOW PRIORITY: Top content template
+            if (data.topContent.length > 0) {
+              const topItem = data.topContent[0];
+              recommendations.push({
+                type: 'template',
+                priority: 'low',
+                title: 'Replicate top performer',
+                description: `Similar to "${topItem.caption}" (${topItem.engagement} engagement)`,
+                action: 'Use template'
+              });
+            }
+
+            return recommendations;
+          }
+          ```
+        </implementation>
+
+        <priority-levels>
+          <high>Trending topics - Time-sensitive, high impact</high>
+          <medium>Timing and format - Important but not urgent</medium>
+          <low>Templates - Nice to have, lower impact</low>
+        </priority-levels>
+      </method>
+    </recommendations-engine>
+
+    <data-completeness-check>
+      <description>Verify ingestion completeness and provide transparency</description>
+      
+      <method name="checkDataCompleteness">
+        <implementation>
+          ```typescript
+          private async checkDataCompleteness(organizationId: string, date: Date) {
+            const startOfDay = dayjs(date).startOf('day').toDate();
+            const endOfDay = dayjs(date).endOf('day').toDate();
+
+            const contentCount = await this._prismaService.analyticsContent.count({
+              where: {
+                organizationId,
+                publishedAt: { gte: startOfDay, lte: endOfDay }
+              }
+            });
+
+            const metricsCount = await this._prismaService.analyticsDailyMetric.count({
+              where: {
+                organizationId,
+                date: { gte: startOfDay, lte: endOfDay }
+              }
+            });
+
+            const isComplete = contentCount > 0 && metricsCount > 0;
+            const completenessPercentage = contentCount > 0 && metricsCount > 0 ? 100 :
+                                            contentCount > 0 ? 50 : 0;
+
+            return {
+              isComplete,
+              percentage: completenessPercentage,
+              contentCount,
+              metricsCount,
+              message: isComplete
+                ? 'Data complete'
+                : contentCount > 0
+                ? 'Content ingested, metrics pending'
+                : 'Ingestion incomplete for this date'
+            };
+          }
+          ```
+        </implementation>
+
+        <completeness-states>
+          <state percentage="100">Both content and metrics available - Full insights</state>
+          <state percentage="50">Content only - Partial insights (no engagement data)</state>
+          <state percentage="0">No data - Cannot generate insights</state>
+        </completeness-states>
+      </method>
+
+      <method name="generateExplainability">
+        <implementation>
+          ```typescript
+          private generateExplainability(completeness: DataCompleteness): string {
+            if (completeness.isComplete) {
+              return 'All recommendations based on complete data from your tracked pages';
+            }
+
+            return `Note: ${completeness.message}. Recommendations may be partial or based on available data only.`;
+          }
+          ```
+        </implementation>
+      </method>
+    </data-completeness-check>
+  </service-implementation>
+
+  <api-specification>
+    <endpoint>
+      <method>GET</method>
+      <path>/api/analytics/daily-brief</path>
+
+      <query-parameters>
+        <param name="groupId" type="string" required="false" description="Filter by analytics group"/>
+        <param name="date" type="string" required="false" pattern="YYYY-MM-DD" description="Target date (defaults to today)"/>
+      </query-parameters>
+
+      <controller-implementation>
+        ```typescript
+        @Get('/daily-brief')
+        @ApiOperation({ summary: 'Get daily brief with aggregated insights' })
+        @ApiQuery({ name: 'groupId', required: false })
+        @ApiQuery({ name: 'date', required: false, description: 'YYYY-MM-DD' })
+        @ApiResponse({ status: 200, description: 'Daily brief returned' })
+        @ApiResponse({ status: 400, description: 'Invalid date format' })
+        async getDailyBrief(
+          @GetOrgFromRequest() org: Organization,
+          @Query('groupId') groupId?: string,
+          @Query('date') date?: string
+        ) {
+          try {
+            // Validate date format
+            if (date && !dayjs(date, 'YYYY-MM-DD', true).isValid()) {
+              throw new BadRequestException('Invalid date format. Use YYYY-MM-DD');
+            }
+
+            return await this._dailyBriefService.getDailyBrief(org.id, {
+              groupId,
+              date
+            });
+          } catch (error: any) {
+            if (error instanceof BadRequestException) {
+              throw error;
+            }
+            throw error;
+          }
+        }
+        ```
+      </controller-implementation>
+
+      <response status="200">
+        ```json
+        {
+          "date": "2025-01-14",
+          "generatedAt": "2025-01-14T10:00:00Z",
+          "dataCompleteness": {
+            "isComplete": true,
+            "percentage": 100,
+            "contentCount": 45,
+            "metricsCount": 180,
+            "message": "Data complete"
+          },
+          "summary": {
+            "totalContent": 45,
+            "trendingTopicsCount": 5,
+            "bestTimeSlotsCount": 3
+          },
+          "insights": {
+            "trending": [...],
+            "bestTimes": [...],
+            "topContent": [...],
+            "formatInsights": {...}
+          },
+          "recommendations": [
+            {
+              "type": "trending",
+              "priority": "high",
+              "title": "Create content about \"ai\"",
+              "description": "This topic is trending up 56% with 18 mentions",
+              "action": "Create post"
+            }
+          ],
+          "explainability": "All recommendations based on complete data from your tracked pages"
+        }
+        ```
+      </response>
+
+      <error-responses>
+        <error status="400" scenario="Invalid date format">
+          ```json
+          {
+            "statusCode": 400,
+            "message": "Invalid date format. Use YYYY-MM-DD",
+            "error": "Bad Request"
+          }
+          ```
+        </error>
+      </error-responses>
+    </endpoint>
+  </api-specification>
+
+  <frontend-implementation>
+    <daily-brief-page>
+      <location>apps/frontend/src/components/analytics/daily-brief/daily-brief.page.tsx</location>
+      
+      <implementation>
+        ```typescript
+        'use client';
+        import { useState } from 'react';
+        import useSWR from 'swr';
+        import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+        import dayjs from 'dayjs';
+
+        export const DailyBriefPage = ({ groupId }) => {
+          const fetch = useFetch();
+          const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
+
+          const queryString = new URLSearchParams({
+            date: selectedDate,
+            ...(groupId && { groupId })
+          }).toString();
+
+          const { data, isLoading } = useSWR(
+            `/analytics/daily-brief?${queryString}`,
+            async (url) => (await fetch(url)).json(),
+            { refreshInterval: 600000 } // 10 min refresh
+          );
+
+          if (isLoading) return <LoadingComponent />;
+
+          return (
+            <div className="max-w-[1200px] mx-auto p-[24px]">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-[24px]">
+                <div>
+                  <h1 className="text-[32px] font-bold">📊 Daily Brief</h1>
+                  <p className="text-neutral-400">
+                    {dayjs(selectedDate).format('dddd, MMMM D, YYYY')}
+                  </p>
+                </div>
+                <DateSelector value={selectedDate} onChange={setSelectedDate} />
+              </div>
+
+              {/* Data Completeness Warning */}
+              {!data.dataCompleteness.isComplete && (
+                <DataCompletenessWarning data={data.dataCompleteness} />
+              )}
+
+              {/* Summary Cards */}
+              <SummaryCards summary={data.summary} />
+
+              {/* Main Sections Grid */}
+              <div className="grid grid-cols-2 gap-[24px] mt-[24px]">
+                <TrendingSection trending={data.insights.trending} />
+                <BestTimesSection bestTimes={data.insights.bestTimes} />
+                <TopContentSection topContent={data.insights.topContent} />
+                <FormatInsightsSection formatInsights={data.insights.formatInsights} />
+              </div>
+
+              {/* Recommendations */}
+              <RecommendationsSection recommendations={data.recommendations} />
+
+              {/* Explainability Footer */}
+              <div className="mt-[16px] text-sm text-neutral-400 text-center">
+                {data.explainability}
+              </div>
+            </div>
+          );
+        };
+        ```
+      </implementation>
+
+      <ui-components>
+        <component name="DataCompletenessWarning">
+          ```typescript
+          const DataCompletenessWarning = ({ data }) => (
+            <div className="bg-yellow-500/10 border border-yellow-500 p-[16px] rounded-[8px] mb-[24px]">
+              <div className="flex items-center gap-[12px]">
+                <span className="text-yellow-500 text-[24px]">⚠️</span>
+                <div>
+                  <div className="font-medium text-yellow-500">
+                    Data Incomplete ({data.percentage}%)
+                  </div>
+                  <div className="text-sm text-neutral-400">
+                    {data.message}. Insights may be partial.
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+          ```
+        </component>
+
+        <component name="SummaryCards">
+          ```typescript
+          const SummaryCards = ({ summary }) => (
+            <div className="grid grid-cols-3 gap-[16px]">
+              <SummaryCard icon="📝" label="Total Content" value={summary.totalContent} />
+              <SummaryCard icon="🔥" label="Trending Topics" value={summary.trendingTopicsCount} />
+              <SummaryCard icon="⏰" label="Best Time Slots" value={summary.bestTimeSlotsCount} />
+            </div>
+          );
+
+          const SummaryCard = ({ icon, label, value }) => (
+            <div className="bg-third p-[20px] rounded-[8px] text-center">
+              <div className="text-[32px] mb-[8px]">{icon}</div>
+              <div className="text-[24px] font-bold">{value}</div>
+              <div className="text-sm text-neutral-400">{label}</div>
+            </div>
+          );
+          ```
+        </component>
+
+        <component name="RecommendationsSection">
+          ```typescript
+          const RecommendationsSection = ({ recommendations }) => (
+            <div className="mt-[24px] bg-third p-[20px] rounded-[8px]">
+              <h3 className="text-[18px] mb-[12px]">💡 Recommended Actions</h3>
+              <div className="space-y-[12px]">
+                {recommendations.map((rec, index) => (
+                  <div key={index} className="p-[16px] bg-forth rounded-[6px] flex items-center gap-[16px]">
+                    <div className={`w-[4px] h-[60px] rounded ${
+                      rec.priority === 'high' ? 'bg-red-500' :
+                      rec.priority === 'medium' ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}></div>
+                    <div className="flex-1">
+                      <div className="font-medium">{rec.title}</div>
+                      <div className="text-sm text-neutral-400 mt-[4px]">{rec.description}</div>
+                    </div>
+                    <button className="px-[16px] py-[8px] bg-primary text-white rounded-[4px] text-sm">
+                      {rec.action}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+          ```
+        </component>
+      </ui-components>
+    </daily-brief-page>
+  </frontend-implementation>
+
+  <performance-optimization>
+    <parallel-execution>
+      <description>Fetch all insights concurrently to minimize total load time</description>
+      <target>Total API response time &lt;3 seconds</target>
+      <implementation>Promise.all([getTrending, getBestTime, getTopContent, getFormat])</implementation>
+    </parallel-execution>
+
+    <caching>
+      <strategy>Cache daily brief for 10 minutes</strategy>
+      <key-format>org:{orgId}:brief:{date}:{groupId}</key-format>
+      <ttl>600 seconds (10 minutes)</ttl>
+      <invalidation>Time-based (no manual invalidation needed)</invalidation>
+      <rationale>Brief doesn't need real-time updates, 10-min freshness acceptable</rationale>
+    </caching>
+
+    <query-optimization>
+      <optimization>Reuse existing service calls (Trending, BestTime)</optimization>
+      <optimization>Limit top content to 5 items (reduce query size)</optimization>
+      <optimization>Use includes for nested data (single query)</optimization>
+      <optimization>Index on publishedAt and date fields</optimization>
+    </query-optimization>
+
+    <frontend-optimization>
+      <optimization>SWR caching with 10-min refresh</optimization>
+      <optimization>Skeleton loaders for better perceived performance</optimization>
+      <optimization>Lazy load historical dates (only when accessed)</optimization>
+    </frontend-optimization>
+  </performance-optimization>
+
+  <edge-cases>
+    <case name="incomplete-data">
+      <scenario>Ingestion incomplete (content but no metrics)</scenario>
+      <handling>
+        <backend>Return dataCompleteness with percentage and message</backend>
+        <frontend>Show yellow warning banner with explanation</frontend>
+        <insights>Still display available insights (trending, best times from historical)</insights>
+        <explainability>Add note about partial data</explainability>
+      </handling>
+    </case>
+
+    <case name="no-data">
+      <scenario>No content ingested for selected date</scenario>
+      <handling>
+        <backend>Return empty arrays for all insights</backend>
+        <frontend>Show empty state with setup instructions</frontend>
+        <message>"No data available for this date. Start tracking pages to get insights."</message>
+      </handling>
+    </case>
+
+    <case name="historical-brief">
+      <scenario>User selects past date via date selector</scenario>
+      <handling>
+        <backend>Query data for selected date</backend>
+        <frontend>Show "Historical Brief" indicator</frontend>
+        <caching>Cache historical briefs for 1 hour (longer than current)</caching>
+      </handling>
+    </case>
+
+    <case name="invalid-date">
+      <scenario>User provides malformed date (not YYYY-MM-DD)</scenario>
+      <handling>
+        <validation>dayjs strict validation</validation>
+        <error>400 Bad Request with clear message</error>
+        <frontend>Date picker prevents invalid input</frontend>
+      </handling>
+    </case>
+
+    <case name="group-with-no-data">
+      <scenario>Selected group has no tracked content</scenario>
+      <handling>
+        <backend>Return empty insights gracefully</backend>
+        <frontend>Show empty state specific to group</frontend>
+        <message>"No content tracked for this group yet"</message>
+      </handling>
+    </case>
+  </edge-cases>
+
+  <validation-checklist>
+    <check>All four insight sources aggregated correctly</check>
+    <check>Parallel execution with Promise.all works</check>
+    <check>Data completeness check accurate</check>
+    <check>Recommendations generated based on all insights</check>
+    <check>Priority levels assigned correctly (high/medium/low)</check>
+    <check>Explainability added to all sections</check>
+    <check>Invalid date returns 400 error</check>
+    <check>Incomplete data shows warning but still returns insights</check>
+    <check>Historical briefs accessible via date selector</check>
+    <check>Frontend displays all sections correctly</check>
+    <check>Summary cards show correct counts</check>
+    <check>Recommendations actionable with CTAs</check>
+    <check>Total load time &lt;3 seconds</check>
+    <check>Cache working (10-min TTL)</check>
+  </validation-checklist>
+
+  <testing-guidance>
+    <unit-tests>
+      <test-case>
+        <name>Data aggregation</name>
+        <description>Verify all insights fetched and combined correctly</description>
+        <mock>Mock TrendingService, BestTimeService, PrismaService</mock>
+        <assert>All sections populated in response</assert>
+      </test-case>
+
+      <test-case>
+        <name>Recommendations generation</name>
+        <description>Verify recommendations created from insights</description>
+        <scenarios>
+          <scenario>With trending topics → HIGH priority recommendation</scenario>
+          <scenario>With best times → MEDIUM priority recommendation</scenario>
+          <scenario>With format winner → MEDIUM priority recommendation</scenario>
+          <scenario>With top content → LOW priority recommendation</scenario>
+        </scenarios>
+      </test-case>
+
+      <test-case>
+        <name>Data completeness check</name>
+        <description>Verify completeness calculation</description>
+        <scenarios>
+          <scenario>Content + Metrics → 100% complete</scenario>
+          <scenario>Content only → 50% complete</scenario>
+          <scenario>No data → 0% complete</scenario>
+        </scenarios>
+      </test-case>
+
+      <test-case>
+        <name>Date validation</name>
+        <scenarios>
+          <scenario>Valid date "2025-01-14" → Success</scenario>
+          <scenario>Invalid date "14-01-2025" → 400 error</scenario>
+          <scenario>Invalid date "not-a-date" → 400 error</scenario>
+          <scenario>No date provided → Use today</scenario>
+        </scenarios>
+      </test-case>
+    </unit-tests>
+
+    <integration-tests>
+      <test>API endpoint returns daily brief with all sections</test>
+      <test>Parallel execution completes within timeout</test>
+      <test>Date parameter affects queried data</test>
+      <test>Group filter applies to all insights</test>
+      <test>Invalid date returns 400 with message</test>
+      <test>Incomplete data returns warning but still works</test>
+    </integration-tests>
+
+    <frontend-tests>
+      <test>DailyBriefPage renders all sections</test>
+      <test>Data completeness warning shows when needed</test>
+      <test>Date selector updates brief</test>
+      <test>Recommendations display with priority colors</test>
+      <test>Empty state shows when no data</test>
+      <test>Loading states work correctly</test>
+    </frontend-tests>
+
+    <performance-tests>
+      <test>Total API response time &lt;3 seconds (p95)</test>
+      <test>Parallel execution faster than sequential</test>
+      <test>Cache reduces subsequent load times</test>
+      <test>Frontend renders within 1 second of data arrival</test>
+    </performance-tests>
+  </testing-guidance>
+
+  <related-files>
+    <file path="docs/stories/4-1-auto-keyword-tagging-and-manual-campaign-tags.md" description="Topics source"/>
+    <file path="docs/stories/4-2-trending-topics-velocity.md" description="Trending analysis"/>
+    <file path="docs/stories/4-3-best-time-to-post-heatmap.md" description="Best times source"/>
+    <file path="docs/stories/3-2-dashboard-filters-kpis-top-content.md" description="Top content source"/>
+    <file path="docs/stories/3-3-engagement-rate-and-format-breakdown.md" description="Format insights source"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/analytics/analytics-trending.service.ts" description="Trending service"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/analytics/analytics-best-time.service.ts" description="Best time service"/>
+  </related-files>
+
+  <implementation-checklist>
+    <backend>
+      <task>Create AnalyticsDailyBriefService</task>
+      <task>Inject TrendingService and BestTimeService dependencies</task>
+      <task>Implement getDailyBrief() with parallel execution</task>
+      <task>Implement getTrendingTopics() helper</task>
+      <task>Implement getBestTimesToday() helper</task>
+      <task>Implement getTopContent() helper</task>
+      <task>Implement getFormatInsights() helper</task>
+      <task>Implement generateRecommendations() method</task>
+      <task>Implement checkDataCompleteness() method</task>
+      <task>Implement generateExplainability() method</task>
+      <task>Add GET /daily-brief endpoint to controller</task>
+      <task>Add date validation logic</task>
+      <task>Register service in modules</task>
+      <task>Write unit tests for aggregation</task>
+      <task>Write unit tests for recommendations</task>
+      <task>Write integration tests for API</task>
+      <task>Add Swagger documentation</task>
+      <task>Implement caching (10-min TTL)</task>
+    </backend>
+
+    <frontend>
+      <task>Create DailyBriefPage component</task>
+      <task>Create DataCompletenessWarning component</task>
+      <task>Create SummaryCards component</task>
+      <task>Create TrendingSection component</task>
+      <task>Create BestTimesSection component</task>
+      <task>Create TopContentSection component</task>
+      <task>Create FormatInsightsSection component</task>
+      <task>Create RecommendationsSection component</task>
+      <task>Create DateSelector component</task>
+      <task>Implement data fetching with useSWR</task>
+      <task>Add route for /analytics/daily-brief</task>
+      <task>Add loading states</task>
+      <task>Add empty states</task>
+      <task>Write component tests</task>
+    </frontend>
+
+    <documentation>
+      <task>Update Swagger docs</task>
+      <task>Document aggregation strategy</task>
+      <task>Document recommendations logic</task>
+      <task>Add code comments</task>
+    </documentation>
+  </implementation-checklist>
+</story-context>
