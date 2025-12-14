@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>3-2-dashboard-filters-kpis-top-content</story-key>
+    <story-title>Dashboard core — filter + KPI cards + top posts/reels</story-title>
+    <epic>Epic 3: Dashboard & Core Analytics (MVP)</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-01-14</generated-date>
+    <prerequisites>
+      <prerequisite>Story 2.2: Ingest Content Metadata (AnalyticsContent)</prerequisite>
+      <prerequisite>Story 2.3: Ingest Daily Metrics (AnalyticsDailyMetric)</prerequisite>
+      <prerequisite>Story 3.1: Manage Page Groups (AnalyticsGroup)</prerequisite>
+    </prerequisites>
+  </metadata>
+
+  <story-definition>
+    <user-story>
+      As a Leader,
+      I want a dashboard with filters and KPI cards showing top posts/reels,
+      So that I can quickly see what's working well across my tracked pages.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Given daily metrics are available (Story 2.3),
+        When Leader selects page/group/niche + date range + format,
+        Then dashboard displays KPI cards (reach/views, engagement, engagement rate).
+      </criterion>
+      <criterion id="AC2">
+        And displays a list of top content ranked by selected KPI.
+      </criterion>
+      <criterion id="AC3">
+        And filters persist across page refreshes (URL params or local storage).
+      </criterion>
+      <criterion id="AC4">
+        And dashboard updates when filters change without full page reload.
+      </criterion>
+    </acceptance-criteria>
+
+    <technical-requirements>
+      <requirement>Backend service for KPI aggregation from AnalyticsDailyMetric</requirement>
+      <requirement>API endpoints for KPIs and top content with filtering</requirement>
+      <requirement>Frontend dashboard page with filter components</requirement>
+      <requirement>KPI cards with trend indicators (vs previous period)</requirement>
+      <requirement>Top content list with sorting and pagination</requirement>
+      <requirement>Caching strategy for performance (5-10 min TTL)</requirement>
+    </technical-requirements>
+  </story-definition>
+
+  <prisma-schema-context>
+    <model name="AnalyticsDailyMetric">
+      <description>Time-series metrics per content per day (Story 2.3)</description>
+      <fields>
+        <field name="id" type="String" key="primary"/>
+        <field name="organizationId" type="String" indexed="true"/>
+        <field name="integrationId" type="String" indexed="true"/>
+        <field name="externalContentId" type="String"/>
+        <field name="date" type="DateTime" indexed="true"/>
+        <field name="impressions" type="Int?" nullable="true"/>
+        <field name="reach" type="Int?" nullable="true"/>
+        <field name="reactions" type="Int?" nullable="true"/>
+        <field name="comments" type="Int?" nullable="true"/>
+        <field name="shares" type="Int?" nullable="true"/>
+        <field name="videoViews" type="Int?" nullable="true"/>
+        <field name="clicks" type="Int?" nullable="true"/>
+      </fields>
+      <unique-constraint>[organizationId, integrationId, externalContentId, date, deletedAt]</unique-constraint>
+      <usage>Aggregate metrics for KPI calculation and trend analysis</usage>
+    </model>
+
+    <model name="AnalyticsContent">
+      <description>Content metadata (caption, hashtags, format) from Story 2.2</description>
+      <fields>
+        <field name="id" type="String" key="primary"/>
+        <field name="organizationId" type="String" indexed="true"/>
+        <field name="integrationId" type="String" indexed="true"/>
+        <field name="externalContentId" type="String"/>
+        <field name="contentType" type="String"/> <!-- post, reel, story -->
+        <field name="caption" type="String?" nullable="true"/>
+        <field name="hashtags" type="String?" nullable="true"/> <!-- JSON array -->
+        <field name="publishedAt" type="DateTime"/>
+      </fields>
+      <relations>
+        <relation name="metrics" type="AnalyticsDailyMetric[]" description="Daily metrics for this content"/>
+      </relations>
+      <usage>Join with metrics for top content ranking</usage>
+    </model>
+
+    <model name="AnalyticsGroup">
+      <description>Page groups for filtering (Story 3.1)</description>
+      <fields>
+        <field name="id" type="String" key="primary"/>
+        <field name="organizationId" type="String" indexed="true"/>
+        <field name="name" type="String"/>
+        <field name="description" type="String?" nullable="true"/>
+        <field name="niche" type="String?" nullable="true"/>
+      </fields>
+      <relations>
+        <relation name="members" type="AnalyticsGroupMember[]" description="Pages in this group"/>
+      </relations>
+      <usage>Filter metrics by group of pages</usage>
+    </model>
+
+    <model name="AnalyticsGroupMember">
+      <description>Junction table for group-to-page many-to-many (Story 3.1)</description>
+      <fields>
+        <field name="groupId" type="String" indexed="true"/>
+        <field name="trackedIntegrationId" type="String" indexed="true"/>
+      </fields>
+      <usage>Query which integrations belong to selected group</usage>
+    </model>
+  </prisma-schema-context>
+
+  <service-patterns>
+    <pattern name="Aggregation Query">
+      <description>Pattern from AnalyticsDailyMetricService for aggregating metrics</description>
+      <example>
+        ```typescript
+        // Prisma groupBy aggregation
+        const aggregated = await prisma.analyticsDailyMetric.groupBy({
+          by: ['date'],
+          where: {
+            organizationId,
+            integrationId: { in: integrationIds },
+            date: { gte: startDate, lte: endDate }
+          },
+          _sum: {
+            reach: true,
+            impressions: true,
+            reactions: true,
+            comments: true,
+            shares: true,
+            videoViews: true,
+            clicks: true
+          }
+        });
+        ```
+      </example>
+      <location>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-daily-metric.service.ts</location>
+    </pattern>
+
+    <pattern name="Group Filtering">
+      <description>Pattern from AnalyticsGroupService for querying group members</description>
+      <example>
+        ```typescript
+        // Get group with members
+        const group = await prisma.analyticsGroup.findUnique({
+          where: { id: groupId, organizationId },
+          include: {
+            members: {
+              include: {
+                trackedIntegration: {
+                  include: { integration: true }
+                }
+              }
+            }
+          }
+        });
+        
+        // Extract integrationIds from group
+        const integrationIds = group.members.map(m => m.trackedIntegration.integrationId);
+        ```
+      </example>
+      <location>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-group.service.ts</location>
+    </pattern>
+
+    <pattern name="Top Content Ranking">
+      <description>Join content with aggregated metrics and sort</description>
+      <example>
+        ```typescript
+        // Query top content with metrics
+        const topContent = await prisma.analyticsContent.findMany({
+          where: {
+            organizationId,
+            publishedAt: { gte: startDate, lte: endDate },
+            ...(format !== 'all' && { contentType: format }),
+            integration: {
+              id: { in: integrationIds }
+            }
+          },
+          include: {
+            metrics: {
+              where: {
+                date: { gte: startDate, lte: endDate }
+              }
+            },
+            integration: {
+              select: {
+                name: true,
+                picture: true
+              }
+            }
+          },
+          take: limit,
+          skip: offset
+        });
+
+        // Aggregate metrics per content and sort
+        const ranked = topContent.map(content => ({
+          ...content,
+          totalReach: content.metrics.reduce((sum, m) => sum + (m.reach || 0), 0),
+          totalEngagement: content.metrics.reduce((sum, m) => 
+            sum + (m.reactions || 0) + (m.comments || 0) + (m.shares || 0), 0
+          )
+        })).sort((a, b) => b.totalReach - a.totalReach);
+        ```
+      </example>
+    </pattern>
+
+    <pattern name="Engagement Rate Calculation">
+      <description>Calculate engagement rate from aggregated metrics</description>
+      <example>
+        ```typescript
+        // Calculate engagement rate
+        const totalReach = metrics.reduce((sum, m) => sum + (m.reach || 0), 0);
+        const totalEngagement = metrics.reduce((sum, m) => 
+          sum + (m.reactions || 0) + (m.comments || 0) + (m.shares || 0), 0
+        );
+        const engagementRate = totalReach > 0 ? (totalEngagement / totalReach) * 100 : 0;
+        ```
+      </example>
+    </pattern>
+
+    <pattern name="Trend Comparison">
+      <description>Compare current period vs previous period for trends</description>
+      <example>
+        ```typescript
+        // Calculate trend percentage
+        const currentPeriod = { startDate, endDate };
+        const periodDays = dayjs(endDate).diff(dayjs(startDate), 'days') + 1;
+        const previousPeriod = {
+          startDate: dayjs(startDate).subtract(periodDays, 'days'),
+          endDate: dayjs(startDate).subtract(1, 'day')
+        };
+
+        // Get metrics for both periods
+        const currentMetrics = await getKPIs(currentPeriod);
+        const previousMetrics = await getKPIs(previousPeriod);
+
+        // Calculate percentage change
+        const reachChange = previousMetrics.totalReach > 0
+          ? ((currentMetrics.totalReach - previousMetrics.totalReach) / previousMetrics.totalReach) * 100
+          : 0;
+        ```
+      </example>
+    </pattern>
+  </service-patterns>
+
+  <api-patterns>
+    <pattern name="Controller Error Handling">
+      <description>Standard error handling pattern from analytics.controller.ts</description>
+      <example>
+        ```typescript
+        @Get('/dashboard/kpis')
+        async getKPIs(
+          @GetOrgFromRequest() org: Organization,
+          @Query() query: DashboardKPIsDto
+        ) {
+          try {
+            return await this._dashboardService.getKPIs(org.id, query);
+          } catch (error: any) {
+            if (error.message?.includes('not found')) {
+              throw new NotFoundException(error.message);
+            }
+            if (error.message?.includes('Invalid')) {
+              throw new BadRequestException(error.message);
+            }
+            throw error;
+          }
+        }
+        ```
+      </example>
+      <location>apps/backend/src/api/routes/analytics.controller.ts (lines 172-179, 201-208, 233-240)</location>
+    </pattern>
+
+    <pattern name="Query DTO Validation">
+      <description>Use DTOs for query parameter validation</description>
+      <example>
+        ```typescript
+        // Create DTO file
+        export class DashboardKPIsDto {
+          @IsOptional()
+          @IsString()
+          groupId?: string;
+
+          @IsOptional()
+          @IsArray()
+          @IsString({ each: true })
+          integrationIds?: string[];
+
+          @IsDateString()
+          startDate: string;
+
+          @IsDateString()
+          endDate: string;
+
+          @IsOptional()
+          @IsEnum(['post', 'reel', 'all'])
+          format?: 'post' | 'reel' | 'all';
+        }
+        ```
+      </example>
+    </pattern>
+
+    <pattern name="Swagger Documentation">
+      <description>Complete API documentation pattern</description>
+      <example>
+        ```typescript
+        @Get('/dashboard/kpis')
+        @ApiOperation({ summary: 'Get dashboard KPIs with filters' })
+        @ApiQuery({ name: 'groupId', required: false, description: 'Analytics group ID' })
+        @ApiQuery({ name: 'integrationIds', required: false, type: [String], description: 'Integration IDs' })
+        @ApiQuery({ name: 'startDate', required: true, description: 'Start date (YYYY-MM-DD)' })
+        @ApiQuery({ name: 'endDate', required: true, description: 'End date (YYYY-MM-DD)' })
+        @ApiQuery({ name: 'format', required: false, enum: ['post', 'reel', 'all'] })
+        @ApiResponse({ status: 200, description: 'KPIs returned successfully', type: DashboardKPIsResponseDto })
+        @ApiResponse({ status: 400, description: 'Invalid date range or parameters' })
+        ```
+      </example>
+    </pattern>
+  </api-patterns>
+
+  <frontend-patterns>
+    <pattern name="Data Fetching with SWR">
+      <description>Pattern from analytics.component.tsx for API data fetching</description>
+      <example>
+        ```typescript
+        'use client';
+        import useSWR from 'swr';
+        import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+
+        export const DashboardComponent = () => {
+          const fetch = useFetch();
+          
+          const load = useCallback(async (path: string) => {
+            return await (await fetch(path)).json();
+          }, []);
+
+          const { isLoading, data, error } = useSWR(
+            `/analytics/dashboard/kpis?startDate=${startDate}&endDate=${endDate}`,
+            load
+          );
+
+          if (isLoading) return <LoadingComponent />;
+          if (error) return <ErrorComponent />;
+          
+          return <div>{/* Render KPIs */}</div>;
+        };
+        ```
+      </example>
+      <location>apps/frontend/src/components/analytics/analytics.component.tsx (lines 6-24)</location>
+    </pattern>
+
+    <pattern name="Component Composition">
+      <description>Composing dashboard from smaller components</description>
+      <example>
+        ```typescript
+        export const DashboardComponent = () => {
+          return (
+            <div className="flex gap-[24px] flex-1">
+              <div className="w-[300px]">
+                <FiltersPanel 
+                  onFilterChange={handleFilterChange}
+                />
+              </div>
+              <div className="flex flex-col gap-[24px] flex-1">
+                <KPICards kpis={kpis} trends={trends} />
+                <TopContentList content={topContent} />
+              </div>
+            </div>
+          );
+        };
+        ```
+      </example>
+    </pattern>
+  </frontend-patterns>
+
+  <implementation-guidance>
+    <backend>
+      <step order="1">Create AnalyticsDashboardService in libraries/nestjs-libraries/src/database/prisma/analytics/</step>
+      <step order="2">Implement getKPIs() method using Prisma groupBy aggregations</step>
+      <step order="3">Implement getTopContent() method with join and sorting</step>
+      <step order="4">Add validation for date range (max 90 days), groupId ownership</step>
+      <step order="5">Create DTOs for query validation (DashboardKPIsDto, TopContentDto)</step>
+      <step order="6">Add controller endpoints in apps/backend/src/api/routes/analytics.controller.ts</step>
+      <step order="7">Register service in apps/backend/src/api/api.module.ts providers</step>
+      <step order="8">Add Swagger documentation</step>
+      <step order="9">Implement error handling with try-catch blocks</step>
+    </backend>
+
+    <frontend>
+      <step order="1">Create dashboard component in apps/frontend/src/components/analytics/dashboard/</step>
+      <step order="2">Create filter components (GroupSelector, DateRangePicker, FormatFilter)</step>
+      <step order="3">Create KPI card components with trend indicators</step>
+      <step order="4">Create TopContent list component with pagination</step>
+      <step order="5">Implement data fetching with useSWR hooks</step>
+      <step order="6">Add loading states and error handling</step>
+      <step order="7">Implement filter state management (URL params or context)</step>
+      <step order="8">Add route at /analytics/dashboard</step>
+    </frontend>
+
+    <testing>
+      <step>Unit test KPI calculations for accuracy</step>
+      <step>Unit test top content ranking algorithm</step>
+      <step>Integration test API endpoints with various filter combinations</step>
+      <step>Test edge cases: no data, single day, large date range</step>
+      <step>Frontend component tests for filters and KPI cards</step>
+      <step>E2E test for full dashboard workflow</step>
+    </testing>
+  </implementation-guidance>
+
+  <validation-checklist>
+    <check>Backend service implements all KPI calculations correctly</check>
+    <check>API endpoints return correct data for all filter combinations</check>
+    <check>Frontend displays KPIs with trend indicators</check>
+    <check>Top content list is sortable and paginated</check>
+    <check>Filters persist across page refreshes</check>
+    <check>Loading states and error handling implemented</check>
+    <check>Error handling uses try-catch with proper HTTP exceptions</check>
+    <check>Swagger documentation complete and accurate</check>
+    <check>Code follows Postiz architectural patterns</check>
+    <check>Tests written and passing</check>
+  </validation-checklist>
+
+  <related-files>
+    <file path="docs/stories/2-2-ingest-content-metadata.md" description="AnalyticsContent model reference"/>
+    <file path="docs/stories/2-3-ingest-daily-metrics.md" description="AnalyticsDailyMetric model reference"/>
+    <file path="docs/stories/3-1-manage-page-groups-and-assign-pages.md" description="AnalyticsGroup model reference"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/schema.prisma" description="Complete Prisma schema"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/analytics/analytics-daily-metric.service.ts" description="Aggregation patterns"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/analytics/analytics-group.service.ts" description="Group filtering patterns"/>
+    <file path="apps/backend/src/api/routes/analytics.controller.ts" description="Controller patterns and error handling"/>
+    <file path="apps/frontend/src/components/analytics/analytics.component.tsx" description="Data fetching patterns"/>
+    <file path="docs/architecture-review-stories-3.1-3.2.md" description="Architecture validation"/>
+  </related-files>
+
+  <api-specifications>
+    <endpoint>
+      <method>GET</method>
+      <path>/api/analytics/dashboard/kpis</path>
+      <query-parameters>
+        <param name="groupId" type="string" required="false" description="Filter by analytics group"/>
+        <param name="integrationIds" type="string[]" required="false" description="Filter by specific integrations"/>
+        <param name="startDate" type="string" required="true" pattern="YYYY-MM-DD"/>
+        <param name="endDate" type="string" required="true" pattern="YYYY-MM-DD"/>
+        <param name="format" type="enum" required="false" values="post,reel,all" default="all"/>
+      </query-parameters>
+      <response status="200">
+        ```json
+        {
+          "period": {
+            "startDate": "2025-01-01",
+            "endDate": "2025-01-14"
+          },
+          "kpis": {
+            "totalReach": 150000,
+            "totalImpressions": 200000,
+            "totalEngagement": 7500,
+            "engagementRate": 5.0,
+            "averageViews": 25000,
+            "totalContent": 45
+          },
+          "trends": {
+            "reachChange": 12.5,
+            "engagementChange": 8.2,
+            "engagementRateChange": -2.1
+          }
+        }
+        ```
+      </response>
+    </endpoint>
+
+    <endpoint>
+      <method>GET</method>
+      <path>/api/analytics/dashboard/top-content</path>
+      <query-parameters>
+        <param name="groupId" type="string" required="false"/>
+        <param name="integrationIds" type="string[]" required="false"/>
+        <param name="startDate" type="string" required="true" pattern="YYYY-MM-DD"/>
+        <param name="endDate" type="string" required="true" pattern="YYYY-MM-DD"/>
+        <param name="format" type="enum" required="false" values="post,reel,all"/>
+        <param name="sortBy" type="enum" required="false" values="reach,engagement,engagementRate,videoViews" default="reach"/>
+        <param name="limit" type="number" required="false" default="20" max="100"/>
+        <param name="offset" type="number" required="false" default="0"/>
+      </query-parameters>
+      <response status="200">
+        ```json
+        {
+          "content": [
+            {
+              "id": "content-uuid",
+              "externalContentId": "fb_post_123",
+              "contentType": "post",
+              "caption": "Amazing product launch...",
+              "hashtags": ["#tech", "#startup"],
+              "publishedAt": "2025-01-10T10:00:00Z",
+              "integration": {
+                "name": "TechCrunch",
+                "picture": "https://..."
+              },
+              "metrics": {
+                "totalReach": 50000,
+                "totalImpressions": 75000,
+                "totalEngagement": 2500,
+                "engagementRate": 5.0,
+                "reactions": 1800,
+                "comments": 500,
+                "shares": 200,
+                "videoViews": null
+              }
+            }
+          ],
+          "pagination": {
+            "total": 45,
+            "limit": 20,
+            "offset": 0,
+            "hasMore": true
+          }
+        }
+        ```
+      </response>
+    </endpoint>
+  </api-specifications>
+
+  <performance-considerations>
+    <caching>
+      <strategy>Cache KPIs for 5 minutes using Redis</strategy>
+      <strategy>Cache top content for 10 minutes</strategy>
+      <strategy>Invalidate cache on new data ingestion</strategy>
+      <implementation>Use ioRedis from @gitroom/nestjs-libraries/redis/redis.service</implementation>
+    </caching>
+
+    <query-optimization>
+      <optimization>Use Prisma groupBy for aggregations instead of manual reduction</optimization>
+      <optimization>Add compound index on (organizationId, integrationId, date)</optimization>
+      <optimization>Limit date range to maximum 90 days</optimization>
+      <optimization>Use pagination for top content (limit + offset)</optimization>
+    </query-optimization>
+
+    <frontend-optimization>
+      <optimization>Debounce filter changes (300ms)</optimization>
+      <optimization>Use SWR caching and revalidation</optimization>
+      <optimization>Implement skeleton loaders for better perceived performance</optimization>
+      <optimization>Lazy load content thumbnails</optimization>
+    </frontend-optimization>
+  </performance-considerations>
+
+  <edge-cases>
+    <case>
+      <scenario>No data for selected filters</scenario>
+      <handling>Return empty arrays with zero KPIs, display empty state UI</handling>
+    </case>
+    <case>
+      <scenario>Single day date range</scenario>
+      <handling>Skip trend comparison, show "N/A" for trend indicators</handling>
+    </case>
+    <case>
+      <scenario>Date range exceeds 90 days</scenario>
+      <handling>Return 400 Bad Request with error message</handling>
+    </case>
+    <case>
+      <scenario>Group or integration not found</scenario>
+      <handling>Return 404 Not Found with descriptive error</handling>
+    </case>
+    <case>
+      <scenario>Mixed content types (posts + reels)</scenario>
+      <handling>Handle null videoViews for posts, calculate engagement rate consistently</handling>
+    </case>
+    <case>
+      <scenario>Null metric values</scenario>
+      <handling>Treat as zero in aggregations, display as "—" in UI</handling>
+    </case>
+  </edge-cases>
+</story-context>
