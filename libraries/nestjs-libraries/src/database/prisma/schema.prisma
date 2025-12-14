@@ -701,19 +701,34 @@ model Mentions {
 // Analytics Intelligence Models - Story 1.2
 
 model AnalyticsGroup {
-  id             String   @id @default(uuid())
+  id             String                   @id @default(uuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization             @relation(fields: [organizationId], references: [id])
   name           String
   description    String?
+  niche          String?                  // Optional niche/category identifier
   metrics        AnalyticsMetric[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  members        AnalyticsGroupMember[]   // Pages assigned to this group
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
   deletedAt      DateTime?
 
   @@unique([organizationId, name, deletedAt])
   @@index([organizationId])
   @@index([deletedAt])
+}
+
+model AnalyticsGroupMember {
+  id                     String                      @id @default(uuid())
+  groupId                String
+  group                  AnalyticsGroup              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  trackedIntegrationId   String
+  trackedIntegration     AnalyticsTrackedIntegration @relation(fields: [trackedIntegrationId], references: [id], onDelete: Cascade)
+  assignedAt             DateTime                    @default(now())
+
+  @@unique([groupId, trackedIntegrationId])
+  @@index([groupId])
+  @@index([trackedIntegrationId])
 }
 
 model AnalyticsTag {
@@ -798,11 +813,13 @@ model AnalyticsMetric {
 }
 
 model AnalyticsTrackedIntegration {
-  id             String   @id @default(cuid())
+  id             String                   @id @default(uuid())
   organizationId String
   integrationId  String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  isActive       Boolean                  @default(true)
+  groupMembers   AnalyticsGroupMember[]   // Groups this page belongs to
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 
   organization   Organization @relation(fields: [organizationId], references: [id])
   integration    Integration  @relation(fields: [integrationId], references: [id])
