@@ -62,7 +62,7 @@ development_status:
   4-1-auto-keyword-tagging-and-manual-campaign-tags: ready-for-dev
   4-2-trending-topics-velocity: ready-for-dev
   4-3-best-time-to-post-heatmap: ready-for-dev
-  4-4-daily-brief-endpoint-and-ui: backlog
+  4-4-daily-brief-endpoint-and-ui: ready-for-dev
   epic-4-retrospective: optional
 
   # Epic 5 — Export Reporting (MVP)
