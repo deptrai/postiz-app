@@ -47,6 +47,20 @@ model Organization {
   analyticsContents          AnalyticsContent[]
   analyticsMetrics           AnalyticsMetric[]
   analyticsTrackedIntegrations AnalyticsTrackedIntegration[]
+  analyticsContent             AnalyticsContent[]
+  analyticsDailyMetrics        AnalyticsDailyMetric[]
+  analyticsMetrics             AnalyticsMetric[]
+  provider                     Provider[]
+  color        String
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id])
+  posts        TagsPosts[]
+  deletedAt    DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([orgId])
+  @@index([deletedAt])
 }
 
 model Tags {
