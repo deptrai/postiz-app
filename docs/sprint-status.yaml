@@ -61,7 +61,7 @@ development_status:
   epic-4: backlog
   4-1-auto-keyword-tagging-and-manual-campaign-tags: ready-for-dev
   4-2-trending-topics-velocity: ready-for-dev
-  4-3-best-time-to-post-heatmap: backlog
+  4-3-best-time-to-post-heatmap: ready-for-dev
   4-4-daily-brief-endpoint-and-ui: backlog
   epic-4-retrospective: optional
 
