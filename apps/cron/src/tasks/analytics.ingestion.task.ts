@@ -78,17 +78,51 @@ export class AnalyticsIngestionTask {
         );
       }
 
-      // Enqueue aggregation job after all ingestions
+      this.logger.log(
+        `Enqueued ${trackedIntegrations.length} ingestion jobs for date: ${yesterday}`
+      );
+
+      // Emit metrics ingestion jobs (delayed 5 minutes to allow content ingestion to complete)
+      for (const tracked of trackedIntegrations) {
+        const integration = tracked.integration;
+        const metricsJobId = `analytics-ingest-metrics-${integration.organizationId}-${integration.id}-${yesterday}`;
+        
+        this._workerServiceProducer.emit('analytics-ingest-metrics', {
+          id: metricsJobId,
+          options: {
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
+            delay: 300000, // 5 minutes delay to allow content ingestion to complete
+            removeOnComplete: true,
+            removeOnFail: false,
+          },
+          payload: {
+            organizationId: integration.organizationId,
+            integrationId: integration.id,
+            date: yesterday,
+            jobId: metricsJobId,
+          },
+        });
+      }
+
+      this.logger.log(
+        `Enqueued ${trackedIntegrations.length} metrics ingestion jobs for date: ${yesterday} (delayed 5 minutes)`
+      );
+
+      // Emit aggregation job (delayed to run after ingestion + metrics complete)
       const aggregationJobId = `analytics-aggregate-${yesterday}`;
       this._workerServiceProducer.emit('analytics-aggregate', {
         id: aggregationJobId,
         options: {
-          delay: 30 * 60 * 1000, // 30 minutes delay to allow ingestions to complete
           attempts: 2,
           backoff: {
             type: 'fixed',
             delay: 5000,
           },
+          delay: 2400000, // 40 minutes delay to allow content + metrics ingestion to complete
           removeOnComplete: true,
           removeOnFail: false,
         },
@@ -99,7 +133,7 @@ export class AnalyticsIngestionTask {
       });
 
       this.logger.log(
-        `Enqueued aggregation job for date: ${yesterday} (delayed 30 minutes)`
+        `Enqueued aggregation job for date: ${yesterday} (delayed 40 minutes)`
       );
     } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

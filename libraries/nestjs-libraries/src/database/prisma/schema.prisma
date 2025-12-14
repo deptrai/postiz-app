@@ -784,17 +784,53 @@ model AnalyticsMetric {
 }
 
 model AnalyticsTrackedIntegration {
-  id             String   @id @default(uuid())
+  id             String   @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   integrationId  String
-  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  integration    Integration  @relation(fields: [integrationId], references: [id])
 
   @@unique([organizationId, integrationId])
   @@index([organizationId])
   @@index([integrationId])
+}
+
+model AnalyticsDailyMetric {
+  id                String    @id @default(cuid())
+  organizationId    String
+  integrationId     String
+  externalContentId String    // Facebook post/video ID
+  date              DateTime  @db.Date // Date of metric snapshot
+
+  // Reach/Impressions
+  impressions       Int?      // Total impressions (may include duplicates)
+  reach             Int?      // Unique impressions
+
+  // Engagement
+  reactions         Int?      // Total reactions (all types)
+  comments          Int?      // Total comments
+  shares            Int?      // Total shares
+
+  // Video-specific
+  videoViews        Int?      // Video views (for reels/videos)
+
+  // Clicks
+  clicks            Int?      // Post clicks (optional)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  integration       Integration  @relation(fields: [integrationId], references: [id])
+
+  @@unique([organizationId, integrationId, externalContentId, date, deletedAt])
+  @@index([organizationId, date])
+  @@index([integrationId, date])
+  @@index([externalContentId, date])
 }
 
 enum OrderStatus {
