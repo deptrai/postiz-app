@@ -1,5 +1,8 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Transport } from '@nestjs/microservices';
+import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
+import { AnalyticsContentService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-content.service';
+import dayjs from 'dayjs';
 
 interface AnalyticsIngestPayload {
   organizationId: string;
@@ -19,32 +22,65 @@ interface AnalyticsAggregatePayload {
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
 
+  constructor(
+    private _prismaService: PrismaService,
+    private _analyticsContentService: AnalyticsContentService
+  ) {}
+
   /**
    * Process analytics ingestion job
    * Fetches content metadata and daily metrics from Facebook API
    */
   @EventPattern('analytics-ingest', Transport.REDIS)
-  async processIngestion(payload: AnalyticsIngestPayload) {
-    const { organizationId, integrationId, date, jobId, isBackfill } = payload;
+  async processIngestion(data: {
+    organizationId: string;
+    integrationId: string;
+    date: string;
+  }) {
+    const { organizationId, integrationId, date } = data;
 
     this.logger.log(
-      `Processing ingestion job | jobId: ${jobId}, org: ${organizationId}, integration: ${integrationId}, date: ${date}, backfill: ${isBackfill || false}`
+      `Processing analytics ingestion for org=${organizationId}, integration=${integrationId}, date=${date}`
     );
 
     try {
-      // TODO: Epic 2 - Story 2.2: Implement content metadata ingestion
-      // TODO: Epic 2 - Story 2.3: Implement daily metrics ingestion
-      
-      // Placeholder for now - will be implemented in Epic 2
-      this.logger.log(
-        `[PLACEHOLDER] Ingestion logic not yet implemented. This will fetch Facebook data for integration: ${integrationId} on ${date}`
+      // Fetch integration to get access token
+      const integration = await this._prismaService.integration.findFirst({
+        where: {
+          id: integrationId,
+          organizationId,
+          deletedAt: null,
+        },
+      });
+
+      if (!integration) {
+        throw new Error('Integration not found or does not belong to organization');
+      }
+
+      if (!integration.providerIdentifier || integration.providerIdentifier !== 'facebook') {
+        throw new Error('Integration is not a Facebook page');
+      }
+
+      // Fetch content from Facebook Graph API
+      const content = await this.fetchFacebookContent(
+        integration.internalId, // Facebook page ID
+        integration.token, // Access token
+        date
       );
 
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      this.logger.log(
+        `Fetched ${content.length} content items from Facebook for integration=${integrationId}`
+      );
+
+      // Store content metadata using upsert for idempotency
+      const stored = await this._analyticsContentService.upsertContentBatch(
+        organizationId,
+        integrationId,
+        content
+      );
 
       this.logger.log(
-        `Completed ingestion job | jobId: ${jobId}, org: ${organizationId}, integration: ${integrationId}, date: ${date}`
+        `Stored ${stored.length} content items for integration=${integrationId}`
       );
 
       return {
@@ -52,20 +88,115 @@ export class AnalyticsController {
         organizationId,
         integrationId,
         date,
-        jobId,
+        contentCount: stored.length,
+        message: 'Content metadata ingestion completed',
       };
-    } catch (error) {
-      this.handleIngestionError(error, payload);
-      // Return error result for non-throwing cases
+    } catch (error: any) {
+      // Classify error for retry logic
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isTransient = this.isTransientError(errorMessage);
+
+      this.logger.error(
+        `Analytics ingestion failed for integration=${integrationId}: ${errorMessage}`,
+        {
+          organizationId,
+          integrationId,
+          date,
+          error: errorMessage,
+          isTransient,
+        }
+      );
+
+      if (isTransient) {
+        // Re-throw to trigger BullMQ retry
+        throw error;
+      }
+
+      // Permanent failure - log and return error state
       return {
         success: false,
         organizationId,
         integrationId,
         date,
-        jobId,
-        error: error.message,
+        error: errorMessage,
+        isPermanent: true,
       };
     }
+  }
+
+  /**
+   * Fetch content metadata from Facebook Graph API
+   * 
+   * @param pageId - Facebook page ID
+   * @param accessToken - Facebook access token
+   * @param date - Date to fetch content for (YYYY-MM-DD)
+   * @returns Array of content metadata
+   */
+  private async fetchFacebookContent(
+    pageId: string,
+    accessToken: string,
+    date: string
+  ): Promise<Array<{
+    externalContentId: string;
+    contentType: 'post' | 'reel' | 'story';
+    caption?: string;
+    hashtags?: string[];
+    publishedAt: Date;
+  }>> {
+    const targetDate = dayjs(date);
+    const since = targetDate.startOf('day').unix();
+    const until = targetDate.endOf('day').unix();
+
+    const content: Array<any> = [];
+
+    // Fetch posts
+    const postsUrl = `https://graph.facebook.com/v20.0/${pageId}/posts?fields=id,message,created_time&since=${since}&until=${until}&access_token=${accessToken}`;
+    const postsResponse = await fetch(postsUrl);
+
+    if (!postsResponse.ok) {
+      const errorText = await postsResponse.text();
+      throw new Error(`Facebook API error: ${errorText}`);
+    }
+
+    const postsData = await postsResponse.json();
+    if (postsData.data) {
+      for (const post of postsData.data) {
+        const caption = post.message || '';
+        content.push({
+          externalContentId: post.id,
+          contentType: 'post' as const,
+          caption,
+          hashtags: this._analyticsContentService.extractHashtags(caption),
+          publishedAt: new Date(post.created_time),
+        });
+      }
+    }
+
+    // Fetch videos/reels
+    const videosUrl = `https://graph.facebook.com/v20.0/${pageId}/videos?fields=id,description,created_time,is_instagram_eligible&since=${since}&until=${until}&access_token=${accessToken}`;
+    const videosResponse = await fetch(videosUrl);
+
+    if (!videosResponse.ok) {
+      const errorText = await videosResponse.text();
+      // Log but don't fail if videos endpoint fails (might not have permission)
+      this.logger.warn(`Facebook videos API error: ${errorText}`);
+    } else {
+      const videosData = await videosResponse.json();
+      if (videosData.data) {
+        for (const video of videosData.data) {
+          const caption = video.description || '';
+          content.push({
+            externalContentId: video.id,
+            contentType: 'reel' as const, // Classify videos as reels for now
+            caption,
+            hashtags: this._analyticsContentService.extractHashtags(caption),
+            publishedAt: new Date(video.created_time),
+          });
+        }
+      }
+    }
+
+    return content;
   }
 
   /**
@@ -100,10 +231,11 @@ export class AnalyticsController {
         date,
         jobId,
       };
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
-        `Aggregation job failed | jobId: ${jobId}, date: ${date}, error: ${error.message}`,
-        error.stack
+        `Aggregation job failed | jobId: ${jobId}, date: ${date}, error: ${errorMessage}`,
+        error instanceof Error ? error.stack : ''
       );
 
       // Aggregation failures are non-blocking, log and continue
@@ -111,90 +243,60 @@ export class AnalyticsController {
         success: false,
         date,
         jobId,
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
 
   /**
-   * Handle ingestion errors with classification
-   * Determines if error is transient (retry) or permanent (stop retry)
+   * Classify errors as transient (retry) or permanent (don't retry)
+   * 
+   * @param errorMessage - Error message
+   * @returns True if error is transient and should be retried
    */
-  private handleIngestionError(error: any, payload: AnalyticsIngestPayload) {
-    const { organizationId, integrationId, date, jobId } = payload;
-
-    // Classify error type
-    const errorType = this.classifyError(error);
-
-    this.logger.error(
-      `Ingestion job failed | jobId: ${jobId}, org: ${organizationId}, integration: ${integrationId}, date: ${date}, errorType: ${errorType}, error: ${error.message}`,
-      error.stack
-    );
-
-    // Permanent errors should stop retry
-    if (errorType === 'permanent') {
-      this.logger.warn(
-        `Permanent error detected | jobId: ${jobId}, stopping retries. Reason: ${error.message}`
-      );
-
-      // TODO: Epic 2 - Store error in database for monitoring
-      // await this._databaseService.errors.create({
-      //   data: {
-      //     message: `Analytics ingestion failed: ${error.message}`,
-      //     body: JSON.stringify({ organizationId, integrationId, date, errorType }),
-      //     platform: 'facebook',
-      //     organizationId,
-      //     postId: 'N/A', // or create separate analytics error table
-      //   }
-      // });
-
-      // Throw with specific message to prevent further retries
-      throw new Error(`PERMANENT_ERROR: ${error.message}`);
-    }
-
-    // Transient errors will be retried by BullMQ
-    this.logger.warn(
-      `Transient error detected | jobId: ${jobId}, will retry. Reason: ${error.message}`
-    );
-
-    throw error; // Re-throw for BullMQ retry mechanism
-  }
-
-  /**
-   * Classify error as transient (network/5xx) or permanent (auth/permission)
-   */
-  private classifyError(error: any): 'transient' | 'permanent' {
-    const message = error.message?.toLowerCase() || '';
-    const statusCode = error.statusCode || error.status;
-
-    // Permanent error patterns
+  private isTransientError(errorMessage: string): boolean {
+    // Permanent errors (token invalid, permission denied)
     const permanentPatterns = [
-      'invalid token',
-      'token expired',
-      'permission denied',
-      'access denied',
-      'unauthorized',
-      'forbidden',
-      'invalid credentials',
-      'authentication failed',
-      'oauth',
+      'Error validating access token',
+      'access token',
+      'REVOKED_ACCESS_TOKEN',
+      'expired',
+      'permission',
+      'not found',
+      'does not belong',
+      'not a Facebook page',
+      '190', // Facebook invalid token error code
+      '490', // Facebook session expired
     ];
 
-    if (permanentPatterns.some(pattern => message.includes(pattern))) {
-      return 'permanent';
+    const lowerMessage = errorMessage.toLowerCase();
+    
+    // Check for permanent errors first
+    const isPermanent = permanentPatterns.some((pattern) =>
+      lowerMessage.includes(pattern.toLowerCase())
+    );
+
+    if (isPermanent) {
+      return false; // Don't retry permanent errors
     }
 
-    // HTTP 401, 403 are permanent
-    if (statusCode === 401 || statusCode === 403) {
-      return 'permanent';
-    }
+    // Transient errors (network, rate limit, temporary service issues)
+    const transientPatterns = [
+      'ECONNREFUSED',
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'network',
+      'timeout',
+      'rate limit',
+      '429', // Too Many Requests
+      '500', // Internal Server Error
+      '502', // Bad Gateway
+      '503', // Service Unavailable
+      '504', // Gateway Timeout
+    ];
 
-    // HTTP 400 (bad request) is permanent
-    if (statusCode === 400) {
-      return 'permanent';
-    }
-
-    // All other errors are transient (network, 5xx, timeouts, etc.)
-    return 'transient';
+    return transientPatterns.some((pattern) =>
+      lowerMessage.includes(pattern.toLowerCase())
+    );
   }
 }

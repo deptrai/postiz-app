@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { BullMqClient } from '@gitroom/nestjs-libraries/bull-mq-transport-new/client';
-import { DatabaseService } from '@gitroom/nestjs-libraries/database/prisma/database.service';
+import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
+import { AnalyticsTrackingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-tracking.service';
 import dayjs from 'dayjs';
 
 @Injectable()
@@ -10,12 +11,13 @@ export class AnalyticsIngestionTask {
 
   constructor(
     private _workerServiceProducer: BullMqClient,
-    private _databaseService: DatabaseService
+    private _prismaService: PrismaService,
+    private _analyticsTrackingService: AnalyticsTrackingService
   ) {}
 
   /**
    * Daily analytics ingestion job - runs at 2 AM daily
-   * Enqueues ingestion jobs for all active integrations
+   * Enqueues ingestion jobs for tracked integrations only
    */
   @Cron('0 2 * * *')
   async handleDailyIngestion() {
@@ -24,24 +26,32 @@ export class AnalyticsIngestionTask {
     this.logger.log(`Starting daily analytics ingestion for date: ${yesterday}`);
 
     try {
-      // Get all active Facebook integrations
-      const integrations = await this._databaseService.integration.findMany({
+      // Get all tracked integrations (from Story 2.1)
+      const trackedIntegrations = await this._prismaService.analyticsTrackedIntegration.findMany({
         where: {
-          type: 'facebook',
-          disabled: false,
-          deletedAt: null,
+          integration: {
+            providerIdentifier: 'facebook',
+            disabled: false,
+            deletedAt: null,
+          },
         },
-        select: {
-          id: true,
-          organizationId: true,
-          name: true,
+        include: {
+          integration: {
+            select: {
+              id: true,
+              organizationId: true,
+              name: true,
+              providerIdentifier: true,
+            },
+          },
         },
       });
 
-      this.logger.log(`Found ${integrations.length} active Facebook integrations`);
+      this.logger.log(`Found ${trackedIntegrations.length} tracked Facebook integrations`);
 
-      // Enqueue ingestion job for each integration
-      for (const integration of integrations) {
+      // Enqueue ingestion job for each tracked integration
+      for (const tracked of trackedIntegrations) {
+        const integration = tracked.integration;
         const jobId = `analytics-ingest-${integration.organizationId}-${integration.id}-${yesterday}`;
         
         this._workerServiceProducer.emit('analytics-ingest', {
@@ -91,10 +101,11 @@ export class AnalyticsIngestionTask {
       this.logger.log(
         `Enqueued aggregation job for date: ${yesterday} (delayed 30 minutes)`
       );
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
-        `Failed to enqueue analytics jobs: ${error.message}`,
-        error.stack
+        `Failed to enqueue analytics jobs: ${errorMessage}`,
+        error instanceof Error ? error.stack : ''
       );
     }
   }
