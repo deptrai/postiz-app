@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '@gitroom/nestjs-libraries/database/prisma/database.service';
+import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 
 @Injectable()
 export class AnalyticsTrackingService {
-  constructor(private _databaseService: DatabaseService) {}
+  constructor(private _prismaService: PrismaService) {}
 
   /**
    * Get list of tracked integration IDs for an organization
@@ -11,7 +11,7 @@ export class AnalyticsTrackingService {
    * @returns Array of integration IDs that are being tracked for analytics
    */
   async getTrackedIntegrations(organizationId: string): Promise<string[]> {
-    const tracked = await this._databaseService.analyticsTrackedIntegration.findMany({
+    const tracked = await this._prismaService.analyticsTrackedIntegration.findMany({
       where: {
         organizationId,
       },
@@ -46,7 +46,7 @@ export class AnalyticsTrackingService {
 
     // Validation: All integrations must belong to the organization
     if (integrationIds.length > 0) {
-      const validIntegrations = await this._databaseService.integration.findMany({
+      const validIntegrations = await this._prismaService.integration.findMany({
         where: {
           id: { in: integrationIds },
           organizationId,
@@ -98,7 +98,7 @@ export class AnalyticsTrackingService {
     organizationId: string,
     integrationId: string
   ): Promise<boolean> {
-    const tracked = await this._databaseService.analyticsTrackedIntegration.findUnique({
+    const tracked = await this._prismaService.analyticsTrackedIntegration.findUnique({
       where: {
         organizationId_integrationId: {
           organizationId,
@@ -116,7 +116,7 @@ export class AnalyticsTrackingService {
    * @returns Number of tracked integrations
    */
   async getTrackedIntegrationsCount(organizationId: string): Promise<number> {
-    return this._databaseService.analyticsTrackedIntegration.count({
+    return this._prismaService.analyticsTrackedIntegration.count({
       where: {
         organizationId,
       },
