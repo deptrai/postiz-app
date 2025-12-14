@@ -13,24 +13,12 @@ describe('AnalyticsController', () => {
   let integrationService: IntegrationService;
   let analyticsTrackingService: AnalyticsTrackingService;
 
-  const mockOrganization: Organization = {
+  const mockOrganization = {
     id: 'test-org-id',
     name: 'Test Organization',
     createdAt: new Date(),
     updatedAt: new Date(),
-    tier: 'FREE',
-    companyId: null,
-    apiKey: null,
-    renewalDate: null,
-    externalId: null,
-    paymentMethod: null,
-    subscriptionId: null,
-    paymentCheckoutId: null,
-    canceledAt: null,
-    totalSpent: 0,
-    providerId: null,
-    paymentTransactionId: null,
-  };
+  } as Organization;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
