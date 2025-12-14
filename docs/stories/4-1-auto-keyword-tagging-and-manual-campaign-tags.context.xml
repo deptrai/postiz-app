@@ -1,0 +1,747 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>4-1-auto-keyword-tagging-and-manual-campaign-tags</story-key>
+    <story-title>Auto Keyword/Topic Tagging + Manual Campaign Tags</story-title>
+    <epic>Epic 4: Insights + Daily Brief + Recommendations (MVP)</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-01-14</generated-date>
+    <prerequisites>
+      <prerequisite>Story 2.2: Ingest Content Metadata (caption, hashtags fields)</prerequisite>
+      <prerequisite>Story 1.2: Analytics schema (AnalyticsTag, AnalyticsContentTag models)</prerequisite>
+    </prerequisites>
+    <enables>
+      <enables-story>Story 4.2: Trending topics (uses tags for velocity tracking)</enables-story>
+      <enables-story>Story 4.4: Daily brief (uses tags for insights)</enables-story>
+    </enables>
+  </metadata>
+
+  <story-definition>
+    <user-story>
+      As a Leader,
+      I want auto tagging based on keywords/topics and manual campaign tags,
+      So that I can analyze content by pillars/campaigns and track what topics are working.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Given content has caption and hashtags,
+        When auto-tagging job runs,
+        Then system extracts keywords and creates AUTO tags and assigns them to content.
+      </criterion>
+      <criterion id="AC2">
+        And user can create manual CAMPAIGN tags via UI.
+      </criterion>
+      <criterion id="AC3">
+        And user can assign manual tags to content.
+      </criterion>
+      <criterion id="AC4">
+        And tags are visible on content items in the dashboard.
+      </criterion>
+      <criterion id="AC5">
+        And tags can be used to filter analytics (preparation for Story 4.2).
+      </criterion>
+    </acceptance-criteria>
+
+    <technical-requirements>
+      <requirement>Rule-based keyword extraction (no ML/NLP for MVP)</requirement>
+      <requirement>Hashtag parsing from JSON metadata</requirement>
+      <requirement>Tag normalization and deduplication</requirement>
+      <requirement>Idempotent auto-tagging (safe to re-run)</requirement>
+      <requirement>Manual tag CRUD operations</requirement>
+      <requirement>Tag assignment to content</requirement>
+      <requirement>Background job processing via BullMQ</requirement>
+      <requirement>Frontend tag management UI</requirement>
+    </technical-requirements>
+  </story-definition>
+
+  <keyword-extraction-algorithm>
+    <description>Rule-based keyword extraction from content captions</description>
+    <mvp-scope>No ML/NLP - simple text processing for MVP</mvp-scope>
+    
+    <implementation>
+      <code language="typescript">
+        ```typescript
+        private extractKeywords(caption: string): string[] {
+          if (!caption) return [];
+          
+          // Step 1: Clean caption
+          const text = caption.toLowerCase();
+          const withoutUrls = text.replace(/https?:\/\/[^\s]+/g, '');
+          const cleaned = withoutUrls.replace(/[^a-z0-9\s-]/g, ' ');
+          
+          // Step 2: Split into words
+          const words = cleaned.split(/\s+/).filter(w => w.length > 0);
+          
+          // Step 3: Filter stopwords
+          const stopwords = new Set([
+            'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but',
+            'in', 'with', 'to', 'for', 'of', 'as', 'by', 'from', 'this', 'that',
+            'it', 'are', 'was', 'were', 'been', 'be', 'have', 'has', 'had',
+            'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may',
+            'might', 'can', 'i', 'you', 'he', 'she', 'we', 'they', 'my', 'your'
+          ]);
+          
+          // Step 4: Filter and validate
+          const keywords = words
+            .filter(word => word.length >= 3)        // Min 3 characters
+            .filter(word => !stopwords.has(word))    // Remove common words
+            .filter(word => !/^\d+$/.test(word));    // Remove pure numbers
+          
+          // Step 5: Deduplicate
+          return Array.from(new Set(keywords));
+        }
+        ```
+      </code>
+    </implementation>
+
+    <algorithm-steps>
+      <step order="1">Convert caption to lowercase</step>
+      <step order="2">Remove URLs (http://, https://)</step>
+      <step order="3">Remove special characters (keep alphanumeric, spaces, hyphens)</step>
+      <step order="4">Split into words by whitespace</step>
+      <step order="5">Filter stopwords (common words like "the", "is", "and")</step>
+      <step order="6">Filter short words (less than 3 characters)</step>
+      <step order="7">Filter pure numbers</step>
+      <step order="8">Deduplicate keywords</step>
+    </algorithm-steps>
+
+    <stopwords-list>
+      <description>Common English words to exclude from keyword extraction</description>
+      <words>the, is, at, which, on, a, an, and, or, but, in, with, to, for, of, as, by, from, this, that, it, are, was, were, been, be, have, has, had, do, does, did, will, would, should, could, may, might, can, i, you, he, she, we, they, my, your</words>
+      <note>Can be extended based on domain-specific common words</note>
+    </stopwords-list>
+
+    <validation-rules>
+      <rule>Minimum keyword length: 3 characters</rule>
+      <rule>Maximum keywords per content: 20</rule>
+      <rule>No pure numbers as keywords</rule>
+      <rule>No URLs as keywords</rule>
+      <rule>Case-insensitive matching</rule>
+    </validation-rules>
+  </keyword-extraction-algorithm>
+
+  <hashtag-parsing>
+    <description>Parse hashtags from JSON metadata field</description>
+    <input-format>JSON array of hashtag strings from Facebook API</input-format>
+    
+    <implementation>
+      <code language="typescript">
+        ```typescript
+        private parseHashtags(hashtagsJson: string): string[] {
+          if (!hashtagsJson) return [];
+          
+          try {
+            const hashtags = JSON.parse(hashtagsJson);
+            if (!Array.isArray(hashtags)) return [];
+            
+            return hashtags
+              .map(tag => tag.toLowerCase().replace(/^#/, '').trim())
+              .filter(tag => tag.length > 0);
+          } catch (error) {
+            this._logger.warn(`Failed to parse hashtags: ${error.message}`);
+            return [];
+          }
+        }
+        ```
+      </code>
+    </implementation>
+
+    <processing-steps>
+      <step>Parse JSON safely (try-catch)</step>
+      <step>Validate array type</step>
+      <step>Remove # prefix if present</step>
+      <step>Convert to lowercase</step>
+      <step>Trim whitespace</step>
+      <step>Filter empty strings</step>
+    </processing-steps>
+
+    <error-handling>
+      <case scenario="Invalid JSON">Return empty array, log warning</case>
+      <case scenario="Not an array">Return empty array</case>
+      <case scenario="Null/undefined">Return empty array</case>
+    </error-handling>
+  </hashtag-parsing>
+
+  <tag-normalization>
+    <description>Normalize tags from all sources before storage</description>
+    
+    <implementation>
+      <code language="typescript">
+        ```typescript
+        private normalizeTags(tags: string[]): string[] {
+          return tags
+            .map(tag => tag.toLowerCase().trim())
+            .filter(tag => tag.length >= 2 && tag.length <= 50)
+            .slice(0, 20); // Limit to 20 tags per content
+        }
+        ```
+      </code>
+    </implementation>
+
+    <normalization-rules>
+      <rule>Convert to lowercase</rule>
+      <rule>Trim whitespace</rule>
+      <rule>Filter length: 2-50 characters</rule>
+      <rule>Limit to 20 tags total per content</rule>
+      <rule>Deduplicate (already done in extraction)</rule>
+    </normalization-rules>
+
+    <rationale>
+      <reason>Lowercase: Ensures "Tech" and "tech" are treated as same tag</reason>
+      <reason>Length limits: Prevents empty tags and excessively long tags</reason>
+      <reason>20 tag limit: Prevents tag explosion on large captions</reason>
+    </rationale>
+  </tag-normalization>
+
+  <service-implementation>
+    <class-name>AnalyticsTaggingService</class-name>
+    <location>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-tagging.service.ts</location>
+    
+    <methods>
+      <method name="autoTagContent">
+        <signature>async autoTagContent(contentId: string): Promise&lt;void&gt;</signature>
+        <description>Auto-tag single content item based on caption and hashtags</description>
+        <idempotent>true</idempotent>
+        <implementation>
+          ```typescript
+          async autoTagContent(contentId: string): Promise<void> {
+            // 1. Get content with existing tags
+            const content = await this._prismaService.analyticsContent.findUnique({
+              where: { id: contentId },
+              include: { tags: { include: { tag: true } } }
+            });
+            
+            if (!content) throw new Error('Content not found');
+            
+            // 2. Extract keywords and hashtags
+            const keywords = this.extractKeywords(content.caption || '');
+            const hashtags = this.parseHashtags(content.hashtags || '');
+            const allTags = this.normalizeTags([...keywords, ...hashtags]);
+            
+            // 3. Filter out existing AUTO tags (idempotency)
+            const existingAutoTags = content.tags
+              .filter(ct => ct.tag.type === 'AUTO')
+              .map(ct => ct.tag.name);
+            const newTags = allTags.filter(tag => !existingAutoTags.includes(tag));
+            
+            if (newTags.length === 0) return;
+            
+            // 4. Upsert tags and create associations
+            for (const tagName of newTags) {
+              const tag = await this._prismaService.analyticsTag.upsert({
+                where: {
+                  organizationId_name_type_deletedAt: {
+                    organizationId: content.organizationId,
+                    name: tagName,
+                    type: 'AUTO',
+                    deletedAt: null
+                  }
+                },
+                update: {},
+                create: {
+                  organizationId: content.organizationId,
+                  name: tagName,
+                  type: 'AUTO'
+                }
+              });
+              
+              await this._prismaService.analyticsContentTag.upsert({
+                where: { contentId_tagId: { contentId: content.id, tagId: tag.id } },
+                update: {},
+                create: { contentId: content.id, tagId: tag.id }
+              });
+            }
+          }
+          ```
+        </implementation>
+      </method>
+
+      <method name="autoTagBatch">
+        <signature>async autoTagBatch(contentIds: string[]): Promise&lt;BatchResult&gt;</signature>
+        <description>Process multiple content items with error isolation</description>
+        <error-isolation>true</error-isolation>
+        <implementation>
+          ```typescript
+          async autoTagBatch(contentIds: string[]): Promise<{
+            success: number;
+            failed: number;
+            errors: Array<{ contentId: string; error: string }>;
+          }> {
+            const errors: Array<{ contentId: string; error: string }> = [];
+            let success = 0;
+            
+            for (const contentId of contentIds) {
+              try {
+                await this.autoTagContent(contentId);
+                success++;
+              } catch (error: any) {
+                errors.push({ contentId, error: error.message });
+              }
+            }
+            
+            return { success, failed: errors.length, errors };
+          }
+          ```
+        </implementation>
+      </method>
+
+      <method name="createManualTag">
+        <signature>async createManualTag(organizationId: string, name: string): Promise&lt;AnalyticsTag&gt;</signature>
+        <description>Create a manual campaign tag</description>
+        <validation>Tag name unique per organization</validation>
+      </method>
+
+      <method name="getTags">
+        <signature>async getTags(organizationId: string, type?: 'AUTO' | 'MANUAL'): Promise&lt;AnalyticsTag[]&gt;</signature>
+        <description>List all tags with usage count</description>
+        <includes-count>true</includes-count>
+      </method>
+
+      <method name="assignTagToContent">
+        <signature>async assignTagToContent(organizationId: string, contentId: string, tagId: string): Promise&lt;void&gt;</signature>
+        <description>Manually assign a MANUAL tag to content</description>
+        <validation>
+          <check>Tag must be MANUAL type</check>
+          <check>Tag must belong to organization</check>
+          <check>Content must belong to organization</check>
+        </validation>
+      </method>
+    </methods>
+  </service-implementation>
+
+  <worker-integration>
+    <description>Background job processing for auto-tagging</description>
+    <location>apps/workers/src/app/analytics.controller.ts</location>
+    
+    <event-handler>
+      <event-pattern>analytics-tag-content</event-pattern>
+      <transport>REDIS</transport>
+      <implementation>
+        ```typescript
+        @EventPattern('analytics-tag-content', Transport.REDIS)
+        async processContentTagging(data: { contentIds: string[] }) {
+          this._logger.log(`Auto-tagging ${data.contentIds.length} content items`);
+          
+          try {
+            const result = await this._taggingService.autoTagBatch(data.contentIds);
+            
+            this._logger.log(
+              `Auto-tagged ${result.success} items, ${result.failed} failed`
+            );
+            
+            if (result.failed > 0) {
+              this._logger.warn(`Tagging errors: ${JSON.stringify(result.errors)}`);
+            }
+            
+            return result;
+          } catch (error: any) {
+            this._logger.error(`Content tagging failed: ${error.message}`);
+            throw error;
+          }
+        }
+        ```
+      </implementation>
+    </event-handler>
+
+    <job-emission>
+      <location>apps/cron/src/tasks/analytics.ingestion.task.ts</location>
+      <timing>1 minute after content ingestion</timing>
+      <implementation>
+        ```typescript
+        // After content ingestion completes
+        const contentIds = /* IDs from recent ingestion */;
+        
+        if (contentIds.length > 0) {
+          await this._workerServiceProducer.emit('analytics-tag-content', {
+            contentIds
+          }, {
+            delay: 60000, // 1 minute delay
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 5000
+            }
+          });
+        }
+        ```
+      </implementation>
+    </job-emission>
+
+    <batch-processing>
+      <max-batch-size>100</max-batch-size>
+      <retry-attempts>3</retry-attempts>
+      <backoff-strategy>Exponential (5s initial)</backoff-strategy>
+      <error-handling>Per-content isolation (one failure doesn't stop batch)</error-handling>
+    </batch-processing>
+  </worker-integration>
+
+  <api-specification>
+    <controller-name>AnalyticsTagsController</controller-name>
+    <base-path>/api/analytics/tags</base-path>
+
+    <endpoint>
+      <method>POST</method>
+      <path>/</path>
+      <operation>Create manual campaign tag</operation>
+      <request-body>
+        ```json
+        {
+          "name": "Q1 2025 Campaign",
+          "description": "Optional description"
+        }
+        ```
+      </request-body>
+      <validation>
+        <rule>name: 2-50 characters</rule>
+        <rule>name: unique per organization</rule>
+        <rule>name: automatically lowercased</rule>
+      </validation>
+      <response status="201">
+        ```json
+        {
+          "id": "tag-uuid",
+          "organizationId": "org-uuid",
+          "name": "q1 2025 campaign",
+          "type": "MANUAL",
+          "createdAt": "2025-01-14T..."
+        }
+        ```
+      </response>
+      <error-codes>
+        <error code="400">Tag name already exists</error>
+        <error code="400">Invalid tag name (too short/long)</error>
+      </error-codes>
+    </endpoint>
+
+    <endpoint>
+      <method>GET</method>
+      <path>/</path>
+      <operation>List all tags</operation>
+      <query-parameters>
+        <param name="type" required="false" values="AUTO,MANUAL">Filter by tag type</param>
+      </query-parameters>
+      <response status="200">
+        ```json
+        [
+          {
+            "id": "tag-1",
+            "name": "product launch",
+            "type": "MANUAL",
+            "_count": { "content": 15 }
+          },
+          {
+            "id": "tag-2",
+            "name": "technology",
+            "type": "AUTO",
+            "_count": { "content": 42 }
+          }
+        ]
+        ```
+      </response>
+    </endpoint>
+
+    <endpoint>
+      <method>POST</method>
+      <path>/:contentId/assign</path>
+      <operation>Assign manual tag to content</operation>
+      <request-body>
+        ```json
+        {
+          "tagId": "tag-uuid"
+        }
+        ```
+      </request-body>
+      <validation>
+        <check>Tag must be MANUAL type</check>
+        <check>Tag must belong to organization</check>
+        <check>Content must belong to organization</check>
+      </validation>
+      <response status="200">Success message</response>
+      <error-codes>
+        <error code="404">Tag not found or not manual</error>
+        <error code="404">Content not found</error>
+      </error-codes>
+    </endpoint>
+
+    <endpoint>
+      <method>POST</method>
+      <path>/auto-tag</path>
+      <operation>Trigger auto-tagging for all content</operation>
+      <description>Manual trigger for re-processing all content</description>
+      <response status="200">
+        ```json
+        {
+          "message": "Auto-tagging job started",
+          "contentCount": 150
+        }
+        ```
+      </response>
+    </endpoint>
+  </api-specification>
+
+  <frontend-implementation>
+    <tags-management-page>
+      <location>apps/frontend/src/components/analytics/tags/tags-management.page.tsx</location>
+      <features>
+        <feature>List all tags (AUTO + MANUAL)</feature>
+        <feature>Create manual campaign tags</feature>
+        <feature>View tag usage count</feature>
+        <feature>Delete manual tags</feature>
+        <feature>Visual type distinction</feature>
+      </features>
+      
+      <layout>
+        ```
+        ┌─────────────────────────────────────────┐
+        │ Content Tags          [Create Tag]     │
+        ├──────────────────┬────────────────────┤
+        │ Campaign Tags    │ Auto-Generated Tags│
+        │ (Manual)         │                     │
+        │                  │                     │
+        │ 📌 Q1 Campaign   │ technology (42)    │
+        │    (15 items)    │ startup (38)       │
+        │ 📌 Product Launch│ ai (35)            │
+        │    (8 items)     │ innovation (28)    │
+        │                  │                     │
+        └──────────────────┴────────────────────┘
+        ```
+      </layout>
+
+      <implementation>
+        ```typescript
+        export const TagsManagementPage = () => {
+          const fetch = useFetch();
+          const { data: tags, mutate } = useSWR('/analytics/tags', 
+            async (url) => (await fetch(url)).json()
+          );
+          
+          const manualTags = tags?.filter(t => t.type === 'MANUAL') || [];
+          const autoTags = tags?.filter(t => t.type === 'AUTO') || [];
+          
+          return (
+            <div className="p-[24px]">
+              <div className="flex justify-between mb-[24px]">
+                <h1>Content Tags</h1>
+                <button onClick={openCreateModal}>Create Campaign Tag</button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-[16px]">
+                <TagsSection title="Campaign Tags (Manual)" tags={manualTags} />
+                <TagsSection title="Auto-Generated Tags" tags={autoTags} />
+              </div>
+            </div>
+          );
+        };
+        ```
+      </implementation>
+    </tags-management-page>
+
+    <tag-badges-component>
+      <location>apps/frontend/src/components/analytics/content/tag-badges.tsx</location>
+      <visual-distinction>
+        <manual-tags>Blue border, 📌 icon prefix</manual-tags>
+        <auto-tags>Gray background, no icon</auto-tags>
+      </visual-distinction>
+      
+      <implementation>
+        ```typescript
+        export const ContentTagBadges = ({ tags }) => (
+          <div className="flex flex-wrap gap-[4px] mt-[8px]">
+            {tags.map(({ tag }) => (
+              <span
+                key={tag.id}
+                className={`px-[8px] py-[4px] rounded-full text-xs ${
+                  tag.type === 'MANUAL'
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500'
+                    : 'bg-neutral-500/20 text-neutral-300'
+                }`}
+              >
+                {tag.type === 'MANUAL' && '📌 '}
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        );
+        ```
+      </implementation>
+    </tag-badges-component>
+  </frontend-implementation>
+
+  <edge-cases>
+    <case name="empty-caption-and-hashtags">
+      <scenario>Content has no caption and no hashtags</scenario>
+      <handling>
+        <backend>extractKeywords returns [], parseHashtags returns []</backend>
+        <backend>No AUTO tags created</backend>
+        <frontend>Only MANUAL tags can be assigned</frontend>
+      </handling>
+    </case>
+
+    <case name="duplicate-tags">
+      <scenario>Same keyword appears multiple times or in both caption and hashtags</scenario>
+      <handling>
+        <algorithm>Array.from(new Set(keywords)) deduplicates</algorithm>
+        <database>Upsert prevents duplicate tag creation</database>
+        <result>Each tag appears only once per content</result>
+      </handling>
+    </case>
+
+    <case name="very-large-caption">
+      <scenario>Caption with hundreds of words</scenario>
+      <handling>
+        <algorithm>Keywords extracted normally</algorithm>
+        <normalization>Limited to 20 tags per content (slice(0, 20))</normalization>
+        <priority>Hashtags + first keywords (order preserved)</priority>
+      </handling>
+    </case>
+
+    <case name="invalid-hashtags-json">
+      <scenario>Hashtags field contains invalid JSON</scenario>
+      <handling>
+        <parser>Try-catch prevents crash</parser>
+        <logger>Warning logged</logger>
+        <result>Returns empty array, continues with caption keywords</result>
+      </handling>
+    </case>
+
+    <case name="manual-tag-on-auto-tag">
+      <scenario>User tries to manually assign an AUTO tag</scenario>
+      <handling>
+        <validation>assignTagToContent checks type === 'MANUAL'</validation>
+        <error>Throws error: "Tag not found or not manual"</error>
+        <ui>Only MANUAL tags shown in assignment dropdown</ui>
+      </handling>
+    </case>
+
+    <case name="tag-deletion">
+      <scenario>User deletes a manual tag</scenario>
+      <handling>
+        <database>Soft delete (set deletedAt)</database>
+        <associations>Content-tag associations preserved</associations>
+        <ui>Tag shown as "(deleted)" in content view</ui>
+      </handling>
+    </case>
+  </edge-cases>
+
+  <validation-checklist>
+    <check>Keyword extraction algorithm implemented correctly</check>
+    <check>Stopwords filtered properly</check>
+    <check>Hashtags parsed from JSON safely</check>
+    <check>Tags normalized (lowercase, length limits)</check>
+    <check>Idempotent (re-running doesn't duplicate tags)</check>
+    <check>AUTO vs MANUAL tags enforced</check>
+    <check>Manual tag CRUD working</check>
+    <check>Tag assignment validates ownership</check>
+    <check>Worker job processes batches</check>
+    <check>Error isolation (one failure doesn't stop batch)</check>
+    <check>Frontend displays tags with visual distinction</check>
+    <check>Edge cases handled (empty, duplicates, large captions)</check>
+  </validation-checklist>
+
+  <testing-guidance>
+    <unit-tests>
+      <test-case>
+        <name>Keyword extraction accuracy</name>
+        <input>Caption: "Amazing new AI product launching today! Check it out: https://example.com"</input>
+        <expected-output>["amazing", "new", "product", "launching", "today", "check", "out"]</expected-output>
+        <notes>Filters "AI" (too short), URL removed, stopwords filtered</notes>
+      </test-case>
+
+      <test-case>
+        <name>Hashtag parsing</name>
+        <input>JSON: '["#TechNews", "#Innovation", "#AI"]'</input>
+        <expected-output>["technews", "innovation", "ai"]</expected-output>
+      </test-case>
+
+      <test-case>
+        <name>Tag normalization</name>
+        <input>["TeCh", "  startup  ", "AI", "a", "verylongtagnamethatexceedsfiftycharacterslimit"]</input>
+        <expected-output>["tech", "startup"]</expected-output>
+        <notes>Filters "AI" (too short), "a" (too short), long tag (>50 chars)</notes>
+      </test-case>
+
+      <test-case>
+        <name>Idempotency</name>
+        <scenario>Run autoTagContent twice on same content</scenario>
+        <expected>No duplicate tags created, no duplicate associations</expected>
+      </test-case>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Auto-tagging job processes batch of content</test>
+      <test>Manual tag creation via API</test>
+      <test>Tag assignment validates type and ownership</test>
+      <test>Tags appear on content in dashboard</test>
+    </integration-tests>
+  </testing-guidance>
+
+  <performance-considerations>
+    <auto-tagging>
+      <optimization>Batch processing (100 items per job)</optimization>
+      <optimization>Background job (non-blocking ingestion)</optimization>
+      <optimization>Upsert operations (idempotent)</optimization>
+      <target>Process 100 items in &lt;10 seconds</target>
+    </auto-tagging>
+
+    <tag-storage>
+      <index>Index on (organizationId, name, type) for fast lookups</index>
+      <caching>Cache tag lists for 5 minutes</caching>
+      <limit>Max 20 tags per content to prevent explosion</limit>
+    </tag-storage>
+
+    <api>
+      <target>Tag list endpoint &lt;200ms</target>
+      <target>Tag assignment &lt;100ms</target>
+    </api>
+  </performance-considerations>
+
+  <related-files>
+    <file path="docs/stories/2-2-ingest-content-metadata.md" description="Source of caption and hashtags"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/schema.prisma" description="AnalyticsTag and AnalyticsContentTag models"/>
+    <file path="apps/workers/src/app/analytics.controller.ts" description="Add tagging event handler"/>
+    <file path="apps/cron/src/tasks/analytics.ingestion.task.ts" description="Emit tagging jobs"/>
+  </related-files>
+
+  <implementation-checklist>
+    <backend>
+      <task>Create AnalyticsTaggingService</task>
+      <task>Implement extractKeywords() method</task>
+      <task>Implement parseHashtags() method</task>
+      <task>Implement normalizeTags() method</task>
+      <task>Implement autoTagContent() method</task>
+      <task>Implement autoTagBatch() method</task>
+      <task>Implement createManualTag() method</task>
+      <task>Implement getTags() method</task>
+      <task>Implement assignTagToContent() method</task>
+      <task>Add worker event handler for analytics-tag-content</task>
+      <task>Add job emission in cron task</task>
+      <task>Create AnalyticsTagsController</task>
+      <task>Add API endpoints (POST/, GET/, POST/:id/assign, POST/auto-tag)</task>
+      <task>Register service in modules</task>
+      <task>Write unit tests for keyword extraction</task>
+      <task>Write unit tests for idempotency</task>
+      <task>Write integration tests for API</task>
+    </backend>
+
+    <frontend>
+      <task>Create TagsManagementPage component</task>
+      <task>Create TagsSection sub-component</task>
+      <task>Create TagItem sub-component</task>
+      <task>Create CreateTagModal component</task>
+      <task>Create ContentTagBadges component</task>
+      <task>Implement data fetching with useSWR</task>
+      <task>Add route for /analytics/tags</task>
+      <task>Integrate tag badges into content display</task>
+      <task>Add tag assignment UI</task>
+      <task>Write component tests</task>
+    </frontend>
+
+    <documentation>
+      <task>Update Swagger docs</task>
+      <task>Document stopwords list</task>
+      <task>Document tagging algorithm</task>
+      <task>Add code comments</task>
+    </documentation>
+  </implementation-checklist>
+</story-context>
