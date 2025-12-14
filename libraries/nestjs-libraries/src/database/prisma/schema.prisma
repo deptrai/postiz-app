@@ -169,10 +169,10 @@ model Trending {
   id             String        @id @default(uuid())
   trendingList   String
   language       String?
+  hash           String
+  date           DateTime
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-  hash           String
-  deletedAt      DateTime?
   organizationId String?
   integrationId  String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
