@@ -1,0 +1,185 @@
+<story-context id="6-3-experiments-abc-and-win-rate" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>3</storyId>
+    <title>Experiments A/B/C and Win Rate</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-3-experiments-abc-and-win-rate.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>to create A/B/C experiments from playbook variants</iWant>
+    <soThat>the system can track which variant wins and update the playbook score accordingly</soThat>
+    <tasks>
+      <task id="1" status="pending">Create Experiment Prisma schema</task>
+      <task id="2" status="pending">Create ExperimentService</task>
+      <task id="3" status="pending">Create ExperimentTrackingService</task>
+      <task id="4" status="pending">Create ExperimentAnalysisService</task>
+      <task id="5" status="pending">Add Experiment API endpoints</task>
+      <task id="6" status="pending">Create Experiments page (frontend)</task>
+      <task id="7" status="pending">Create Experiment creation flow</task>
+      <task id="8" status="pending">Create Experiment detail view</task>
+      <task id="9" status="pending">Create Experiment results view</task>
+      <task id="10" status="pending">Write backend tests</task>
+      <task id="11" status="pending">Write frontend tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Given playbook variants exist, When the user creates an experiment, Then they can select 2-3 variants to test against each other.</criterion>
+    <criterion id="AC2">Given an experiment is created, When the user configures the experiment, Then they can set experiment name, timeframe (start/end date), and success metric (reach, engagement rate, or combined).</criterion>
+    <criterion id="AC3">Given an active experiment, When content is posted using experiment variants, Then the system tracks performance metrics for each variant.</criterion>
+    <criterion id="AC4">Given an experiment has completed, When the user views results, Then the system shows win rate per variant, statistical comparison of metrics, and clear winner declaration.</criterion>
+    <criterion id="AC5">Given an experiment has a winner, When the winner is confirmed, Then the playbook score is updated to reflect the winning formula.</criterion>
+    <criterion id="AC6">Given experiments exist, When the user accesses the Experiments page, Then experiments are listed with status (active/completed) and can be filtered.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-019 (Growth)</section>
+        <snippet>Hệ thống hỗ trợ experiments A/B/C và tính win rate.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 6: Story 6.3</section>
+        <snippet>Story 6.3: Experiments A/B/C + win rate. Hệ thống theo dõi kết quả và tính win rate, cập nhật playbook score.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-1-generate-playbooks-from-top-content.md</path>
+        <title>Story 6.1 Reference</title>
+        <section>Dev Notes</section>
+        <snippet>Playbook schema and service patterns. Experiments will update playbook scores.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-2-generate-playbook-variants.md</path>
+        <title>Story 6.2 Reference</title>
+        <section>Dev Notes</section>
+        <snippet>PlaybookVariant schema and service. Experiments select from these variants.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/playbooks/playbook.service.ts</path>
+        <kind>service</kind>
+        <symbol>PlaybookService</symbol>
+        <reason>Update playbook score when experiment winner is confirmed. Created in Story 6.1.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/playbooks/playbook-variant.service.ts</path>
+        <kind>service</kind>
+        <symbol>PlaybookVariantService</symbol>
+        <reason>Query variants for experiment selection. Created in Story 6.2.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-dashboard.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsDashboardService</symbol>
+        <reason>Reference for metrics aggregation patterns. Use similar approach for experiment metrics.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/backend/src/api/routes/playbooks.controller.ts</path>
+        <kind>controller</kind>
+        <symbol>PlaybooksController</symbol>
+        <reason>Reference for API patterns. Create separate ExperimentsController.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/analytics/export/export-modal.component.tsx</path>
+        <kind>component</kind>
+        <symbol>ExportModal</symbol>
+        <reason>Reference for modal patterns with form inputs, validation, and loading states.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@nestjs/common</package>
+        <version>^10.0.0</version>
+      </node>
+      <node>
+        <package>@prisma/client</package>
+        <version>^6.5.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>^18.0.0</version>
+      </node>
+      <node>
+        <package>recharts</package>
+        <version>^2.0.0</version>
+        <note>For result visualization charts</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="dependency">Story 6.1 and 6.2 must be complete before implementing this story</constraint>
+    <constraint type="architecture">Create separate Experiment models and services (not extend Playbook)</constraint>
+    <constraint type="architecture">Experiment lifecycle: draft → active → completed</constraint>
+    <constraint type="api">Create new /api/experiments endpoints (separate from playbooks)</constraint>
+    <constraint type="business">Minimum 5 content items per variant required for statistical significance</constraint>
+    <constraint type="business">Win rate calculation: >10% difference = significant</constraint>
+    <constraint type="ux">Manual content tracking initially (user marks content as belonging to variant)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ExperimentService.createExperiment</name>
+      <kind>service method</kind>
+      <signature>createExperiment(playbookId: string, variantIds: string[], config: ExperimentConfig): Promise&lt;Experiment&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/experiments/experiment.service.ts</path>
+    </interface>
+    <interface>
+      <name>ExperimentTrackingService.trackContent</name>
+      <kind>service method</kind>
+      <signature>trackContent(experimentId: string, variantId: string, contentId: string): Promise&lt;void&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/experiments/experiment-tracking.service.ts</path>
+    </interface>
+    <interface>
+      <name>ExperimentAnalysisService.calculateWinRate</name>
+      <kind>service method</kind>
+      <signature>calculateWinRate(experimentId: string): Promise&lt;ExperimentResults&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/experiments/experiment-analysis.service.ts</path>
+    </interface>
+    <interface>
+      <name>POST /api/experiments</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/experiments - Create new experiment</signature>
+      <path>apps/backend/src/api/routes/experiments.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/experiments</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/experiments?status=&amp;playbookId= - List experiments with filters</signature>
+      <path>apps/backend/src/api/routes/experiments.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/experiments/:id/results</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/experiments/:id/results - Get experiment results with win rate</signature>
+      <path>apps/backend/src/api/routes/experiments.controller.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest for unit tests. Mock dependent services (PlaybookService, VariantService). Test statistical calculations independently.</standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/experiments/*.spec.ts</location>
+      <location>apps/frontend/src/components/experiments/*.spec.tsx</location>
+    </locations>
+    <ideas>
+      <idea acId="AC1">Test experiment creation with 2-3 variant selection</idea>
+      <idea acId="AC2">Test experiment configuration validation (dates, metric selection)</idea>
+      <idea acId="AC3">Test content tracking associates content with correct variant</idea>
+      <idea acId="AC4">Test win rate calculation with mock metrics data</idea>
+      <idea acId="AC4">Test statistical significance check (>10% difference)</idea>
+      <idea acId="AC5">Test playbook score update after winner confirmation</idea>
+      <idea acId="AC6">Test experiment listing with status and playbook filters</idea>
+    </ideas>
+  </tests>
+</story-context>

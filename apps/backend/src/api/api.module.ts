@@ -8,6 +8,12 @@ import { StripeService } from '@gitroom/nestjs-libraries/services/stripe.service
 import { StarsService } from '@gitroom/nestjs-libraries/database/prisma/stars/stars.service';
 import { AnalyticsTrackingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-tracking.service';
 import { AnalyticsGroupService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-group.service';
+import { AnalyticsDashboardService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-dashboard.service';
+import { AnalyticsTaggingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-tagging.service';
+import { AnalyticsTrendingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-trending.service';
+import { AnalyticsBestTimeService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-best-time.service';
+import { AnalyticsDailyBriefService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-daily-brief.service';
+import { AnalyticsExportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-export.service';
 import { AnalyticsController } from '@gitroom/backend/api/routes/analytics.controller';
 import { PoliciesGuard } from '@gitroom/backend/services/auth/permissions/permissions.guard';
 import { PermissionsService } from '@gitroom/backend/services/auth/permissions/permissions.service';
@@ -73,6 +79,12 @@ const authenticatedController = [
     StarsService,
     AnalyticsTrackingService,
     AnalyticsGroupService,
+    AnalyticsDashboardService,
+    AnalyticsTaggingService,
+    AnalyticsTrendingService,
+    AnalyticsBestTimeService,
+    AnalyticsDailyBriefService,
+    AnalyticsExportService,
     OpenaiService,
     ExtractContentService,
     AuthMiddleware,

@@ -1,0 +1,185 @@
+<story-context id="6-1-generate-playbooks-from-top-content" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>1</storyId>
+    <title>Generate Playbooks from Top Content</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-1-generate-playbooks-from-top-content.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>to generate Playbooks (winning formulas) from top-performing content</iWant>
+    <soThat>I can replicate successful content patterns to increase views and engagement</soThat>
+    <tasks>
+      <task id="1" status="pending">Create Playbook Prisma schema</task>
+      <task id="2" status="pending">Create PlaybookGeneratorService</task>
+      <task id="3" status="pending">Create PlaybookService</task>
+      <task id="4" status="pending">Add Playbook API endpoints</task>
+      <task id="5" status="pending">Create Playbooks page (frontend)</task>
+      <task id="6" status="pending">Create Playbook detail view</task>
+      <task id="7" status="pending">Create Generate Playbooks action</task>
+      <task id="8" status="pending">Write backend tests</task>
+      <task id="9" status="pending">Write frontend tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Given analytics data from the last 14–30 days, When the system runs the playbook generator, Then playbooks are created grouped by group/niche/pillar/format.</criterion>
+    <criterion id="AC2">Given a generated playbook, When the user views the playbook, Then it displays a clear recipe with format recommendation, caption bucket, hashtag bucket, time bucket, and evidence metrics.</criterion>
+    <criterion id="AC3">Given multiple top-performing content items, When the system analyzes patterns, Then it identifies common elements that contribute to success.</criterion>
+    <criterion id="AC4">Given a playbook, When the user views evidence, Then the system shows source content items that contributed to the playbook.</criterion>
+    <criterion id="AC5">Given playbooks exist, When the user accesses the Playbooks page, Then playbooks are listed with key metrics and can be filtered by group/niche.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-017 (Growth)</section>
+        <snippet>Hệ thống tạo playbooks từ top posts/reels 14–30 ngày với recipe rõ ràng (format, caption bucket, CTA bucket, hashtag bucket, time bucket).</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 6: Playbooks + Experiments</section>
+        <snippet>Story 6.1: Sinh Playbooks từ top posts/reels 14–30 ngày. Playbook có recipe + evidence (median reach/views, engagement rate, consistency).</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/5-1-export-csv-report.md</path>
+        <title>Previous Story Reference</title>
+        <section>Dev Agent Record</section>
+        <snippet>Patterns established: Analytics services in libraries/nestjs-libraries/src/database/prisma/analytics/, batch query pattern, Swagger decorators for API documentation.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-dashboard.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsDashboardService</symbol>
+        <lines>1-478</lines>
+        <reason>Reference for querying AnalyticsContent and AnalyticsDailyMetric, aggregating metrics, applying filters. Use similar patterns for playbook generation.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-content.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsContentService</symbol>
+        <lines>1-156</lines>
+        <reason>Contains extractHashtags method for parsing hashtags from captions. Reuse for playbook hashtag bucket extraction.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-best-time.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsBestTimeService</symbol>
+        <reason>Reference for best time to post heatmap data. Use for playbook time bucket recommendations.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-trending.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsTrendingService</symbol>
+        <reason>Reference for trending topics velocity calculation. Similar pattern for identifying top-performing content patterns.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/backend/src/api/routes/analytics.controller.ts</path>
+        <kind>controller</kind>
+        <symbol>AnalyticsController</symbol>
+        <reason>Reference for API endpoint patterns, Swagger decorators, organization context handling.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/analytics/dashboard/analytics-dashboard.page.tsx</path>
+        <kind>component</kind>
+        <symbol>AnalyticsDashboardPage</symbol>
+        <reason>Reference for React component patterns, hooks usage, filter handling.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>AnalyticsContent, AnalyticsDailyMetric, AnalyticsGroup</symbol>
+        <lines>751-918</lines>
+        <reason>Existing analytics models to query for top content. Reference for creating new Playbook model.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@nestjs/common</package>
+        <version>^10.0.0</version>
+      </node>
+      <node>
+        <package>@prisma/client</package>
+        <version>^6.5.0</version>
+      </node>
+      <node>
+        <package>dayjs</package>
+        <version>^1.11.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>^18.0.0</version>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Follow NestJS service pattern in libraries/nestjs-libraries/src/database/prisma/</constraint>
+    <constraint type="architecture">Use Prisma ORM for all database operations</constraint>
+    <constraint type="architecture">Register new services in apps/backend/src/api/api.module.ts</constraint>
+    <constraint type="api">Use Swagger decorators (@ApiOperation, @ApiQuery, @ApiResponse) for all endpoints</constraint>
+    <constraint type="api">Use @GetOrgFromRequest() decorator for organization context</constraint>
+    <constraint type="frontend">Follow React functional component patterns with hooks</constraint>
+    <constraint type="frontend">Use existing UI components and styling patterns from analytics dashboard</constraint>
+    <constraint type="testing">Create .spec.ts files alongside service files for unit tests</constraint>
+    <constraint type="performance">Use batch queries to avoid N+1 problems (reference: Story 5.1 fix)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>PlaybookGeneratorService.generatePlaybooks</name>
+      <kind>service method</kind>
+      <signature>generatePlaybooks(organizationId: string, options: GeneratePlaybookOptions): Promise&lt;Playbook[]&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/playbooks/playbook-generator.service.ts</path>
+    </interface>
+    <interface>
+      <name>PlaybookService.getPlaybooks</name>
+      <kind>service method</kind>
+      <signature>getPlaybooks(organizationId: string, filters: PlaybookFilters): Promise&lt;Playbook[]&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/playbooks/playbook.service.ts</path>
+    </interface>
+    <interface>
+      <name>POST /api/playbooks/generate</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/playbooks/generate - Trigger playbook generation for organization</signature>
+      <path>apps/backend/src/api/routes/playbooks.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/playbooks</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/playbooks?groupId=&amp;format= - List playbooks with filters</signature>
+      <path>apps/backend/src/api/routes/playbooks.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/playbooks/:id</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/playbooks/:id - Get playbook details with evidence</signature>
+      <path>apps/backend/src/api/routes/playbooks.controller.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest for unit and integration tests. Create .spec.ts files alongside service files. Mock Prisma service for unit tests. Follow existing test patterns in analytics services.</standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/playbooks/*.spec.ts</location>
+      <location>apps/frontend/src/components/playbooks/*.spec.tsx</location>
+    </locations>
+    <ideas>
+      <idea acId="AC1">Test playbook generation with mock top content data, verify grouping by format/niche</idea>
+      <idea acId="AC2">Test recipe structure contains all required fields (format, caption, hashtags, time, evidence)</idea>
+      <idea acId="AC3">Test pattern extraction identifies common elements from multiple content items</idea>
+      <idea acId="AC4">Test evidence retrieval returns source content items</idea>
+      <idea acId="AC5">Test playbook listing with filters, verify pagination and sorting</idea>
+      <idea acId="AC1">Test consistency score calculation requires minimum 3 content items</idea>
+    </ideas>
+  </tests>
+</story-context>

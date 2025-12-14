@@ -1,0 +1,144 @@
+<story-context id="6-2-generate-playbook-variants" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>2</storyId>
+    <title>Generate Playbook Variants</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-2-generate-playbook-variants.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>to have 3-5 variants generated for each playbook</iWant>
+    <soThat>I can quickly test different variations of hooks, timing, and hashtags</soThat>
+    <tasks>
+      <task id="1" status="pending">Extend Playbook schema for variants</task>
+      <task id="2" status="pending">Create PlaybookVariantService</task>
+      <task id="3" status="pending">Add Variant API endpoints</task>
+      <task id="4" status="pending">Extend PlaybookDetailPage for variants</task>
+      <task id="5" status="pending">Create variant interaction features</task>
+      <task id="6" status="pending">Add variant generation UI</task>
+      <task id="7" status="pending">Write backend tests</task>
+      <task id="8" status="pending">Write frontend tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Given an existing playbook, When the user opens the playbook detail view, Then the system displays 3-5 variants with clear differentiation.</criterion>
+    <criterion id="AC2">Given a playbook variant, When the user views the variant, Then it shows variant name/label, modified elements compared to base playbook, and suggested application instructions.</criterion>
+    <criterion id="AC3">Given a playbook, When variants are generated, Then variants cover different dimensions: hook variations, time variations, hashtag variations.</criterion>
+    <criterion id="AC4">Given a variant, When the user wants to use it, Then they can copy the variant recipe to clipboard or export it.</criterion>
+    <criterion id="AC5">Given playbook variants exist, When the user creates an experiment (Story 6.3), Then they can select variants to include in the experiment.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-018 (Growth)</section>
+        <snippet>Mỗi playbook tạo 3–5 variants để user thử.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 6: Story 6.2</section>
+        <snippet>Story 6.2: Tạo variants (3–5) cho mỗi playbook. Hệ thống hiển thị 3–5 variants và cách áp dụng.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-1-generate-playbooks-from-top-content.md</path>
+        <title>Story 6.1 Reference</title>
+        <section>Dev Notes</section>
+        <snippet>Playbook schema, PlaybookService, and API endpoints defined in Story 6.1. This story extends those with variant functionality.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/playbooks/playbook.service.ts</path>
+        <kind>service</kind>
+        <symbol>PlaybookService</symbol>
+        <reason>Base playbook service to extend with variant methods. Created in Story 6.1.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-best-time.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsBestTimeService</symbol>
+        <reason>Use for generating time variations based on heatmap data.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/backend/src/api/routes/playbooks.controller.ts</path>
+        <kind>controller</kind>
+        <symbol>PlaybooksController</symbol>
+        <reason>Extend with variant endpoints. Created in Story 6.1.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/playbooks/playbook-detail.page.tsx</path>
+        <kind>component</kind>
+        <symbol>PlaybookDetailPage</symbol>
+        <reason>Extend with variants section. Created in Story 6.1.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@nestjs/common</package>
+        <version>^10.0.0</version>
+      </node>
+      <node>
+        <package>@prisma/client</package>
+        <version>^6.5.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>^18.0.0</version>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="dependency">Story 6.1 must be complete before implementing this story</constraint>
+    <constraint type="architecture">Extend existing Playbook schema with PlaybookVariant model</constraint>
+    <constraint type="architecture">Follow service patterns established in Story 6.1</constraint>
+    <constraint type="api">Add variant endpoints under /api/playbooks/:id/variants</constraint>
+    <constraint type="frontend">Extend existing PlaybookDetailPage rather than creating new page</constraint>
+    <constraint type="ux">Limit variants to 3-5 per playbook to avoid overwhelming users</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>PlaybookVariantService.generateVariants</name>
+      <kind>service method</kind>
+      <signature>generateVariants(playbookId: string): Promise&lt;PlaybookVariant[]&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/playbooks/playbook-variant.service.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/playbooks/:id/variants</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/playbooks/:id/variants - List variants for a playbook</signature>
+      <path>apps/backend/src/api/routes/playbooks.controller.ts</path>
+    </interface>
+    <interface>
+      <name>POST /api/playbooks/:id/variants/generate</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/playbooks/:id/variants/generate - Generate variants for playbook</signature>
+      <path>apps/backend/src/api/routes/playbooks.controller.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest for unit tests. Mock PlaybookService and BestTimeService. Test variant generation logic independently.</standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/playbooks/playbook-variant.service.spec.ts</location>
+      <location>apps/frontend/src/components/playbooks/variant-card.component.spec.tsx</location>
+    </locations>
+    <ideas>
+      <idea acId="AC1">Test variant display shows 3-5 variants with distinct labels</idea>
+      <idea acId="AC2">Test variant card shows modified elements and application instructions</idea>
+      <idea acId="AC3">Test hook variation extraction creates different hook patterns</idea>
+      <idea acId="AC3">Test time variation uses BestTimeService data for different slots</idea>
+      <idea acId="AC3">Test hashtag variation creates different combinations from bucket</idea>
+      <idea acId="AC4">Test copy to clipboard functionality</idea>
+    </ideas>
+  </tests>
+</story-context>

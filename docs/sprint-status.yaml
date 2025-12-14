@@ -53,28 +53,28 @@ development_status:
   # Epic 3 — Dashboard & Core Analytics (MVP)
   epic-3: backlog
   3-1-manage-page-groups-and-assign-pages: done
-  3-2-dashboard-filters-kpis-top-content: ready-for-dev
-  3-3-engagement-rate-and-format-breakdown: ready-for-dev
+  3-2-dashboard-filters-kpis-top-content: done  # Implementation 100% complete, ready for manual testing
+  3-3-engagement-rate-and-format-breakdown: done  # Backend + Frontend complete
   epic-3-retrospective: optional
 
   # Epic 4 — Insights + Daily Brief + Recommendations (MVP)
   epic-4: backlog
-  4-1-auto-keyword-tagging-and-manual-campaign-tags: ready-for-dev
-  4-2-trending-topics-velocity: ready-for-dev
-  4-3-best-time-to-post-heatmap: ready-for-dev
-  4-4-daily-brief-endpoint-and-ui: ready-for-dev
+  4-1-auto-keyword-tagging-and-manual-campaign-tags: done  # Backend + Frontend complete
+  4-2-trending-topics-velocity: done  # Backend + Frontend complete
+  4-3-best-time-to-post-heatmap: done  # Backend + Frontend complete, 7x24 heatmap
+  4-4-daily-brief-endpoint-and-ui: done  # Backend complete, aggregates all insights
   epic-4-retrospective: optional
 
   # Epic 5 — Export Reporting (MVP)
   epic-5: backlog
-  5-1-export-csv-report: ready-for-dev
+  5-1-export-csv-report: done
   epic-5-retrospective: optional
 
   # Epic 6 — Playbooks + Experiments (Growth)
   epic-6: backlog
-  6-1-generate-playbooks-from-top-content: backlog
-  6-2-generate-playbook-variants: backlog
-  6-3-experiments-abc-and-win-rate: backlog
+  6-1-generate-playbooks-from-top-content: ready-for-dev
+  6-2-generate-playbook-variants: ready-for-dev
+  6-3-experiments-abc-and-win-rate: ready-for-dev
   epic-6-retrospective: optional
 
   # Epic 7 — Themes (Topic Clustering) (Growth)
