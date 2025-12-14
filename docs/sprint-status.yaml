@@ -52,8 +52,8 @@ development_status:
 
   # Epic 3 — Dashboard & Core Analytics (MVP)
   epic-3: backlog
-  3-1-manage-page-groups-and-assign-pages: backlog
-  3-2-dashboard-filters-kpis-top-content: backlog
+  3-1-manage-page-groups-and-assign-pages: done
+  3-2-dashboard-filters-kpis-top-content: ready-for-dev
   3-3-engagement-rate-and-format-breakdown: backlog
   epic-3-retrospective: optional
 
