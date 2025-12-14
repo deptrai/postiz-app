@@ -7,6 +7,7 @@ import { StripeController } from '@gitroom/backend/api/routes/stripe.controller'
 import { StripeService } from '@gitroom/nestjs-libraries/services/stripe.service';
 import { StarsService } from '@gitroom/nestjs-libraries/database/prisma/stars/stars.service';
 import { AnalyticsTrackingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-tracking.service';
+import { AnalyticsGroupService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-group.service';
 import { AnalyticsController } from '@gitroom/backend/api/routes/analytics.controller';
 import { PoliciesGuard } from '@gitroom/backend/services/auth/permissions/permissions.guard';
 import { PermissionsService } from '@gitroom/backend/services/auth/permissions/permissions.service';
@@ -71,6 +72,7 @@ const authenticatedController = [
     StripeService,
     StarsService,
     AnalyticsTrackingService,
+    AnalyticsGroupService,
     OpenaiService,
     ExtractContentService,
     AuthMiddleware,

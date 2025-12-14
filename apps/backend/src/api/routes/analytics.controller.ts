@@ -19,6 +19,7 @@ import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/in
 import { AnalyticsTrackingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-tracking.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { BadRequestException, NotFoundException, Put } from '@nestjs/common';
+import { AnalyticsGroupService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-group.service';
 
 @ApiTags('Analytics')
 @Controller('/analytics')
@@ -26,7 +27,8 @@ export class AnalyticsController {
   constructor(
     private _starsService: StarsService,
     private _integrationService: IntegrationService,
-    private _analyticsTrackingService: AnalyticsTrackingService
+    private _analyticsTrackingService: AnalyticsTrackingService,
+    private _analyticsGroupService: AnalyticsGroupService
   ) {}
   @Get('/')
   async getStars(@GetOrgFromRequest() org: Organization) {
@@ -127,5 +129,93 @@ export class AnalyticsController {
     @Query('date') date: string
   ) {
     return this._integrationService.checkAnalytics(org, integration, date);
+  }
+
+  // Page Groups Management - Story 3.1
+
+  @Post('/groups')
+  @ApiOperation({ summary: 'Create a new page group' })
+  @ApiBody({ 
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Group name' },
+        description: { type: 'string', description: 'Optional description' },
+        niche: { type: 'string', description: 'Optional niche/category' }
+      },
+      required: ['name']
+    }
+  })
+  @ApiResponse({ status: 201, description: 'Group created successfully' })
+  async createGroup(
+    @GetOrgFromRequest() org: Organization,
+    @Body() data: { name: string; description?: string; niche?: string }
+  ) {
+    return this._analyticsGroupService.createGroup(org.id, data);
+  }
+
+  @Get('/groups')
+  @ApiOperation({ summary: 'Get all page groups' })
+  @ApiResponse({ status: 200, description: 'List of groups returned' })
+  async getGroups(@GetOrgFromRequest() org: Organization) {
+    return this._analyticsGroupService.getGroups(org.id);
+  }
+
+  @Get('/groups/:groupId')
+  @ApiOperation({ summary: 'Get a specific group by ID' })
+  @ApiResponse({ status: 200, description: 'Group details returned' })
+  @ApiResponse({ status: 404, description: 'Group not found' })
+  async getGroup(
+    @GetOrgFromRequest() org: Organization,
+    @Param('groupId') groupId: string
+  ) {
+    return this._analyticsGroupService.getGroupById(org.id, groupId);
+  }
+
+  @Put('/groups/:groupId')
+  @ApiOperation({ summary: 'Update a page group' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        description: { type: 'string' },
+        niche: { type: 'string' }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, description: 'Group updated successfully' })
+  @ApiResponse({ status: 404, description: 'Group not found' })
+  async updateGroup(
+    @GetOrgFromRequest() org: Organization,
+    @Param('groupId') groupId: string,
+    @Body() data: { name?: string; description?: string; niche?: string }
+  ) {
+    return this._analyticsGroupService.updateGroup(org.id, groupId, data);
+  }
+
+  @Post('/groups/:groupId/pages')
+  @ApiOperation({ summary: 'Assign pages to a group' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        trackedIntegrationIds: { 
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of tracked integration IDs to assign'
+        }
+      },
+      required: ['trackedIntegrationIds']
+    }
+  })
+  @ApiResponse({ status: 200, description: 'Pages assigned successfully' })
+  @ApiResponse({ status: 404, description: 'Group or tracked integration not found' })
+  async assignPages(
+    @GetOrgFromRequest() org: Organization,
+    @Param('groupId') groupId: string,
+    @Body() data: { trackedIntegrationIds: string[] }
+  ) {
+    return this._analyticsGroupService.assignPages(org.id, groupId, data);
   }
 }
