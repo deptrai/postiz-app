@@ -166,16 +166,21 @@ model GitHub {
 }
 
 model Trending {
-  id           String   @id @default(uuid())
-  trendingList String
-  language     String?
-  hash         String
-  date         DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String       @id @default(uuid())
+  trendingList   String
+  language       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  hash           String
+  deletedAt      DateTime?
+  organizationId String?
+  integrationId  String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  integration    Integration?  @relation(fields: [integrationId], references: [id])
 
-  @@unique([language])
   @@index([hash])
+  @@index([organizationId])
+  @@index([integrationId])
 }
 
 model TrendingLog {
@@ -348,6 +353,9 @@ model Integration {
   analyticsContents            AnalyticsContent[]
   analyticsMetrics             AnalyticsMetric[]
   analyticsTrackedIntegrations AnalyticsTrackedIntegration[]
+  analyticsDailyMetrics        AnalyticsDailyMetric[]
+  trending                     Trending[]
+  provider                     Provider[]
 
   @@unique([organizationId, internalId])
   @@index([rootInternalId])
@@ -799,19 +807,6 @@ model AnalyticsTrackedIntegration {
   integration    Integration  @relation(fields: [integrationId], references: [id])
 
   @@unique([organizationId, integrationId])
-  @@index([organizationId])
-  @@index([integrationId])
-}
-
-model Trending {
-  id             String       @id @default(uuid())
-  organizationId String
-  integrationId  String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  integration    Integration  @relation(fields: [integrationId], references: [id])
-
   @@index([organizationId])
   @@index([integrationId])
 }
