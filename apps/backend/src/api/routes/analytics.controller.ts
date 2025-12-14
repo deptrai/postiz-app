@@ -169,7 +169,14 @@ export class AnalyticsController {
     @GetOrgFromRequest() org: Organization,
     @Param('groupId') groupId: string
   ) {
-    return this._analyticsGroupService.getGroupById(org.id, groupId);
+    try {
+      return await this._analyticsGroupService.getGroupById(org.id, groupId);
+    } catch (error: any) {
+      if (error.message?.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+      throw error;
+    }
   }
 
   @Put('/groups/:groupId')
@@ -191,7 +198,14 @@ export class AnalyticsController {
     @Param('groupId') groupId: string,
     @Body() data: { name?: string; description?: string; niche?: string }
   ) {
-    return this._analyticsGroupService.updateGroup(org.id, groupId, data);
+    try {
+      return await this._analyticsGroupService.updateGroup(org.id, groupId, data);
+    } catch (error: any) {
+      if (error.message?.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+      throw error;
+    }
   }
 
   @Post('/groups/:groupId/pages')
@@ -216,6 +230,13 @@ export class AnalyticsController {
     @Param('groupId') groupId: string,
     @Body() data: { trackedIntegrationIds: string[] }
   ) {
-    return this._analyticsGroupService.assignPages(org.id, groupId, data);
+    try {
+      return await this._analyticsGroupService.assignPages(org.id, groupId, data);
+    } catch (error: any) {
+      if (error.message?.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+      throw error;
+    }
   }
 }
