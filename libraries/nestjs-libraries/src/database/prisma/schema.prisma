@@ -48,6 +48,7 @@ model Organization {
   analyticsMetrics             AnalyticsMetric[]
   analyticsTrackedIntegrations AnalyticsTrackedIntegration[]
   analyticsDailyMetrics        AnalyticsDailyMetric[]
+  provider                     Provider[]
   trending                     Trending[]
 
   @@unique([paymentId])
@@ -798,6 +799,19 @@ model AnalyticsTrackedIntegration {
   integration    Integration  @relation(fields: [integrationId], references: [id])
 
   @@unique([organizationId, integrationId])
+  @@index([organizationId])
+  @@index([integrationId])
+}
+
+model Trending {
+  id             String       @id @default(uuid())
+  organizationId String
+  integrationId  String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  integration    Integration  @relation(fields: [integrationId], references: [id])
+
   @@index([organizationId])
   @@index([integrationId])
 }
