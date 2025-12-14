@@ -23,7 +23,7 @@ export class AnalyticsTrackingService {
       },
     });
 
-    return tracked.map((t) => t.integrationId);
+    return tracked.map((item) => item.integrationId);
   }
 
   /**
@@ -57,7 +57,7 @@ export class AnalyticsTrackingService {
         },
       });
 
-      const validIds = new Set(validIntegrations.map((i) => i.id));
+      const validIds = new Set(validIntegrations.map((item) => item.id));
       const invalidIds = integrationIds.filter((id) => !validIds.has(id));
 
       if (invalidIds.length > 0) {

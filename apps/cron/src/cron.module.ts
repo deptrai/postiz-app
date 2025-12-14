@@ -6,7 +6,8 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { FILTER } from '@gitroom/nestjs-libraries/sentry/sentry.exception';
 import { CheckMissingQueues } from '@gitroom/cron/tasks/check.missing.queues';
 import { PostNowPendingQueues } from '@gitroom/cron/tasks/post.now.pending.queues';
-import { AnalyticsIngestionTask } from '@gitroom/cron/tasks/analytics.ingestion.task';
+import { AnalyticsIngestionTask } from '@gitroom/backend/cron/tasks/analytics.ingestion.task';
+import { AnalyticsTrackingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-tracking.service';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { AnalyticsIngestionTask } from '@gitroom/cron/tasks/analytics.ingestion.
     BullMqModule,
   ],
   controllers: [],
-  providers: [FILTER, CheckMissingQueues, PostNowPendingQueues, AnalyticsIngestionTask],
+  providers: [FILTER, CheckMissingQueues, PostNowPendingQueues, AnalyticsIngestionTask, AnalyticsTrackingService],
 })
 export class CronModule {}
