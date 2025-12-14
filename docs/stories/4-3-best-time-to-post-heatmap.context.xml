@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>4-3-best-time-to-post-heatmap</story-key>
+    <story-title>Best Time to Post (Simple Heatmap) by Group/Niche</story-title>
+    <epic>Epic 4: Insights + Daily Brief + Recommendations (MVP)</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-01-14</generated-date>
+    <prerequisites>
+      <prerequisite>Story 2.3: Ingest Daily Metrics (provides engagement data)</prerequisite>
+      <prerequisite>Story 2.2: Ingest Content Metadata (provides publishedAt timestamps)</prerequisite>
+      <prerequisite>Story 3.1: Page Groups (enables niche filtering)</prerequisite>
+    </prerequisites>
+    <enables>
+      <enables-story>Story 4.4: Daily Brief (includes best time recommendations)</enables-story>
+    </enables>
+  </metadata>
+
+  <story-definition>
+    <user-story>
+      As a Leader,
+      I want best time slots by group/niche,
+      So that I post at the right time to increase views and engagement.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Given 7-14 days of data,
+        When Leader views Insights,
+        Then system displays heatmap/recommended slots by group/niche.
+      </criterion>
+      <criterion id="AC2">
+        And if sufficient data available, differentiate Reels vs regular posts.
+      </criterion>
+      <criterion id="AC3">
+        And heatmap shows day of week × hour of day with engagement intensity.
+      </criterion>
+      <criterion id="AC4">
+        And top 3-5 recommended time slots highlighted.
+      </criterion>
+      <criterion id="AC5">
+        And recommendations based on actual performance data.
+      </criterion>
+    </acceptance-criteria>
+
+    <technical-requirements>
+      <requirement>Aggregate post performance by day of week and hour</requirement>
+      <requirement>Calculate average engagement per time slot</requirement>
+      <requirement>Generate 7×24 heatmap grid</requirement>
+      <requirement>Identify top performing time slots</requirement>
+      <requirement>Confidence scoring based on data volume</requirement>
+      <requirement>Support format filtering (post vs reel)</requirement>
+      <requirement>Support time window selection (7 or 14 days)</requirement>
+      <requirement>Handle insufficient data gracefully</requirement>
+    </technical-requirements>
+  </story-definition>
+
+  <time-slot-analysis>
+    <description>Analysis strategy for identifying best posting times</description>
+    
+    <time-slot-structure>
+      <total-slots>168 (7 days × 24 hours)</total-slots>
+      <day-of-week>0-6 (Sunday = 0, Saturday = 6)</day-of-week>
+      <hour-of-day>0-23 (24-hour format)</hour-of-day>
+      <timezone>UTC for MVP (Facebook API provides UTC timestamps)</timezone>
+    </time-slot-structure>
+
+    <aggregation-strategy>
+      <step order="1">Extract day of week and hour from content.publishedAt</step>
+      <step order="2">Group content by time slot (dayOfWeek, hour)</step>
+      <step order="3">Sum engagement per slot (reactions + comments + shares)</step>
+      <step order="4">Calculate average engagement per slot</step>
+      <step order="5">Calculate confidence score based on sample size</step>
+      <step order="6">Rank slots by average engagement</step>
+      <step order="7">Filter slots with sufficient confidence (>0.4)</step>
+      <step order="8">Return top N recommendations</step>
+    </aggregation-strategy>
+
+    <confidence-scoring>
+      <formula>Confidence = min(post_count / 5, 1.0)</formula>
+      <interpretation>
+        <threshold level="high" min-posts="5" score="1.0">Full confidence - sufficient data</threshold>
+        <threshold level="medium" min-posts="3" score="0.6-0.8">Moderate confidence</threshold>
+        <threshold level="low" min-posts="1" score="0.2-0.4">Low confidence - insufficient data</threshold>
+      </interpretation>
+      <recommendation-threshold>0.4 (40% confidence minimum)</recommendation-threshold>
+    </confidence-scoring>
+
+    <assumptions>
+      <assumption>[ASSUMPTION] UTC time for MVP - Facebook API provides timestamps in UTC</assumption>
+      <assumption>[ASSUMPTION] Simple aggregation (no ML/predictive analytics for MVP)</assumption>
+      <assumption>[ASSUMPTION] Hourly granularity sufficient (not minute-level)</assumption>
+      <assumption>[ASSUMPTION] Minimum 10 posts required for analysis</assumption>
+      <future-enhancement>Timezone conversion based on page/audience location</future-enhancement>
+      <future-enhancement>Time-series prediction for optimal posting times</future-enhancement>
+      <future-enhancement>A/B testing of different posting times</future-enhancement>
+    </assumptions>
+  </time-slot-analysis>
+
+  <service-implementation>
+    <class-name>AnalyticsBestTimeService</class-name>
+    <location>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-best-time.service.ts</location>
+
+    <main-method>
+      <signature>
+        ```typescript
+        async getBestTimeSlots(
+          organizationId: string,
+          options: {
+            groupId?: string;
+            integrationIds?: string[];
+            format?: 'post' | 'reel' | 'all';
+            days: 7 | 14;
+          }
+        ): Promise&lt;BestTimeResponse&gt;
+        ```
+      </signature>
+
+      <implementation>
+        ```typescript
+        async getBestTimeSlots(organizationId: string, options: BestTimeOptions) {
+          const startDate = dayjs().subtract(options.days, 'days').toDate();
+          const endDate = new Date();
+
+          // Get integration IDs if groupId provided
+          const integrationIds = options.groupId
+            ? await this.getIntegrationIdsFromGroup(organizationId, options.groupId)
+            : options.integrationIds || [];
+
+          // Query content with metrics
+          const content = await this._prismaService.analyticsContent.findMany({
+            where: {
+              organizationId,
+              publishedAt: { gte: startDate, lte: endDate },
+              ...(integrationIds.length > 0 && {
+                integrationId: { in: integrationIds }
+              }),
+              ...(options.format && options.format !== 'all' && {
+                contentType: options.format
+              })
+            },
+            include: {
+              metrics: {
+                where: { date: { gte: startDate, lte: endDate } }
+              }
+            }
+          });
+
+          // Calculate slot performance
+          const slots = this.calculateSlotPerformance(content);
+
+          // Generate 7×24 heatmap grid
+          const heatmap = this.generateHeatmap(slots);
+
+          // Get top recommendations (min confidence 0.4)
+          const recommendations = this.getTopRecommendations(slots, 5);
+
+          return {
+            period: {
+              startDate: startDate.toISOString(),
+              endDate: endDate.toISOString(),
+              days: options.days
+            },
+            totalContent: content.length,
+            heatmap,
+            recommendations,
+            format: options.format || 'all'
+          };
+        }
+        ```
+      </implementation>
+    </main-method>
+
+    <helper-methods>
+      <method name="calculateSlotPerformance">
+        <purpose>Aggregate engagement by time slot (day × hour)</purpose>
+        <implementation>
+          ```typescript
+          private calculateSlotPerformance(content: any[]): TimeSlot[] {
+            const slotMap = new Map<string, {
+              count: number;
+              totalEngagement: number;
+            }>();
+
+            // Aggregate by slot
+            for (const item of content) {
+              const publishedAt = dayjs(item.publishedAt);
+              const dayOfWeek = publishedAt.day();  // 0-6
+              const hour = publishedAt.hour();      // 0-23
+              const slotKey = `${dayOfWeek}-${hour}`;
+
+              if (!slotMap.has(slotKey)) {
+                slotMap.set(slotKey, { count: 0, totalEngagement: 0 });
+              }
+
+              const slot = slotMap.get(slotKey)!;
+              slot.count++;
+              
+              // Sum engagement from metrics
+              const engagement = item.metrics.reduce((sum, m) =>
+                sum + (m.reactions || 0) + (m.comments || 0) + (m.shares || 0), 0
+              );
+              slot.totalEngagement += engagement;
+            }
+
+            // Convert to TimeSlot array with averages and confidence
+            const slots: TimeSlot[] = [];
+            slotMap.forEach((data, key) => {
+              const [dayOfWeek, hour] = key.split('-').map(Number);
+              const avgEngagement = data.count > 0 ? data.totalEngagement / data.count : 0;
+              const confidenceScore = Math.min(data.count / 5, 1);
+
+              slots.push({
+                dayOfWeek,
+                hour,
+                contentCount: data.count,
+                totalEngagement: data.totalEngagement,
+                avgEngagement: Math.round(avgEngagement),
+                confidenceScore: Math.round(confidenceScore * 100) / 100
+              });
+            });
+
+            return slots;
+          }
+          ```
+        </implementation>
+      </method>
+
+      <method name="generateHeatmap">
+        <purpose>Create 7×24 grid for visualization</purpose>
+        <implementation>
+          ```typescript
+          private generateHeatmap(slots: TimeSlot[]) {
+            // Create 7 rows (days) × 24 columns (hours)
+            const grid: HeatmapCell[][] = [];
+
+            for (let day = 0; day < 7; day++) {
+              grid[day] = [];
+              for (let hour = 0; hour < 24; hour++) {
+                const slot = slots.find(s => s.dayOfWeek === day && s.hour === hour);
+                grid[day][hour] = {
+                  hour,
+                  engagement: slot?.avgEngagement || 0,
+                  count: slot?.contentCount || 0,
+                  confidence: slot?.confidenceScore || 0
+                };
+              }
+            }
+
+            return grid;
+          }
+          ```
+        </implementation>
+      </method>
+
+      <method name="getTopRecommendations">
+        <purpose>Identify and rank top performing time slots</purpose>
+        <implementation>
+          ```typescript
+          private getTopRecommendations(slots: TimeSlot[], limit: number) {
+            // Filter slots with sufficient confidence (>= 0.4)
+            const qualifiedSlots = slots.filter(s => s.confidenceScore >= 0.4);
+
+            // Sort by average engagement (descending)
+            const sorted = qualifiedSlots.sort((a, b) => 
+              b.avgEngagement - a.avgEngagement
+            );
+
+            // Return top N with formatted details
+            return sorted.slice(0, limit).map(slot => ({
+              dayOfWeek: slot.dayOfWeek,
+              dayName: this.getDayName(slot.dayOfWeek),
+              hour: slot.hour,
+              timeRange: `${slot.hour}:00-${slot.hour + 1}:00`,
+              avgEngagement: slot.avgEngagement,
+              contentCount: slot.contentCount,
+              confidenceScore: slot.confidenceScore,
+              recommendation: `Best time: ${this.getDayName(slot.dayOfWeek)} at ${slot.hour}:00-${slot.hour + 1}:00 (avg ${slot.avgEngagement} engagement)`
+            }));
+          }
+          ```
+        </implementation>
+      </method>
+    </helper-methods>
+
+    <data-types>
+      <interface name="TimeSlot">
+        ```typescript
+        interface TimeSlot {
+          dayOfWeek: number;      // 0-6 (Sunday-Saturday)
+          hour: number;           // 0-23
+          contentCount: number;   // Number of posts in this slot
+          totalEngagement: number;
+          avgEngagement: number;  // Average engagement per post
+          confidenceScore: number; // 0-1 based on sample size
+        }
+        ```
+      </interface>
+
+      <interface name="HeatmapCell">
+        ```typescript
+        interface HeatmapCell {
+          hour: number;
+          engagement: number;     // Average engagement
+          count: number;          // Post count
+          confidence: number;     // Confidence score
+        }
+        ```
+      </interface>
+
+      <interface name="BestTimeResponse">
+        ```typescript
+        interface BestTimeResponse {
+          period: {
+            startDate: string;
+            endDate: string;
+            days: number;
+          };
+          totalContent: number;
+          heatmap: HeatmapCell[][];  // 7×24 grid
+          recommendations: Recommendation[];
+          format: string;
+        }
+        ```
+      </interface>
+    </data-types>
+  </service-implementation>
+
+  <api-specification>
+    <endpoint>
+      <method>GET</method>
+      <path>/api/analytics/best-time</path>
+
+      <query-parameters>
+        <param name="groupId" type="string" required="false" description="Filter by analytics group"/>
+        <param name="integrationIds" type="string[]" required="false" description="Comma-separated integration IDs"/>
+        <param name="format" type="enum" required="false" values="post,reel,all" default="all"/>
+        <param name="days" type="enum" required="false" values="7,14" default="7"/>
+      </query-parameters>
+
+      <controller-implementation>
+        ```typescript
+        @Get('/best-time')
+        @ApiOperation({ summary: 'Get best time to post heatmap' })
+        @ApiQuery({ name: 'groupId', required: false })
+        @ApiQuery({ name: 'integrationIds', required: false, type: [String] })
+        @ApiQuery({ name: 'format', required: false, enum: ['post', 'reel', 'all'] })
+        @ApiQuery({ name: 'days', required: false, enum: [7, 14] })
+        @ApiResponse({ status: 200, description: 'Best time data returned' })
+        async getBestTime(
+          @GetOrgFromRequest() org: Organization,
+          @Query('groupId') groupId?: string,
+          @Query('integrationIds') integrationIds?: string,
+          @Query('format') format: 'post' | 'reel' | 'all' = 'all',
+          @Query('days') days: string = '7'
+        ) {
+          try {
+            return await this._bestTimeService.getBestTimeSlots(org.id, {
+              groupId,
+              integrationIds: integrationIds?.split(',').filter(Boolean),
+              format,
+              days: parseInt(days, 10) as 7 | 14
+            });
+          } catch (error: any) {
+            throw error;
+          }
+        }
+        ```
+      </controller-implementation>
+
+      <response status="200">
+        ```json
+        {
+          "period": {
+            "startDate": "2025-01-07T00:00:00Z",
+            "endDate": "2025-01-14T00:00:00Z",
+            "days": 7
+          },
+          "totalContent": 45,
+          "format": "all",
+          "heatmap": [
+            [
+              {"hour": 0, "engagement": 35, "count": 2, "confidence": 0.4},
+              {"hour": 1, "engagement": 25, "count": 1, "confidence": 0.2},
+              ...
+            ],
+            ...
+          ],
+          "recommendations": [
+            {
+              "dayOfWeek": 2,
+              "dayName": "Tuesday",
+              "hour": 14,
+              "timeRange": "14:00-15:00",
+              "avgEngagement": 120,
+              "contentCount": 8,
+              "confidenceScore": 1.0,
+              "recommendation": "Best time: Tuesday at 14:00-15:00 (avg 120 engagement)"
+            }
+          ]
+        }
+        ```
+      </response>
+    </endpoint>
+  </api-specification>
+
+  <frontend-implementation>
+    <heatmap-component>
+      <location>apps/frontend/src/components/analytics/best-time/best-time-heatmap.tsx</location>
+      
+      <implementation>
+        ```typescript
+        export const BestTimeHeatmap = ({ groupId }) => {
+          const fetch = useFetch();
+          const [days, setDays] = useState<7 | 14>(7);
+          const [format, setFormat] = useState<'all' | 'post' | 'reel'>('all');
+
+          const queryString = new URLSearchParams({
+            days: days.toString(),
+            format,
+            ...(groupId && { groupId })
+          }).toString();
+
+          const { data, isLoading } = useSWR(
+            `/analytics/best-time?${queryString}`,
+            async (url) => (await fetch(url)).json(),
+            { refreshInterval: 1800000 } // 30 min refresh
+          );
+
+          if (isLoading) return <LoadingComponent />;
+
+          return (
+            <div className="bg-third p-[24px] rounded-[8px]">
+              <div className="flex justify-between items-center mb-[16px]">
+                <h3 className="text-[18px]">⏰ Best Time to Post</h3>
+                <div className="flex gap-[8px]">
+                  <DaysSelector value={days} onChange={setDays} />
+                  <FormatSelector value={format} onChange={setFormat} />
+                </div>
+              </div>
+
+              {data?.totalContent >= 10 ? (
+                <>
+                  <HeatmapGrid data={data.heatmap} />
+                  <ColorLegend />
+                  <TopRecommendations recommendations={data.recommendations} />
+                </>
+              ) : (
+                <InsufficientDataMessage 
+                  minRequired={10} 
+                  current={data?.totalContent || 0} 
+                />
+              )}
+            </div>
+          );
+        };
+        ```
+      </implementation>
+
+      <heatmap-grid>
+        ```typescript
+        const HeatmapGrid = ({ data }) => {
+          const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          
+          // Calculate max engagement for color scaling
+          const maxEngagement = Math.max(
+            ...data.flat().map(cell => cell.engagement)
+          );
+
+          const getColor = (engagement: number, confidence: number) => {
+            if (confidence < 0.2) return 'bg-neutral-800'; // Insufficient data
+            
+            const intensity = engagement / maxEngagement;
+            if (intensity > 0.8) return 'bg-green-500';
+            if (intensity > 0.6) return 'bg-green-400';
+            if (intensity > 0.4) return 'bg-yellow-400';
+            if (intensity > 0.2) return 'bg-orange-400';
+            return 'bg-red-400';
+          };
+
+          return (
+            <div className="overflow-x-auto mb-[16px]">
+              <div className="min-w-[800px]">
+                {/* Hour header row */}
+                <div className="flex mb-[4px]">
+                  <div className="w-[60px]"></div>
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <div key={i} className="flex-1 text-center text-xs text-neutral-400">
+                      {i}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Day rows */}
+                {data.map((day, dayIdx) => (
+                  <div key={dayIdx} className="flex gap-[2px] mb-[2px]">
+                    <div className="w-[60px] text-sm text-neutral-400 flex items-center">
+                      {dayNames[dayIdx]}
+                    </div>
+                    {day.map((cell, hourIdx) => (
+                      <HeatmapCell
+                        key={hourIdx}
+                        cell={cell}
+                        color={getColor(cell.engagement, cell.confidence)}
+                        day={dayNames[dayIdx]}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        };
+        ```
+      </heatmap-grid>
+
+      <heatmap-cell>
+        ```typescript
+        const HeatmapCell = ({ cell, color, day }) => (
+          <div
+            className={`flex-1 aspect-square ${color} rounded-[2px] cursor-pointer hover:opacity-80 relative group`}
+          >
+            {/* Hover tooltip */}
+            <div className="hidden group-hover:block absolute z-10 bg-black text-white text-xs p-[8px] rounded-[4px] -top-[60px] left-1/2 -translate-x-1/2 whitespace-nowrap">
+              <div>{day} {cell.hour}:00-{cell.hour + 1}:00</div>
+              <div>{cell.engagement} avg engagement</div>
+              <div>{cell.count} posts</div>
+              {cell.confidence < 0.4 && (
+                <div className="text-yellow-300">Low confidence</div>
+              )}
+            </div>
+          </div>
+        );
+        ```
+      </heatmap-cell>
+
+      <recommendations-display>
+        ```typescript
+        const TopRecommendations = ({ recommendations }) => (
+          <div className="mt-[16px]">
+            <h4 className="text-sm font-medium mb-[8px]">Top Recommended Times:</h4>
+            <div className="space-y-[8px]">
+              {recommendations.slice(0, 3).map((rec, index) => (
+                <div
+                  key={index}
+                  className="p-[12px] bg-forth rounded-[6px] flex items-center gap-[12px]"
+                >
+                  <div className="text-[20px] font-bold text-primary">#{index + 1}</div>
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {rec.dayName} at {rec.timeRange}
+                    </div>
+                    <div className="text-sm text-neutral-400">
+                      Avg {rec.avgEngagement} engagement ({rec.contentCount} posts)
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-neutral-500">Confidence</div>
+                    <div className="font-medium">
+                      {Math.round(rec.confidenceScore * 100)}%
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+        ```
+      </recommendations-display>
+    </heatmap-component>
+  </frontend-implementation>
+
+  <edge-cases>
+    <case name="insufficient-data">
+      <scenario>Less than 10 posts total</scenario>
+      <handling>
+        <backend>Return empty recommendations array</backend>
+        <frontend>Display message: "Need at least 10 posts. Currently have X posts."</frontend>
+        <user-action>Suggest posting more content or expanding time range</user-action>
+      </handling>
+    </case>
+
+    <case name="empty-time-slots">
+      <scenario>No posts in specific time slots</scenario>
+      <handling>
+        <heatmap>Display gray color for empty slots</heatmap>
+        <confidence>confidenceScore = 0</confidence>
+        <tooltip>"No data for this time slot"</tooltip>
+      </handling>
+    </case>
+
+    <case name="low-confidence-slots">
+      <scenario>Slots with 1-2 posts (confidence &lt; 0.4)</scenario>
+      <handling>
+        <recommendations>Exclude from top recommendations</recommendations>
+        <heatmap>Display with lower opacity or warning indicator</heatmap>
+        <tooltip>Show confidence score and warning</tooltip>
+      </handling>
+    </case>
+
+    <case name="timezone-considerations">
+      <scenario>Content published in different timezones</scenario>
+      <handling>
+        <mvp>Use UTC timestamps as-is</mvp>
+        <future>Convert to page's local timezone</future>
+        <future>Consider audience timezone distribution</future>
+      </handling>
+    </case>
+
+    <case name="format-specific-patterns">
+      <scenario>Posts vs Reels have different optimal times</scenario>
+      <handling>
+        <feature>Format filter allows separate analysis</feature>
+        <display>Show format-specific recommendations</display>
+        <insight>"Reels perform better in evenings, Posts in mornings"</insight>
+      </handling>
+    </case>
+  </edge-cases>
+
+  <validation-checklist>
+    <check>Time slot extraction from publishedAt correct (day 0-6, hour 0-23)</check>
+    <check>Engagement aggregation accurate (reactions + comments + shares)</check>
+    <check>Average calculation handles division by zero</check>
+    <check>Confidence score formula correct (min(count/5, 1.0))</check>
+    <check>Heatmap grid is 7×24 (all slots present)</check>
+    <check>Color gradient scales from min to max engagement</check>
+    <check>Top recommendations filtered by confidence (&gt;=0.4)</check>
+    <check>Recommendations sorted by engagement (descending)</check>
+    <check>Insufficient data message shows when &lt;10 posts</check>
+    <check>Empty slots display correctly (gray, no data)</check>
+    <check>Hover tooltips show accurate slot details</check>
+    <check>Days selector switches between 7 and 14 days</check>
+    <check>Format filter works (post/reel/all)</check>
+    <check>Group filtering applies correctly</check>
+  </validation-checklist>
+
+  <performance-considerations>
+    <query-optimization>
+      <optimization>Index on (organizationId, publishedAt) for fast filtering</optimization>
+      <optimization>Include metrics in single query (reduce round-trips)</optimization>
+      <optimization>Aggregate in application layer (acceptable for MVP)</optimization>
+      <optimization>Limit query to last 14 days max</optimization>
+    </query-optimization>
+
+    <caching>
+      <strategy>Cache heatmap data for 30 minutes</strategy>
+      <key>org:{orgId}:best-time:{days}:{format}:{groupId}</key>
+      <invalidation>Time-based TTL (30 minutes)</invalidation>
+      <rationale>Best times don't change frequently</rationale>
+    </caching>
+
+    <frontend-optimization>
+      <optimization>SWR auto-refresh every 30 minutes</optimization>
+      <optimization>Memoize color calculation function</optimization>
+      <optimization>Virtualize grid for mobile (if needed)</optimization>
+    </frontend-optimization>
+
+    <future-scaling>
+      <pre-computation>Pre-compute heatmaps via cron job</pre-computation>
+      <materialized-view>Store aggregated time slot data</materialized-view>
+      <when-needed>If real-time calculation becomes slow (&gt;2s)</when-needed>
+    </future-scaling>
+  </performance-considerations>
+
+  <testing-guidance>
+    <unit-tests>
+      <test-case>
+        <name>Time slot extraction</name>
+        <input>publishedAt: "2025-01-14T14:30:00Z" (Tuesday)</input>
+        <expected>dayOfWeek: 2, hour: 14</expected>
+      </test-case>
+
+      <test-case>
+        <name>Engagement aggregation</name>
+        <input>Slot with 3 posts: [50, 75, 100] engagement</input>
+        <expected>avgEngagement: 75, count: 3, confidence: 0.6</expected>
+      </test-case>
+
+      <test-case>
+        <name>Confidence scoring</name>
+        <scenarios>
+          <scenario posts="1">confidence: 0.2</scenario>
+          <scenario posts="3">confidence: 0.6</scenario>
+          <scenario posts="5">confidence: 1.0</scenario>
+          <scenario posts="10">confidence: 1.0 (capped)</scenario>
+        </scenarios>
+      </test-case>
+
+      <test-case>
+        <name>Empty slot handling</name>
+        <input>Slot with 0 posts</input>
+        <expected>engagement: 0, count: 0, confidence: 0</expected>
+      </test-case>
+    </unit-tests>
+
+    <integration-tests>
+      <test>API endpoint returns 7×24 heatmap grid</test>
+      <test>Recommendations filtered by confidence threshold</test>
+      <test>Days parameter (7 vs 14) affects date range</test>
+      <test>Format filter works correctly</test>
+      <test>Group filter applies to results</test>
+      <test>Insufficient data returns empty recommendations</test>
+    </integration-tests>
+
+    <frontend-tests>
+      <test>Heatmap grid renders 7 rows × 24 columns</test>
+      <test>Color gradient scales correctly</test>
+      <test>Hover tooltips display accurate data</test>
+      <test>Insufficient data message shows when needed</test>
+      <test>Days and format selectors update data</test>
+    </frontend-tests>
+  </testing-guidance>
+
+  <related-files>
+    <file path="docs/stories/2-3-ingest-daily-metrics.md" description="Engagement metrics source"/>
+    <file path="docs/stories/2-2-ingest-content-metadata.md" description="publishedAt timestamps"/>
+    <file path="docs/stories/3-1-manage-page-groups-and-assign-pages.md" description="Group filtering"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/schema.prisma" description="Content and metrics models"/>
+  </related-files>
+
+  <implementation-checklist>
+    <backend>
+      <task>Create AnalyticsBestTimeService</task>
+      <task>Implement getBestTimeSlots() method</task>
+      <task>Implement calculateSlotPerformance() helper</task>
+      <task>Implement generateHeatmap() helper</task>
+      <task>Implement getTopRecommendations() helper</task>
+      <task>Add time extraction logic (dayjs.day(), dayjs.hour())</task>
+      <task>Add confidence scoring calculation</task>
+      <task>Add GET /best-time endpoint to controller</task>
+      <task>Register service in modules</task>
+      <task>Write unit tests for slot aggregation</task>
+      <task>Write unit tests for confidence scoring</task>
+      <task>Write integration tests for API</task>
+      <task>Add Swagger documentation</task>
+    </backend>
+
+    <frontend>
+      <task>Create BestTimeHeatmap component</task>
+      <task>Create HeatmapGrid sub-component</task>
+      <task>Create HeatmapCell sub-component</task>
+      <task>Create TopRecommendations sub-component</task>
+      <task>Create InsufficientDataMessage component</task>
+      <task>Implement color gradient logic</task>
+      <task>Add hover tooltips</task>
+      <task>Add days selector (7d/14d)</task>
+      <task>Add format selector (all/post/reel)</task>
+      <task>Implement data fetching with useSWR</task>
+      <task>Integrate into insights/dashboard page</task>
+      <task>Add loading states</task>
+      <task>Write component tests</task>
+    </frontend>
+
+    <documentation>
+      <task>Update Swagger docs</task>
+      <task>Document time slot structure</task>
+      <task>Document confidence scoring</task>
+      <task>Add code comments</task>
+    </documentation>
+  </implementation-checklist>
+</story-context>
