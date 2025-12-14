@@ -13,7 +13,7 @@ import { StarsService } from '@gitroom/nestjs-libraries/database/prisma/stars/st
 import dayjs from 'dayjs';
 import { StarsListDto } from '@gitroom/nestjs-libraries/dtos/analytics/stars.list.dto';
 import { DailyBriefQueryDto } from '@gitroom/nestjs-libraries/dtos/analytics/daily-brief.query.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 
@@ -53,6 +53,11 @@ export class AnalyticsController {
     };
   }
 
+  @ApiOperation({ summary: 'Get Daily Brief analytics stub' })
+  @ApiQuery({ name: 'date', required: false, description: 'Date in YYYY-MM-DD format' })
+  @ApiQuery({ name: 'groupId', required: false, description: 'Analytics group ID' })
+  @ApiQuery({ name: 'format', required: false, enum: ['json', 'markdown'], description: 'Response format' })
+  @ApiResponse({ status: 200, description: 'Daily brief data returned successfully' })
   @Get('/daily-brief')
   async getDailyBrief(
     @GetOrgFromRequest() org: Organization,

@@ -42,6 +42,10 @@ model Organization {
   sets              Sets[]
   thirdParty        ThirdParty[]
   errors            Errors[]
+  analyticsGroups   AnalyticsGroup[]
+  analyticsTags     AnalyticsTag[]
+  analyticsContents AnalyticsContent[]
+  analyticsMetrics  AnalyticsMetric[]
 }
 
 model Tags {
@@ -335,6 +339,8 @@ model Integration {
   rootInternalId        String?
   additionalSettings    String?                @default("[]")
   webhooks              IntegrationsWebhooks[]
+  analyticsContents     AnalyticsContent[]
+  analyticsMetrics      AnalyticsMetric[]
 
   @@unique([organizationId, internalId])
   @@index([rootInternalId])
@@ -674,6 +680,105 @@ model Mentions {
 
   @@id([name, username, platform, image])
   @@index([createdAt])
+}
+
+// Analytics Intelligence Models - Story 1.2
+
+model AnalyticsGroup {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  description    String?
+  metrics        AnalyticsMetric[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@unique([organizationId, name, deletedAt])
+  @@index([organizationId])
+  @@index([deletedAt])
+}
+
+model AnalyticsTag {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  type           String   // AUTO or MANUAL
+  content        AnalyticsContentTag[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@unique([organizationId, name, type, deletedAt])
+  @@index([organizationId])
+  @@index([type])
+  @@index([deletedAt])
+}
+
+model AnalyticsContent {
+  id                 String   @id @default(uuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  integrationId      String
+  integration        Integration @relation(fields: [integrationId], references: [id])
+  externalContentId  String   // Facebook post ID, reel ID, etc.
+  contentType        String   // post, reel, story
+  caption            String?
+  hashtags           String?  // JSON array of hashtags
+  publishedAt        DateTime
+  metrics            AnalyticsMetric[]
+  tags               AnalyticsContentTag[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  @@unique([organizationId, integrationId, externalContentId, deletedAt])
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([externalContentId])
+  @@index([publishedAt])
+  @@index([deletedAt])
+}
+
+model AnalyticsContentTag {
+  contentId String
+  content   AnalyticsContent @relation(fields: [contentId], references: [id])
+  tagId     String
+  tag       AnalyticsTag @relation(fields: [tagId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([contentId, tagId])
+  @@unique([contentId, tagId])
+}
+
+model AnalyticsMetric {
+  id                 String   @id @default(uuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  integrationId      String
+  integration        Integration @relation(fields: [integrationId], references: [id])
+  contentId          String?
+  content            AnalyticsContent? @relation(fields: [contentId], references: [id])
+  groupId            String?
+  group              AnalyticsGroup? @relation(fields: [groupId], references: [id])
+  date               DateTime  // Date for which metrics are recorded
+  metricType         String    // reach, views, engagement, likes, comments, shares
+  metricValue        Float
+  externalContentId  String    // Required for idempotency (Facebook post/reel ID)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([organizationId, integrationId, externalContentId, date, metricType])
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([contentId])
+  @@index([groupId])
+  @@index([date])
+  @@index([organizationId, date])
+  @@index([organizationId, integrationId, date])
 }
 
 enum OrderStatus {

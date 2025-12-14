@@ -10,9 +10,9 @@ export const DailyBriefPlaceholder = () => {
   
   const load = useCallback(async () => {
     return await (await fetch('/analytics/daily-brief')).json();
-  }, []);
+  }, [fetch]);
 
-  const { data, isLoading } = useSWR('daily-brief', load, {
+  const { data, isLoading, error } = useSWR('daily-brief', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
@@ -21,6 +21,15 @@ export const DailyBriefPlaceholder = () => {
     return (
       <div className="flex items-center justify-center p-8">
         <LoadingComponent />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-newBgColorInner p-6 rounded-lg">
+        <h2 className="text-2xl font-semibold mb-4 text-red-500">Error Loading Daily Brief</h2>
+        <p className="text-textColor/60">Failed to load Daily Brief data. Please try again later.</p>
       </div>
     );
   }
