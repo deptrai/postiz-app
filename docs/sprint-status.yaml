@@ -45,7 +45,7 @@ development_status:
 
   # Epic 2 — Ingestion & Storage (MVP)
   epic-2: backlog
-  2-1-track-priority-facebook-pages: ready-for-dev
+  2-1-track-priority-facebook-pages: in-progress
   2-2-ingest-content-metadata: ready-for-dev
   2-3-ingest-daily-metrics: ready-for-dev
   epic-2-retrospective: optional

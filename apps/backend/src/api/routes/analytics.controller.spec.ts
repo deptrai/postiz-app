@@ -4,10 +4,14 @@ import { StarsService } from '@gitroom/nestjs-libraries/database/prisma/stars/st
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { Organization } from '@prisma/client';
 
+import { AnalyticsTrackingService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-tracking.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+
 describe('AnalyticsController', () => {
   let controller: AnalyticsController;
   let starsService: StarsService;
   let integrationService: IntegrationService;
+  let analyticsTrackingService: AnalyticsTrackingService;
 
   const mockOrganization: Organization = {
     id: 'test-org-id',
@@ -45,12 +49,20 @@ describe('AnalyticsController', () => {
             checkAnalytics: jest.fn(),
           },
         },
+        {
+          provide: AnalyticsTrackingService,
+          useValue: {
+            getTrackedIntegrations: jest.fn(),
+            updateTrackedIntegrations: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get<AnalyticsController>(AnalyticsController);
     starsService = module.get<StarsService>(StarsService);
     integrationService = module.get<IntegrationService>(IntegrationService);
+    analyticsTrackingService = module.get<AnalyticsTrackingService>(AnalyticsTrackingService);
   });
 
   describe('getDailyBrief', () => {
@@ -95,6 +107,81 @@ describe('AnalyticsController', () => {
 
       expect(result).toBeDefined();
       expect(result.organizationId).toBe('test-org-id');
+    });
+  });
+
+  describe('getTrackedPages', () => {
+    it('should return tracked integration IDs', async () => {
+      const mockTrackedIds = ['int-1', 'int-2', 'int-3'];
+      jest.spyOn(analyticsTrackingService, 'getTrackedIntegrations').mockResolvedValue(mockTrackedIds);
+
+      const result = await controller.getTrackedPages(mockOrganization);
+
+      expect(result).toEqual(mockTrackedIds);
+      expect(analyticsTrackingService.getTrackedIntegrations).toHaveBeenCalledWith('test-org-id');
+    });
+
+    it('should return empty array when no pages tracked', async () => {
+      jest.spyOn(analyticsTrackingService, 'getTrackedIntegrations').mockResolvedValue([]);
+
+      const result = await controller.getTrackedPages(mockOrganization);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('updateTrackedPages', () => {
+    it('should update tracked pages successfully', async () => {
+      const integrationIds = ['int-1', 'int-2'];
+      jest.spyOn(analyticsTrackingService, 'updateTrackedIntegrations').mockResolvedValue();
+
+      const result = await controller.updateTrackedPages(mockOrganization, { integrationIds });
+
+      expect(result).toEqual({
+        success: true,
+        trackedCount: 2,
+      });
+      expect(analyticsTrackingService.updateTrackedIntegrations).toHaveBeenCalledWith(
+        'test-org-id',
+        integrationIds
+      );
+    });
+
+    it('should throw BadRequestException when more than 20 integrations', async () => {
+      const integrationIds = Array(21).fill('int-x');
+      jest
+        .spyOn(analyticsTrackingService, 'updateTrackedIntegrations')
+        .mockRejectedValue(new Error('Cannot track more than 20 integrations'));
+
+      await expect(
+        controller.updateTrackedPages(mockOrganization, { integrationIds })
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException when integrationId does not belong to org', async () => {
+      const integrationIds = ['int-1', 'invalid-int'];
+      jest
+        .spyOn(analyticsTrackingService, 'updateTrackedIntegrations')
+        .mockRejectedValue(
+          new Error('Integration IDs not found or do not belong to organization: invalid-int')
+        );
+
+      await expect(
+        controller.updateTrackedPages(mockOrganization, { integrationIds })
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle empty array of integrationIds', async () => {
+      jest.spyOn(analyticsTrackingService, 'updateTrackedIntegrations').mockResolvedValue();
+
+      const result = await controller.updateTrackedPages(mockOrganization, {
+        integrationIds: [],
+      });
+
+      expect(result).toEqual({
+        success: true,
+        trackedCount: 0,
+      });
     });
   });
 });
