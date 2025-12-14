@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>5-1-export-csv-report</story-key>
+    <story-title>Export CSV Report by Date Range (Page/Group/Niche)</story-title>
+    <epic>Epic 5: Export Reporting (MVP)</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-01-14</generated-date>
+    <prerequisites>
+      <prerequisite>Story 3.2: Dashboard KPIs (provides content and metrics data)</prerequisite>
+      <prerequisite>Story 4.2: Trending Topics (provides tags data)</prerequisite>
+      <prerequisite>Story 2.3: Daily Metrics (provides engagement data)</prerequisite>
+    </prerequisites>
+  </metadata>
+
+  <story-definition>
+    <user-story>
+      As a Leader,
+      I want to export CSV reports,
+      So that I can save and analyze further or share with my team.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Given dashboard/insights data,
+        When user selects date range + scope,
+        Then system returns downloadable CSV file.
+      </criterion>
+      <criterion id="AC2">
+        And CSV includes minimum KPI columns as per PRD.
+      </criterion>
+      <criterion id="AC3">
+        And export supports filtering by date range, group/niche, and content format.
+      </criterion>
+      <criterion id="AC4">
+        And CSV file is properly formatted with headers (RFC 4180 compliant).
+      </criterion>
+      <criterion id="AC5">
+        And large exports (&gt;1000 rows) are handled gracefully.
+      </criterion>
+    </acceptance-criteria>
+
+    <technical-requirements>
+      <requirement>CSV generation service with detailed and summary modes</requirement>
+      <requirement>RFC 4180 compliant CSV formatting</requirement>
+      <requirement>Date range validation (maximum 90 days)</requirement>
+      <requirement>Support for filtering by group, format, date range</requirement>
+      <requirement>Special character escaping in CSV</requirement>
+      <requirement>File download with proper headers</requirement>
+      <requirement>Frontend export modal with options</requirement>
+      <requirement>Handle large datasets efficiently</requirement>
+    </technical-requirements>
+  </story-definition>
+
+  <csv-structure>
+    <description>Two export modes for different analysis needs</description>
+
+    <detailed-export>
+      <purpose>One row per content item - for deep analysis</purpose>
+      <columns>
+        <column name="Content ID" type="string" description="Unique content identifier"/>
+        <column name="Integration Name" type="string" description="Page/account name"/>
+        <column name="Content Type" type="string" description="post, reel, story"/>
+        <column name="Published Date" type="datetime" format="YYYY-MM-DD HH:mm:ss"/>
+        <column name="Caption" type="string" description="Content caption/text"/>
+        <column name="Hashtags" type="string" description="Comma-separated hashtags"/>
+        <column name="Total Reach" type="number" description="Sum of reach across all metrics"/>
+        <column name="Total Impressions" type="number" description="Sum of impressions"/>
+        <column name="Total Reactions" type="number" description="Sum of reactions"/>
+        <column name="Total Comments" type="number" description="Sum of comments"/>
+        <column name="Total Shares" type="number" description="Sum of shares"/>
+        <column name="Total Video Views" type="number" description="Sum of video views"/>
+        <column name="Total Engagement" type="number" description="reactions + comments + shares"/>
+        <column name="Engagement Rate (%)" type="number" format="0.00" description="(engagement/reach)*100"/>
+        <column name="Tags" type="string" description="Comma-separated tags from Story 4.1"/>
+      </columns>
+      <sample-row>
+        ```csv
+        "abc123","TechPage","post","2025-01-10 14:30:00","Amazing product launch...","#tech,#startup",50000,75000,1800,500,200,0,2500,5.0,"ai,startup,product"
+        ```
+      </sample-row>
+    </detailed-export>
+
+    <summary-export>
+      <purpose>One row per day - for high-level reporting</purpose>
+      <columns>
+        <column name="Date" type="date" format="YYYY-MM-DD"/>
+        <column name="Content Count" type="number" description="Number of content items"/>
+        <column name="Total Reach" type="number" description="Daily total reach"/>
+        <column name="Total Impressions" type="number" description="Daily total impressions"/>
+        <column name="Total Reactions" type="number" description="Daily total reactions"/>
+        <column name="Total Comments" type="number" description="Daily total comments"/>
+        <column name="Total Shares" type="number" description="Daily total shares"/>
+        <column name="Total Video Views" type="number" description="Daily total video views"/>
+        <column name="Total Engagement" type="number" description="Daily total engagement"/>
+        <column name="Engagement Rate (%)" type="number" format="0.00" description="Daily engagement rate"/>
+      </columns>
+      <sample-row>
+        ```csv
+        "2025-01-10",15,150000,200000,5000,1200,800,25000,7000,4.67
+        ```
+      </sample-row>
+    </summary-export>
+
+    <csv-formatting>
+      <standard>RFC 4180 compliant</standard>
+      <encoding>UTF-8</encoding>
+      <line-endings>CRLF (\r\n)</line-endings>
+      <quoting>All fields quoted for safety</quoting>
+      <escaping>Double quotes escaped as ""</escaping>
+      <header-row>Always included</header-row>
+    </csv-formatting>
+  </csv-structure>
+
+  <service-implementation>
+    <class-name>AnalyticsExportService</class-name>
+    <location>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-export.service.ts</location>
+
+    <dependencies>
+      <dependency>PrismaService - for database queries</dependency>
+      <dependency>csv-stringify - for CSV generation</dependency>
+      <dependency>dayjs - for date handling</dependency>
+    </dependencies>
+
+    <main-method>
+      <signature>
+        ```typescript
+        async generateCSV(
+          organizationId: string,
+          options: {
+            groupId?: string;
+            integrationIds?: string[];
+            startDate: string;
+            endDate: string;
+            format?: 'post' | 'reel' | 'all';
+            exportType: 'detailed' | 'summary';
+          }
+        ): Promise&lt;string&gt;
+        ```
+      </signature>
+
+      <implementation>
+        ```typescript
+        async generateCSV(organizationId: string, options: ExportOptions): Promise<string> {
+          // Route to appropriate export method
+          if (options.exportType === 'detailed') {
+            return this.generateDetailedCSV(organizationId, options);
+          } else {
+            return this.generateSummaryCSV(organizationId, options);
+          }
+        }
+        ```
+      </implementation>
+    </main-method>
+
+    <detailed-export-method>
+      <method-name>generateDetailedCSV</method-name>
+      <implementation>
+        ```typescript
+        private async generateDetailedCSV(organizationId: string, options: any): Promise<string> {
+          const startDate = dayjs(options.startDate).toDate();
+          const endDate = dayjs(options.endDate).toDate();
+
+          // Get integration IDs if groupId provided
+          const integrationIds = options.groupId
+            ? await this.getIntegrationIdsFromGroup(organizationId, options.groupId)
+            : options.integrationIds || [];
+
+          // Query content with metrics and tags
+          const content = await this._prismaService.analyticsContent.findMany({
+            where: {
+              organizationId,
+              publishedAt: { gte: startDate, lte: endDate },
+              ...(integrationIds.length > 0 && {
+                integrationId: { in: integrationIds }
+              }),
+              ...(options.format && options.format !== 'all' && {
+                contentType: options.format
+              })
+            },
+            include: {
+              integration: { select: { name: true } },
+              metrics: { where: { date: { gte: startDate, lte: endDate } } },
+              tags: { include: { tag: true } }
+            },
+            orderBy: { publishedAt: 'desc' }
+          });
+
+          // Format data for CSV
+          const rows = content.map(item => {
+            // Aggregate metrics
+            const totalReach = item.metrics.reduce((sum, m) => sum + (m.reach || 0), 0);
+            const totalImpressions = item.metrics.reduce((sum, m) => sum + (m.impressions || 0), 0);
+            const totalReactions = item.metrics.reduce((sum, m) => sum + (m.reactions || 0), 0);
+            const totalComments = item.metrics.reduce((sum, m) => sum + (m.comments || 0), 0);
+            const totalShares = item.metrics.reduce((sum, m) => sum + (m.shares || 0), 0);
+            const totalVideoViews = item.metrics.reduce((sum, m) => sum + (m.videoViews || 0), 0);
+            const totalEngagement = totalReactions + totalComments + totalShares;
+            const engagementRate = totalReach > 0 ? (totalEngagement / totalReach) * 100 : 0;
+
+            // Format tags
+            const tags = item.tags.map(t => t.tag.name).join(',');
+
+            // Parse hashtags
+            let hashtags = '';
+            try {
+              const hashtagsArray = JSON.parse(item.hashtags || '[]');
+              hashtags = Array.isArray(hashtagsArray) ? hashtagsArray.join(',') : '';
+            } catch (e) {
+              hashtags = '';
+            }
+
+            return {
+              'Content ID': item.id,
+              'Integration Name': item.integration.name,
+              'Content Type': item.contentType,
+              'Published Date': dayjs(item.publishedAt).format('YYYY-MM-DD HH:mm:ss'),
+              'Caption': item.caption || '',
+              'Hashtags': hashtags,
+              'Total Reach': totalReach,
+              'Total Impressions': totalImpressions,
+              'Total Reactions': totalReactions,
+              'Total Comments': totalComments,
+              'Total Shares': totalShares,
+              'Total Video Views': totalVideoViews,
+              'Total Engagement': totalEngagement,
+              'Engagement Rate (%)': engagementRate.toFixed(2),
+              'Tags': tags
+            };
+          });
+
+          // Generate CSV using csv-stringify
+          const csv = stringify(rows, {
+            header: true,
+            quoted: true
+          });
+
+          return csv;
+        }
+        ```
+      </implementation>
+    </detailed-export-method>
+
+    <summary-export-method>
+      <method-name>generateSummaryCSV</method-name>
+      <implementation>
+        ```typescript
+        private async generateSummaryCSV(organizationId: string, options: any): Promise<string> {
+          const startDate = dayjs(options.startDate).toDate();
+          const endDate = dayjs(options.endDate).toDate();
+
+          const integrationIds = options.groupId
+            ? await this.getIntegrationIdsFromGroup(organizationId, options.groupId)
+            : options.integrationIds || [];
+
+          // Query metrics grouped by date
+          const metrics = await this._prismaService.analyticsDailyMetric.findMany({
+            where: {
+              organizationId,
+              date: { gte: startDate, lte: endDate },
+              ...(integrationIds.length > 0 && {
+                integrationId: { in: integrationIds }
+              })
+            },
+            orderBy: { date: 'asc' }
+          });
+
+          // Group by date
+          const dailyMap = new Map<string, DailySummary>();
+          metrics.forEach(metric => {
+            const dateKey = dayjs(metric.date).format('YYYY-MM-DD');
+            if (!dailyMap.has(dateKey)) {
+              dailyMap.set(dateKey, {
+                date: dateKey,
+                contentCount: 0,
+                reach: 0,
+                impressions: 0,
+                reactions: 0,
+                comments: 0,
+                shares: 0,
+                videoViews: 0
+              });
+            }
+            const daily = dailyMap.get(dateKey)!;
+            daily.contentCount++;
+            daily.reach += metric.reach || 0;
+            daily.impressions += metric.impressions || 0;
+            daily.reactions += metric.reactions || 0;
+            daily.comments += metric.comments || 0;
+            daily.shares += metric.shares || 0;
+            daily.videoViews += metric.videoViews || 0;
+          });
+
+          // Format for CSV
+          const rows = Array.from(dailyMap.values()).map(daily => {
+            const totalEngagement = daily.reactions + daily.comments + daily.shares;
+            const engagementRate = daily.reach > 0 ? (totalEngagement / daily.reach) * 100 : 0;
+
+            return {
+              'Date': daily.date,
+              'Content Count': daily.contentCount,
+              'Total Reach': daily.reach,
+              'Total Impressions': daily.impressions,
+              'Total Reactions': daily.reactions,
+              'Total Comments': daily.comments,
+              'Total Shares': daily.shares,
+              'Total Video Views': daily.videoViews,
+              'Total Engagement': totalEngagement,
+              'Engagement Rate (%)': engagementRate.toFixed(2)
+            };
+          });
+
+          const csv = stringify(rows, {
+            header: true,
+            quoted: true
+          });
+
+          return csv;
+        }
+        ```
+      </implementation>
+    </summary-export-method>
+  </service-implementation>
+
+  <api-specification>
+    <endpoint>
+      <method>GET</method>
+      <path>/api/analytics/export/csv</path>
+
+      <query-parameters>
+        <param name="groupId" type="string" required="false" description="Filter by analytics group"/>
+        <param name="integrationIds" type="string[]" required="false" description="Comma-separated integration IDs"/>
+        <param name="startDate" type="string" required="true" pattern="YYYY-MM-DD" description="Start date for export"/>
+        <param name="endDate" type="string" required="true" pattern="YYYY-MM-DD" description="End date for export"/>
+        <param name="format" type="enum" required="false" values="post,reel,all" default="all"/>
+        <param name="exportType" type="enum" required="false" values="detailed,summary" default="detailed"/>
+      </query-parameters>
+
+      <controller-implementation>
+        ```typescript
+        @Get('/export/csv')
+        @ApiOperation({ summary: 'Export analytics data as CSV' })
+        @ApiQuery({ name: 'groupId', required: false })
+        @ApiQuery({ name: 'integrationIds', required: false, type: [String] })
+        @ApiQuery({ name: 'startDate', required: true })
+        @ApiQuery({ name: 'endDate', required: true })
+        @ApiQuery({ name: 'format', required: false, enum: ['post', 'reel', 'all'] })
+        @ApiQuery({ name: 'exportType', required: false, enum: ['detailed', 'summary'] })
+        @ApiResponse({ status: 200, description: 'CSV file download' })
+        @ApiResponse({ status: 400, description: 'Invalid parameters' })
+        async exportCSV(
+          @GetOrgFromRequest() org: Organization,
+          @Query('groupId') groupId?: string,
+          @Query('integrationIds') integrationIds?: string,
+          @Query('startDate') startDate?: string,
+          @Query('endDate') endDate?: string,
+          @Query('format') format: 'post' | 'reel' | 'all' = 'all',
+          @Query('exportType') exportType: 'detailed' | 'summary' = 'detailed',
+          @Res() res?: Response
+        ) {
+          try {
+            // Validate dates
+            if (!startDate || !endDate) {
+              throw new BadRequestException('startDate and endDate are required');
+            }
+
+            if (!dayjs(startDate, 'YYYY-MM-DD', true).isValid() ||
+                !dayjs(endDate, 'YYYY-MM-DD', true).isValid()) {
+              throw new BadRequestException('Invalid date format. Use YYYY-MM-DD');
+            }
+
+            // Validate date range (max 90 days)
+            const start = dayjs(startDate);
+            const end = dayjs(endDate);
+            if (end.diff(start, 'days') > 90) {
+              throw new BadRequestException('Date range cannot exceed 90 days');
+            }
+
+            // Generate CSV
+            const csv = await this._exportService.generateCSV(org.id, {
+              groupId,
+              integrationIds: integrationIds?.split(',').filter(Boolean),
+              startDate,
+              endDate,
+              format,
+              exportType
+            });
+
+            // Set response headers for file download
+            const filename = `analytics-export-${startDate}-to-${endDate}.csv`;
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            
+            return res.send(csv);
+          } catch (error: any) {
+            if (error instanceof BadRequestException) {
+              throw error;
+            }
+            throw error;
+          }
+        }
+        ```
+      </controller-implementation>
+
+      <response-headers>
+        <header name="Content-Type" value="text/csv"/>
+        <header name="Content-Disposition" value='attachment; filename="analytics-export-YYYY-MM-DD-to-YYYY-MM-DD.csv"'/>
+      </response-headers>
+
+      <validation-rules>
+        <rule>startDate and endDate are required</rule>
+        <rule>Dates must be in YYYY-MM-DD format</rule>
+        <rule>Date range cannot exceed 90 days</rule>
+        <rule>startDate must be before or equal to endDate</rule>
+      </validation-rules>
+    </endpoint>
+  </api-specification>
+
+  <frontend-implementation>
+    <export-modal>
+      <location>apps/frontend/src/components/analytics/export/export-modal.tsx</location>
+      
+      <implementation>
+        ```typescript
+        'use client';
+        import { useState } from 'react';
+        import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+        import dayjs from 'dayjs';
+
+        export const ExportModal = ({ groupId, onClose }) => {
+          const fetch = useFetch();
+          const [startDate, setStartDate] = useState(
+            dayjs().subtract(7, 'days').format('YYYY-MM-DD')
+          );
+          const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
+          const [format, setFormat] = useState<'all' | 'post' | 'reel'>('all');
+          const [exportType, setExportType] = useState<'detailed' | 'summary'>('detailed');
+          const [isExporting, setIsExporting] = useState(false);
+
+          const handleExport = async () => {
+            setIsExporting(true);
+            
+            try {
+              const queryString = new URLSearchParams({
+                startDate,
+                endDate,
+                format,
+                exportType,
+                ...(groupId && { groupId })
+              }).toString();
+
+              const response = await fetch(`/analytics/export/csv?${queryString}`);
+              
+              if (!response.ok) {
+                throw new Error('Export failed');
+              }
+
+              // Download file
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `analytics-export-${startDate}-to-${endDate}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+
+              onClose();
+            } catch (error) {
+              console.error('Export error:', error);
+              alert('Failed to export CSV. Please try again.');
+            } finally {
+              setIsExporting(false);
+            }
+          };
+
+          return (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-third p-[24px] rounded-[8px] w-[500px]">
+                <h2 className="text-[20px] font-bold mb-[16px]">Export Analytics Data</h2>
+
+                {/* Date Range */}
+                <div className="mb-[16px]">
+                  <label className="block text-sm mb-[8px]">Date Range</label>
+                  <div className="flex gap-[8px]">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="flex-1 px-[12px] py-[8px] bg-forth rounded-[4px]"
+                    />
+                    <span className="text-neutral-400">to</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="flex-1 px-[12px] py-[8px] bg-forth rounded-[4px]"
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-[4px]">Maximum 90 days</p>
+                </div>
+
+                {/* Format Selector */}
+                <div className="mb-[16px]">
+                  <label className="block text-sm mb-[8px]">Content Format</label>
+                  <div className="flex gap-[8px]">
+                    {['all', 'post', 'reel'].map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setFormat(f as any)}
+                        className={`flex-1 px-[12px] py-[8px] rounded-[4px] text-sm ${
+                          format === f
+                            ? 'bg-primary text-white'
+                            : 'bg-forth text-neutral-400'
+                        }`}
+                      >
+                        {f.charAt(0).toUpperCase() + f.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Export Type Selector */}
+                <div className="mb-[24px]">
+                  <label className="block text-sm mb-[8px]">Export Type</label>
+                  <div className="flex gap-[8px]">
+                    <button
+                      onClick={() => setExportType('detailed')}
+                      className={`flex-1 px-[12px] py-[8px] rounded-[4px] text-sm ${
+                        exportType === 'detailed'
+                          ? 'bg-primary text-white'
+                          : 'bg-forth text-neutral-400'
+                      }`}
+                    >
+                      Detailed (per content)
+                    </button>
+                    <button
+                      onClick={() => setExportType('summary')}
+                      className={`flex-1 px-[12px] py-[8px] rounded-[4px] text-sm ${
+                        exportType === 'summary'
+                          ? 'bg-primary text-white'
+                          : 'bg-forth text-neutral-400'
+                      }`}
+                    >
+                      Summary (per day)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-[8px] justify-end">
+                  <button
+                    onClick={onClose}
+                    disabled={isExporting}
+                    className="px-[16px] py-[8px] bg-forth rounded-[4px] text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className="px-[16px] py-[8px] bg-primary text-white rounded-[4px] text-sm disabled:opacity-50"
+                  >
+                    {isExporting ? 'Exporting...' : 'Export CSV'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        };
+        ```
+      </implementation>
+
+      <file-download-mechanism>
+        <description>Client-side file download using Blob API</description>
+        <steps>
+          <step>Fetch CSV from API endpoint</step>
+          <step>Convert response to Blob</step>
+          <step>Create object URL from Blob</step>
+          <step>Create temporary anchor element</step>
+          <step>Set download attribute with filename</step>
+          <step>Programmatically click anchor</step>
+          <step>Clean up: revoke URL, remove element</step>
+        </steps>
+      </file-download-mechanism>
+    </export-modal>
+
+    <integration-points>
+      <location>Dashboard page - Export button</location>
+      <location>Insights page - Export button</location>
+      <location>Daily Brief page - Export button</location>
+      <pre-filled-filters>Use current dashboard filters for export options</pre-filled-filters>
+    </integration-points>
+  </frontend-implementation>
+
+  <edge-cases>
+    <case name="empty-data">
+      <scenario>No content found for selected filters</scenario>
+      <handling>
+        <backend>Return CSV with headers only</backend>
+        <frontend>Show warning message before export</frontend>
+        <file>Still generate downloadable file with headers</file>
+      </handling>
+    </case>
+
+    <case name="invalid-date-range">
+      <scenario>End date before start date or exceeds 90 days</scenario>
+      <handling>
+        <validation>Backend validates dates</validation>
+        <error>400 Bad Request with clear message</error>
+        <frontend>Show error alert to user</frontend>
+      </handling>
+    </case>
+
+    <case name="large-export">
+      <scenario>More than 1000 rows of data</scenario>
+      <handling>
+        <mvp>Process normally (synchronous)</mvp>
+        <warning>Show warning in UI for large date ranges</warning>
+        <future>Consider background job + email link for &gt;10K rows</future>
+      </handling>
+    </case>
+
+    <case name="special-characters">
+      <scenario>Caption or other fields contain quotes, commas, newlines</scenario>
+      <handling>
+        <csv-library>csv-stringify handles escaping automatically</csv-library>
+        <quotes>Double quotes escaped as ""</quotes>
+        <fields>All fields quoted for safety</fields>
+      </handling>
+    </case>
+
+    <case name="unicode-characters">
+      <scenario>Content contains emojis or non-ASCII characters</scenario>
+      <handling>
+        <encoding>UTF-8 encoding for all CSV files</encoding>
+        <compatibility>Compatible with Excel, Google Sheets</compatibility>
+      </handling>
+    </case>
+  </edge-cases>
+
+  <validation-checklist>
+    <check>CSV generation works for detailed export</check>
+    <check>CSV generation works for summary export</check>
+    <check>Date range validation (required, format, max 90 days)</check>
+    <check>Format filtering applies correctly</check>
+    <check>Group filtering applies correctly</check>
+    <check>Headers included in CSV</check>
+    <check>All fields properly escaped (RFC 4180)</check>
+    <check>File download triggers with correct filename</check>
+    <check>Special characters handled correctly</check>
+    <check>Empty data returns headers-only CSV</check>
+    <check>Frontend modal displays correctly</check>
+    <check>Loading state shows during export</check>
+    <check>Error handling works</check>
+  </validation-checklist>
+
+  <testing-guidance>
+    <unit-tests>
+      <test-case>
+        <name>CSV generation - detailed export</name>
+        <mock>Mock content with metrics and tags</mock>
+        <assert>CSV contains all expected columns and properly formatted rows</assert>
+      </test-case>
+
+      <test-case>
+        <name>CSV generation - summary export</name>
+        <mock>Mock daily metrics</mock>
+        <assert>CSV grouped by date with aggregated totals</assert>
+      </test-case>
+
+      <test-case>
+        <name>Date validation</name>
+        <scenarios>
+          <scenario>Valid dates → Success</scenario>
+          <scenario>Invalid format → 400 error</scenario>
+          <scenario>Range &gt; 90 days → 400 error</scenario>
+          <scenario>End before start → 400 error</scenario>
+        </scenarios>
+      </test-case>
+
+      <test-case>
+        <name>Special character escaping</name>
+        <input>Content with quotes, commas, newlines, emojis</input>
+        <assert>CSV properly escaped, opens correctly in Excel</assert>
+      </test-case>
+    </unit-tests>
+
+    <integration-tests>
+      <test>API endpoint returns CSV with correct headers</test>
+      <test>File download works in browser</test>
+      <test>Filters apply correctly to exported data</test>
+      <test>Empty data returns headers-only CSV</test>
+      <test>Large export completes successfully</test>
+    </integration-tests>
+
+    <manual-tests>
+      <test>Open exported CSV in Microsoft Excel - verify formatting</test>
+      <test>Open exported CSV in Google Sheets - verify formatting</test>
+      <test>Verify all metrics calculate correctly</test>
+      <test>Verify date filtering accuracy</test>
+    </manual-tests>
+  </testing-guidance>
+
+  <performance-considerations>
+    <query-optimization>
+      <optimization>Use indexes on publishedAt and date fields</optimization>
+      <optimization>Include relations in single query</optimization>
+      <optimization>Limit query to necessary fields</optimization>
+    </query-optimization>
+
+    <generation-performance>
+      <target>Generate CSV for 1000 rows in &lt;5 seconds</target>
+      <library>csv-stringify is efficient for moderate datasets</library>
+      <memory>Stream processing for very large exports (future)</memory>
+    </generation-performance>
+
+    <file-size>
+      <estimate>~1KB per content row (detailed)</estimate>
+      <estimate>~200 bytes per day row (summary)</estimate>
+      <compression>Browser handles gzip compression</compression>
+    </file-size>
+  </performance-considerations>
+
+  <related-files>
+    <file path="docs/stories/3-2-dashboard-filters-kpis-top-content.md" description="Content and metrics data source"/>
+    <file path="docs/stories/4-2-trending-topics-velocity.md" description="Tags data source"/>
+    <file path="docs/stories/2-3-ingest-daily-metrics.md" description="Daily metrics source"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/schema.prisma" description="Database models"/>
+  </related-files>
+
+  <implementation-checklist>
+    <backend>
+      <task>Create AnalyticsExportService</task>
+      <task>Implement generateCSV() main method</task>
+      <task>Implement generateDetailedCSV() method</task>
+      <task>Implement generateSummaryCSV() method</task>
+      <task>Add getIntegrationIdsFromGroup() helper</task>
+      <task>Install csv-stringify package</task>
+      <task>Add GET /export/csv endpoint to controller</task>
+      <task>Add date validation logic</task>
+      <task>Set response headers for file download</task>
+      <task>Register service in modules</task>
+      <task>Write unit tests for CSV generation</task>
+      <task>Write unit tests for date validation</task>
+      <task>Write integration tests for API</task>
+      <task>Add Swagger documentation</task>
+    </backend>
+
+    <frontend>
+      <task>Create ExportModal component</task>
+      <task>Add date range picker inputs</task>
+      <task>Add format selector buttons</task>
+      <task>Add export type selector</task>
+      <task>Implement file download logic</task>
+      <task>Add loading state</task>
+      <task>Add error handling</task>
+      <task>Add Export button to Dashboard</task>
+      <task>Add Export button to Insights page</task>
+      <task>Write component tests</task>
+      <task>Test file download in different browsers</task>
+    </frontend>
+
+    <documentation>
+      <task>Update Swagger docs</task>
+      <task>Document CSV structure</task>
+      <task>Document date validation rules</task>
+      <task>Add code comments</task>
+    </documentation>
+  </implementation-checklist>
+</story-context>
