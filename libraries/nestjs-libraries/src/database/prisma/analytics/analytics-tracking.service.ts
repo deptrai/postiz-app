@@ -68,7 +68,7 @@ export class AnalyticsTrackingService {
     }
 
     // Transaction: Delete all existing tracked integrations and insert new ones
-    await this._databaseService.$transaction(async (tx) => {
+    await this._prismaService.$transaction(async (tx) => {
       // Delete all existing tracked integrations for this org
       await tx.analyticsTrackedIntegration.deleteMany({
         where: {
