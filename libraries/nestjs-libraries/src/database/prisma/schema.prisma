@@ -51,8 +51,6 @@ model Organization {
   trending                     Trending[]
 
   @@unique([paymentId])
-  @@unique([refId])
-  @@index([billingId])
 }
 
 model Tags {
