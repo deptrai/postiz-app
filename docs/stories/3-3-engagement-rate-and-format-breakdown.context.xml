@@ -1,0 +1,663 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>3-3-engagement-rate-and-format-breakdown</story-key>
+    <story-title>Engagement Rate and Format Breakdown</story-title>
+    <epic>Epic 3: Dashboard & Core Analytics (MVP)</epic>
+    <status>ready-for-dev</status>
+    <generated-date>2025-01-14</generated-date>
+    <prerequisites>
+      <prerequisite>Story 3.2: Dashboard core with KPIs and filters</prerequisite>
+      <prerequisite>Story 2.3: Daily metrics (reactions, comments, shares, reach)</prerequisite>
+      <prerequisite>Story 2.2: Content metadata (contentType field)</prerequisite>
+    </prerequisites>
+  </metadata>
+
+  <story-definition>
+    <user-story>
+      As a Leader,
+      I want engagement rate calculation and breakdown by format,
+      So that I know which format (Posts vs Reels) is winning per niche.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Given metrics have reactions/comments/shares and reach,
+        When displaying the dashboard,
+        Then engagement rate is calculated correctly using formula: (reactions + comments + shares) / reach × 100.
+      </criterion>
+      <criterion id="AC2">
+        And dashboard displays format breakdown showing Posts vs Reels performance.
+      </criterion>
+      <criterion id="AC3">
+        And engagement rate is calculated separately for each format.
+      </criterion>
+      <criterion id="AC4">
+        And visualization highlights which format has better engagement for the selected filters.
+      </criterion>
+    </acceptance-criteria>
+
+    <technical-requirements>
+      <requirement>Extend AnalyticsDashboardService from Story 3.2</requirement>
+      <requirement>Calculate engagement rate per contentType (post, reel)</requirement>
+      <requirement>Identify winning format based on engagement rate</requirement>
+      <requirement>API endpoint for format breakdown</requirement>
+      <requirement>Frontend component showing format comparison</requirement>
+      <requirement>Visual winner highlighting</requirement>
+    </technical-requirements>
+  </story-definition>
+
+  <engagement-rate-formula>
+    <formula>
+      Engagement Rate = ((Reactions + Comments + Shares) / Reach) × 100
+    </formula>
+    <implementation>
+      <code language="typescript">
+        ```typescript
+        function calculateEngagementRate(metrics: {
+          reactions: number;
+          comments: number;
+          shares: number;
+          reach: number;
+        }): number {
+          if (metrics.reach === 0) return 0;
+          
+          const totalEngagement = 
+            (metrics.reactions || 0) + 
+            (metrics.comments || 0) + 
+            (metrics.shares || 0);
+          
+          // Return rounded to 1 decimal place
+          return Math.round((totalEngagement / metrics.reach) * 1000) / 10;
+        }
+        ```
+      </code>
+    </implementation>
+    <notes>
+      <note>Use reach (unique impressions) not impressions (total)</note>
+      <note>Handle null/undefined values by treating as 0</note>
+      <note>Return 0% if reach is 0 to avoid division by zero</note>
+      <note>Round to 1 decimal place for display</note>
+    </notes>
+  </engagement-rate-formula>
+
+  <service-implementation>
+    <description>Extend AnalyticsDashboardService with format breakdown method</description>
+    <location>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-dashboard.service.ts</location>
+    
+    <method name="getFormatBreakdown">
+      <signature>
+        ```typescript
+        async getFormatBreakdown(
+          organizationId: string,
+          filters: DashboardFiltersDto
+        ): Promise<FormatBreakdownDto>
+        ```
+      </signature>
+      
+      <implementation>
+        ```typescript
+        async getFormatBreakdown(
+          organizationId: string,
+          filters: DashboardFiltersDto
+        ): Promise<FormatBreakdownDto> {
+          // Get integration IDs from group if groupId provided
+          const integrationIds = filters.groupId 
+            ? await this.getIntegrationIdsFromGroup(organizationId, filters.groupId)
+            : filters.integrationIds || [];
+
+          // Get metrics for posts
+          const postsMetrics = await this.getFormatMetrics(
+            organizationId,
+            integrationIds,
+            filters.startDate,
+            filters.endDate,
+            'post'
+          );
+
+          // Get metrics for reels
+          const reelsMetrics = await this.getFormatMetrics(
+            organizationId,
+            integrationIds,
+            filters.startDate,
+            filters.endDate,
+            'reel'
+          );
+
+          // Calculate engagement rates
+          const postsEngagementRate = this.calculateEngagementRate(postsMetrics);
+          const reelsEngagementRate = this.calculateEngagementRate(reelsMetrics);
+
+          // Determine winner
+          let winner: 'posts' | 'reels' | 'tie';
+          let winnerBy = 0;
+
+          if (reelsEngagementRate > postsEngagementRate) {
+            winner = 'reels';
+            winnerBy = reelsEngagementRate - postsEngagementRate;
+          } else if (postsEngagementRate > reelsEngagementRate) {
+            winner = 'posts';
+            winnerBy = postsEngagementRate - reelsEngagementRate;
+          } else {
+            winner = 'tie';
+          }
+
+          return {
+            posts: {
+              ...postsMetrics,
+              engagementRate: postsEngagementRate
+            },
+            reels: {
+              ...reelsMetrics,
+              engagementRate: reelsEngagementRate
+            },
+            winner,
+            winnerBy: Math.round(winnerBy * 10) / 10
+          };
+        }
+
+        private async getFormatMetrics(
+          organizationId: string,
+          integrationIds: string[],
+          startDate: Date,
+          endDate: Date,
+          contentType: 'post' | 'reel'
+        ) {
+          // Query content by format
+          const content = await this._prismaService.analyticsContent.findMany({
+            where: {
+              organizationId,
+              contentType,
+              publishedAt: { gte: startDate, lte: endDate },
+              ...(integrationIds.length > 0 && {
+                integrationId: { in: integrationIds }
+              })
+            },
+            include: {
+              metrics: {
+                where: {
+                  date: { gte: startDate, lte: endDate }
+                }
+              }
+            }
+          });
+
+          // Aggregate all metrics
+          let totalReach = 0;
+          let totalReactions = 0;
+          let totalComments = 0;
+          let totalShares = 0;
+          let totalVideoViews = 0;
+
+          for (const item of content) {
+            for (const metric of item.metrics) {
+              totalReach += metric.reach || 0;
+              totalReactions += metric.reactions || 0;
+              totalComments += metric.comments || 0;
+              totalShares += metric.shares || 0;
+              if (contentType === 'reel') {
+                totalVideoViews += metric.videoViews || 0;
+              }
+            }
+          }
+
+          const totalEngagement = totalReactions + totalComments + totalShares;
+
+          return {
+            totalContent: content.length,
+            totalReach,
+            totalEngagement,
+            metrics: {
+              reactions: totalReactions,
+              comments: totalComments,
+              shares: totalShares,
+              ...(contentType === 'reel' && { videoViews: totalVideoViews })
+            }
+          };
+        }
+
+        private calculateEngagementRate(formatData: any): number {
+          if (formatData.totalReach === 0) return 0;
+          return Math.round((formatData.totalEngagement / formatData.totalReach) * 1000) / 10;
+        }
+        ```
+      </implementation>
+    </method>
+  </service-implementation>
+
+  <api-specification>
+    <endpoint>
+      <method>GET</method>
+      <path>/api/analytics/dashboard/format-breakdown</path>
+      
+      <query-parameters>
+        <param name="groupId" type="string" required="false" description="Filter by analytics group"/>
+        <param name="integrationIds" type="string[]" required="false" description="Filter by specific integrations"/>
+        <param name="startDate" type="string" required="true" pattern="YYYY-MM-DD" description="Start date for metrics"/>
+        <param name="endDate" type="string" required="true" pattern="YYYY-MM-DD" description="End date for metrics"/>
+      </query-parameters>
+
+      <controller-implementation>
+        ```typescript
+        @Get('/dashboard/format-breakdown')
+        @ApiOperation({ summary: 'Get format breakdown (Posts vs Reels)' })
+        @ApiQuery({ name: 'groupId', required: false })
+        @ApiQuery({ name: 'integrationIds', required: false, type: [String] })
+        @ApiQuery({ name: 'startDate', required: true, description: 'YYYY-MM-DD' })
+        @ApiQuery({ name: 'endDate', required: true, description: 'YYYY-MM-DD' })
+        @ApiResponse({ status: 200, description: 'Format breakdown returned' })
+        @ApiResponse({ status: 400, description: 'Invalid date range' })
+        async getFormatBreakdown(
+          @GetOrgFromRequest() org: Organization,
+          @Query() query: DashboardFiltersDto
+        ) {
+          try {
+            return await this._dashboardService.getFormatBreakdown(org.id, query);
+          } catch (error: any) {
+            if (error.message?.includes('Invalid')) {
+              throw new BadRequestException(error.message);
+            }
+            throw error;
+          }
+        }
+        ```
+      </controller-implementation>
+
+      <response status="200">
+        ```json
+        {
+          "posts": {
+            "totalContent": 25,
+            "totalReach": 80000,
+            "totalEngagement": 4000,
+            "engagementRate": 5.0,
+            "metrics": {
+              "reactions": 2800,
+              "comments": 800,
+              "shares": 400
+            }
+          },
+          "reels": {
+            "totalContent": 20,
+            "totalReach": 70000,
+            "totalEngagement": 5600,
+            "engagementRate": 8.0,
+            "metrics": {
+              "reactions": 4200,
+              "comments": 1000,
+              "shares": 400,
+              "videoViews": 45000
+            }
+          },
+          "winner": "reels",
+          "winnerBy": 3.0
+        }
+        ```
+      </response>
+    </endpoint>
+  </api-specification>
+
+  <frontend-implementation>
+    <component name="FormatBreakdownChart">
+      <location>apps/frontend/src/components/analytics/dashboard/format-breakdown.tsx</location>
+      
+      <implementation>
+        ```typescript
+        'use client';
+        import useSWR from 'swr';
+        import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+
+        interface FormatBreakdownProps {
+          filters: DashboardFilters;
+        }
+
+        export const FormatBreakdownChart = ({ filters }: FormatBreakdownProps) => {
+          const fetch = useFetch();
+          
+          const queryString = new URLSearchParams({
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+            ...(filters.groupId && { groupId: filters.groupId }),
+            ...(filters.integrationIds && { 
+              integrationIds: filters.integrationIds.join(',') 
+            })
+          }).toString();
+
+          const { data, isLoading } = useSWR(
+            `/analytics/dashboard/format-breakdown?${queryString}`,
+            async (url) => (await fetch(url)).json()
+          );
+
+          if (isLoading) return <LoadingComponent />;
+          if (!data) return null;
+
+          return (
+            <div className="bg-third p-[24px] rounded-[8px]">
+              <h3 className="text-[18px] mb-[16px]">Format Performance</h3>
+              
+              <div className="flex gap-[16px]">
+                <FormatCard
+                  format="Posts"
+                  icon="📝"
+                  data={data.posts}
+                  isWinner={data.winner === 'posts'}
+                />
+
+                <FormatCard
+                  format="Reels"
+                  icon="🎬"
+                  data={data.reels}
+                  isWinner={data.winner === 'reels'}
+                />
+              </div>
+
+              {data.winner !== 'tie' && (
+                <div className="mt-[16px] p-[12px] bg-primary rounded-[4px]">
+                  <p className="text-sm">
+                    <strong>{data.winner === 'posts' ? 'Posts' : 'Reels'}</strong>
+                    {' '}performing {data.winnerBy.toFixed(1)}% better in engagement rate
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        interface FormatCardProps {
+          format: string;
+          icon: string;
+          data: any;
+          isWinner: boolean;
+        }
+
+        const FormatCard = ({ format, icon, data, isWinner }: FormatCardProps) => (
+          <div className={`flex-1 p-[16px] rounded-[6px] border-2 ${
+            isWinner ? 'border-green-500 bg-green-50/10' : 'border-fifth'
+          }`}>
+            {isWinner && (
+              <span className="text-xs px-[8px] py-[4px] bg-green-500 text-white rounded-full">
+                Winner
+              </span>
+            )}
+            <div className="flex items-center gap-[8px] mt-[8px]">
+              <span className="text-[24px]">{icon}</span>
+              <h4 className="text-[16px]">{format}</h4>
+            </div>
+            <div className="mt-[12px] space-y-[8px]">
+              <MetricRow label="Content" value={data.totalContent} />
+              <MetricRow label="Reach" value={data.totalReach.toLocaleString()} />
+              <MetricRow label="Engagement" value={data.totalEngagement.toLocaleString()} />
+              <div className="pt-[8px] border-t border-fifth">
+                <MetricRow 
+                  label="Engagement Rate" 
+                  value={`${data.engagementRate}%`}
+                  highlight={true}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+        const MetricRow = ({ label, value, highlight = false }) => (
+          <div className="flex justify-between items-center">
+            <span className={`text-sm ${highlight ? 'font-semibold' : 'text-neutral-400'}`}>
+              {label}
+            </span>
+            <span className={`text-sm ${highlight ? 'font-bold text-primary' : ''}`}>
+              {value}
+            </span>
+          </div>
+        );
+        ```
+      </implementation>
+    </component>
+
+    <integration-with-dashboard>
+      <description>Add FormatBreakdown component to main Dashboard page from Story 3.2</description>
+      <location>apps/frontend/src/components/analytics/dashboard/page.tsx</location>
+      <code>
+        ```typescript
+        export const DashboardPage = () => {
+          const [filters, setFilters] = useState<DashboardFilters>({
+            startDate: dayjs().subtract(7, 'days').format('YYYY-MM-DD'),
+            endDate: dayjs().format('YYYY-MM-DD'),
+          });
+
+          return (
+            <div className="flex gap-[24px]">
+              {/* Filters Sidebar */}
+              <DashboardFilters 
+                filters={filters}
+                onChange={setFilters}
+              />
+
+              {/* Main Content */}
+              <div className="flex-1 space-y-[24px]">
+                {/* KPI Cards from Story 3.2 */}
+                <KPICards filters={filters} />
+
+                {/* Format Breakdown from Story 3.3 */}
+                <FormatBreakdownChart filters={filters} />
+
+                {/* Top Content from Story 3.2 */}
+                <TopContentList filters={filters} />
+              </div>
+            </div>
+          );
+        };
+        ```
+      </code>
+    </integration-with-dashboard>
+  </frontend-implementation>
+
+  <edge-cases>
+    <case name="no-posts">
+      <scenario>No posts found for selected filters</scenario>
+      <handling>
+        <backend>Return posts object with zeros: totalContent=0, totalReach=0, engagementRate=0</backend>
+        <frontend>Display "No posts found" message in posts card</frontend>
+        <winner>Reels win by default if they have data</winner>
+      </handling>
+    </case>
+
+    <case name="no-reels">
+      <scenario>No reels found for selected filters</scenario>
+      <handling>
+        <backend>Return reels object with zeros</backend>
+        <frontend>Display "No reels found" message in reels card</frontend>
+        <winner>Posts win by default if they have data</winner>
+      </handling>
+    </case>
+
+    <case name="equal-engagement-rate">
+      <scenario>Both formats have identical engagement rates</scenario>
+      <handling>
+        <backend>Set winner='tie', winnerBy=0</backend>
+        <frontend>Don't show winner badge, display "Both formats performing equally"</frontend>
+      </handling>
+    </case>
+
+    <case name="zero-reach">
+      <scenario>Format has content but zero reach</scenario>
+      <handling>
+        <backend>engagementRate=0 (avoid division by zero)</backend>
+        <frontend>Display "0%" or "No data" for engagement rate</frontend>
+      </handling>
+    </case>
+
+    <case name="no-data-both-formats">
+      <scenario>No posts and no reels</scenario>
+      <handling>
+        <backend>Return both with zeros, winner='tie'</backend>
+        <frontend>Display empty state: "No content found for selected filters"</frontend>
+      </handling>
+    </case>
+  </edge-cases>
+
+  <data-flow>
+    <step order="1">User selects filters (group, pages, date range) on dashboard</step>
+    <step order="2">Frontend calls GET /api/analytics/dashboard/format-breakdown with filters</step>
+    <step order="3">Backend queries AnalyticsContent filtered by contentType='post' and contentType='reel'</step>
+    <step order="4">Backend aggregates metrics (reach, reactions, comments, shares) per format</step>
+    <step order="5">Backend calculates engagement rate for each format</step>
+    <step order="6">Backend determines winner (highest engagement rate)</step>
+    <step order="7">Backend returns format breakdown with winner</step>
+    <step order="8">Frontend displays format cards with winner highlighting</step>
+    <step order="9">User sees which format performs better for selected filters</step>
+  </data-flow>
+
+  <validation-checklist>
+    <check>Engagement rate formula implemented correctly</check>
+    <check>Division by zero handled (reach=0)</check>
+    <check>Null/undefined metric values treated as 0</check>
+    <check>Both formats aggregated correctly</check>
+    <check>Winner determination logic correct</check>
+    <check>API endpoint returns proper format</check>
+    <check>Frontend displays format cards</check>
+    <check>Winner highlighting works</check>
+    <check>Edge cases handled (no posts, no reels, tie)</check>
+    <check>Integration with Story 3.2 dashboard seamless</check>
+    <check>Filters apply to format breakdown</check>
+    <check>Error handling with try-catch</check>
+  </validation-checklist>
+
+  <related-files>
+    <file path="docs/stories/3-2-dashboard-filters-kpis-top-content.md" description="Base dashboard implementation"/>
+    <file path="docs/stories/2-3-ingest-daily-metrics.md" description="Daily metrics schema reference"/>
+    <file path="docs/stories/2-2-ingest-content-metadata.md" description="Content contentType field"/>
+    <file path="libraries/nestjs-libraries/src/database/prisma/schema.prisma" description="AnalyticsContent and AnalyticsDailyMetric models"/>
+    <file path="apps/backend/src/api/routes/analytics.controller.ts" description="Add format-breakdown endpoint"/>
+  </related-files>
+
+  <testing-guidance>
+    <unit-tests>
+      <test name="engagement-rate-calculation">
+        ```typescript
+        describe('calculateEngagementRate', () => {
+          it('should calculate correct engagement rate', () => {
+            const metrics = {
+              reach: 1000,
+              reactions: 30,
+              comments: 15,
+              shares: 5
+            };
+            // (30 + 15 + 5) / 1000 * 100 = 5.0%
+            expect(calculateEngagementRate(metrics)).toBe(5.0);
+          });
+
+          it('should return 0 when reach is 0', () => {
+            const metrics = { reach: 0, reactions: 10, comments: 5, shares: 2 };
+            expect(calculateEngagementRate(metrics)).toBe(0);
+          });
+
+          it('should handle null values', () => {
+            const metrics = { reach: 100, reactions: null, comments: 5, shares: null };
+            expect(calculateEngagementRate(metrics)).toBe(5.0);
+          });
+
+          it('should round to 1 decimal place', () => {
+            const metrics = { reach: 300, reactions: 10, comments: 5, shares: 1 };
+            // (10 + 5 + 1) / 300 * 100 = 5.333...
+            expect(calculateEngagementRate(metrics)).toBe(5.3);
+          });
+        });
+        ```
+      </test>
+
+      <test name="format-aggregation">
+        ```typescript
+        describe('getFormatMetrics', () => {
+          it('should aggregate metrics for posts correctly', async () => {
+            const result = await service.getFormatMetrics(orgId, [], startDate, endDate, 'post');
+            expect(result.totalContent).toBeGreaterThan(0);
+            expect(result.totalReach).toBeGreaterThanOrEqual(0);
+            expect(result.totalEngagement).toBeGreaterThanOrEqual(0);
+            expect(result.metrics).toHaveProperty('reactions');
+            expect(result.metrics).not.toHaveProperty('videoViews');
+          });
+
+          it('should include videoViews for reels', async () => {
+            const result = await service.getFormatMetrics(orgId, [], startDate, endDate, 'reel');
+            expect(result.metrics).toHaveProperty('videoViews');
+          });
+        });
+        ```
+      </test>
+
+      <test name="winner-determination">
+        ```typescript
+        describe('getFormatBreakdown', () => {
+          it('should identify reels as winner when higher engagement rate', async () => {
+            const result = await service.getFormatBreakdown(orgId, filters);
+            if (result.reels.engagementRate > result.posts.engagementRate) {
+              expect(result.winner).toBe('reels');
+              expect(result.winnerBy).toBeGreaterThan(0);
+            }
+          });
+
+          it('should return tie when equal engagement rates', async () => {
+            // Mock equal rates
+            const result = await service.getFormatBreakdown(orgId, filters);
+            if (result.posts.engagementRate === result.reels.engagementRate) {
+              expect(result.winner).toBe('tie');
+              expect(result.winnerBy).toBe(0);
+            }
+          });
+        });
+        ```
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Test API endpoint with various filter combinations</test>
+      <test>Test edge cases: no data, single format, tie</test>
+      <test>Test filter integration (groupId, integrationIds, dates)</test>
+    </integration-tests>
+
+    <frontend-tests>
+      <test>Component renders format cards correctly</test>
+      <test>Winner badge displays on correct format</test>
+      <test>Engagement rate displays with % symbol</test>
+      <test>Edge case messages display properly</test>
+    </frontend-tests>
+  </testing-guidance>
+
+  <performance-considerations>
+    <optimization>Reuse queries from Story 3.2 if possible (same content/metrics)</optimization>
+    <optimization>Cache format breakdown for 10 minutes (same as other dashboard data)</optimization>
+    <optimization>Consider fetching both formats in parallel</optimization>
+    <optimization>Use existing indexes on (organizationId, contentType, publishedAt)</optimization>
+  </performance-considerations>
+
+  <implementation-checklist>
+    <backend>
+      <task>Create getFormatBreakdown() method in AnalyticsDashboardService</task>
+      <task>Implement getFormatMetrics() helper method</task>
+      <task>Implement calculateEngagementRate() helper method</task>
+      <task>Add GET /dashboard/format-breakdown endpoint to controller</task>
+      <task>Add error handling with try-catch</task>
+      <task>Add Swagger documentation</task>
+      <task>Write unit tests for engagement rate calculation</task>
+      <task>Write unit tests for winner determination</task>
+      <task>Write integration tests for API endpoint</task>
+    </backend>
+
+    <frontend>
+      <task>Create FormatBreakdownChart component</task>
+      <task>Create FormatCard sub-component</task>
+      <task>Implement data fetching with useSWR</task>
+      <task>Add winner highlighting logic</task>
+      <task>Integrate into main Dashboard page</task>
+      <task>Add loading and error states</task>
+      <task>Handle edge cases (no data, tie)</task>
+      <task>Write component tests</task>
+    </frontend>
+
+    <documentation>
+      <task>Update Swagger docs</task>
+      <task>Add code comments</task>
+      <task>Document engagement rate formula</task>
+      <task>Document edge case handling</task>
+    </documentation>
+  </implementation-checklist>
+</story-context>
