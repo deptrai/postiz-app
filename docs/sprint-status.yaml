@@ -67,7 +67,7 @@ development_status:
 
   # Epic 5 — Export Reporting (MVP)
   epic-5: backlog
-  5-1-export-csv-report: backlog
+  5-1-export-csv-report: ready-for-dev
   epic-5-retrospective: optional
 
   # Epic 6 — Playbooks + Experiments (Growth)
