@@ -54,7 +54,7 @@ development_status:
   epic-3: backlog
   3-1-manage-page-groups-and-assign-pages: done
   3-2-dashboard-filters-kpis-top-content: ready-for-dev
-  3-3-engagement-rate-and-format-breakdown: backlog
+  3-3-engagement-rate-and-format-breakdown: ready-for-dev
   epic-3-retrospective: optional
 
   # Epic 4 — Insights + Daily Brief + Recommendations (MVP)
