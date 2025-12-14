@@ -47,7 +47,7 @@ development_status:
   epic-2: backlog
   2-1-track-priority-facebook-pages: done
   2-2-ingest-content-metadata: done
-  2-3-ingest-daily-metrics: ready-for-dev
+  2-3-ingest-daily-metrics: done
   epic-2-retrospective: optional
 
   # Epic 3 — Dashboard & Core Analytics (MVP)

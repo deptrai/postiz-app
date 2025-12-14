@@ -42,15 +42,13 @@ model Organization {
   sets              Sets[]
   thirdParty        ThirdParty[]
   errors            Errors[]
-  analyticsGroups            AnalyticsGroup[]
-  analyticsTags              AnalyticsTag[]
-  analyticsContents          AnalyticsContent[]
-  analyticsMetrics           AnalyticsMetric[]
-  analyticsTrackedIntegrations AnalyticsTrackedIntegration[]
-  analyticsContent             AnalyticsContent[]
-  analyticsDailyMetrics        AnalyticsDailyMetric[]
+  analyticsGroups              AnalyticsGroup[]
+  analyticsTags                AnalyticsTag[]
+  analyticsContents            AnalyticsContent[]
   analyticsMetrics             AnalyticsMetric[]
-  provider                     Provider[]
+  analyticsTrackedIntegrations AnalyticsTrackedIntegration[]
+  analyticsDailyMetrics        AnalyticsDailyMetric[]
+  trending                     Trending[]
   color        String
   orgId        String
   organization Organization @relation(fields: [orgId], references: [id])
