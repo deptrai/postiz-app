@@ -50,6 +50,9 @@ model Organization {
   analyticsDailyMetrics        AnalyticsDailyMetric[]
   provider                     Provider[]
   trending                     Trending[]
+  alerts                       Alert[]
+  alertConfigs                 AlertConfig[]
+  notificationPreferences      NotificationPreferences[]
 
   @@unique([paymentId])
 }
@@ -357,6 +360,7 @@ model Integration {
   analyticsDailyMetrics        AnalyticsDailyMetric[]
   trending                     Trending[]
   provider                     Provider[]
+  alerts                       Alert[]
 
   @@unique([organizationId, internalId])
   @@index([rootInternalId])
@@ -914,4 +918,113 @@ enum APPROVED_SUBMIT_FOR_ORDER {
   NO
   WAITING_CONFIRMATION
   YES
+}
+
+// Alert Models - Story 8.1
+model Alert {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  type           AlertType
+  severity       AlertSeverity
+  metric         String       // engagement_rate, reach, views, etc.
+  
+  currentValue   Float
+  previousValue  Float
+  changePercent  Float        // Negative for drops
+  threshold      Float        // The threshold that was exceeded
+  
+  integrationId  String?
+  integration    Integration? @relation(fields: [integrationId], references: [id])
+  groupId        String?
+  
+  title          String
+  message        String
+  suggestions    String[]     // Array of suggested actions
+  
+  isRead         Boolean      @default(false)
+  readAt         DateTime?
+  
+  periodStart    DateTime     // Start of comparison period
+  periodEnd      DateTime     // End of comparison period
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, isRead])
+  @@index([severity])
+  @@index([deletedAt])
+}
+
+model AlertConfig {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  metric         String       // engagement_rate, reach, views
+  threshold      Float        // Percentage drop to trigger alert (e.g., 20 for 20%)
+  enabled        Boolean      @default(true)
+  
+  groupId        String?      // Optional: per-group config
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, metric, groupId])
+  @@index([organizationId])
+}
+
+enum AlertType {
+  KPI_DROP
+  VIRAL_SPIKE
+  MONETIZATION_MILESTONE
+  QUALITY_WARNING
+}
+
+enum AlertSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+// Story 8.3: Notification Preferences
+model NotificationPreferences {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  // Channel settings
+  emailEnabled   Boolean      @default(true)
+  inAppEnabled   Boolean      @default(true)
+  
+  // Alert type settings
+  kpiDropEnabled       Boolean @default(true)
+  viralSpikeEnabled    Boolean @default(true)
+  
+  // Severity filter (only send for these severities)
+  criticalEnabled      Boolean @default(true)
+  warningEnabled       Boolean @default(true)
+  infoEnabled          Boolean @default(false)
+  
+  // Digest settings
+  digestEnabled        Boolean @default(false)
+  digestFrequency      String  @default("daily") // daily, weekly
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  TELEGRAM
+  SLACK
 }

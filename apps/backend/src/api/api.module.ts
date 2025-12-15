@@ -14,7 +14,12 @@ import { AnalyticsTrendingService } from '@gitroom/nestjs-libraries/database/pri
 import { AnalyticsBestTimeService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-best-time.service';
 import { AnalyticsDailyBriefService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-daily-brief.service';
 import { AnalyticsExportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-export.service';
+import { AlertService } from '@gitroom/nestjs-libraries/database/prisma/alerts/alert.service';
 import { AnalyticsController } from '@gitroom/backend/api/routes/analytics.controller';
+// Epic 4 services temporarily disabled due to missing Prisma models
+// import { PlaybooksController } from '@gitroom/backend/api/routes/playbooks.controller';
+// import { ExperimentsController } from '@gitroom/backend/api/routes/experiments.controller';
+// import { ThemesController } from '@gitroom/backend/api/routes/themes.controller';
 import { PoliciesGuard } from '@gitroom/backend/services/auth/permissions/permissions.guard';
 import { PermissionsService } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { IntegrationsController } from '@gitroom/backend/api/routes/integrations.controller';
@@ -43,6 +48,8 @@ import { AutopostController } from '@gitroom/backend/api/routes/autopost.control
 import { SetsController } from '@gitroom/backend/api/routes/sets.controller';
 import { ThirdPartyController } from '@gitroom/backend/api/routes/third-party.controller';
 import { MonitorController } from '@gitroom/backend/api/routes/monitor.controller';
+import { AlertsController } from '@gitroom/backend/api/routes/alerts.controller';
+import { AlertNotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/alert-notification.service';
 
 const authenticatedController = [
   UsersController,
@@ -62,6 +69,7 @@ const authenticatedController = [
   AutopostController,
   SetsController,
   ThirdPartyController,
+  AlertsController,
 ];
 @Module({
   imports: [UploadModule],
@@ -85,6 +93,10 @@ const authenticatedController = [
     AnalyticsBestTimeService,
     AnalyticsDailyBriefService,
     AnalyticsExportService,
+    // Epic 4 services temporarily disabled
+    // PlaybookService,
+    // ExperimentService,
+    // ThemeService,
     OpenaiService,
     ExtractContentService,
     AuthMiddleware,
@@ -95,6 +107,8 @@ const authenticatedController = [
     TrackService,
     ShortLinkService,
     Nowpayments,
+    AlertService,
+    AlertNotificationService,
   ],
   get exports() {
     return [...this.imports, ...this.providers];

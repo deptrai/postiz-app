@@ -57,3 +57,12 @@ Thumbs.db
 .secrets/
 libraries/plugins/src/plugins.ts
 i18n.cache
+
+# Compiled JavaScript from TypeScript in src folders
+apps/**/src/**/*.js
+apps/**/src/**/*.js.map
+libraries/**/src/**/*.js
+libraries/**/src/**/*.js.map
+
+# Build artifacts
+*.js.map
