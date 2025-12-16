@@ -7,6 +7,9 @@ import { GapAnalysisCard, type MetricGap } from './gap-analysis-card';
 import { RecommendationsPanel, type Recommendation } from './recommendations-panel';
 import { AlertNotification, type Alert } from './alert-notification';
 import { AlertPreferences, type AlertPreferencesData } from './alert-preferences';
+import { WatchTimeMetricsCard } from './watch-time-metrics-card';
+import { WatchTimeTrendChart } from './watch-time-trend-chart';
+import { TopVideosList } from './top-videos-list';
 
 interface FeatureProgress {
   name: string;
@@ -171,6 +174,10 @@ export const MonetizationDashboard: FC = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [preferences, setPreferences] = useState<AlertPreferencesData | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [watchTimeMetrics, setWatchTimeMetrics] = useState<any>(null);
+  const [watchTimeTrends, setWatchTimeTrends] = useState<any[]>([]);
+  const [topVideos, setTopVideos] = useState<any[]>([]);
+  const [trendDays, setTrendDays] = useState(30);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetch = useFetch();
@@ -220,6 +227,29 @@ export const MonetizationDashboard: FC = () => {
       if (prefsData.success) {
         setPreferences(prefsData.preferences);
       }
+
+      // Load watch time metrics
+      const metricsResponse = await fetch('/monetization/watch-time');
+      const metricsData = await metricsResponse.json();
+      if (metricsData.success) {
+        setWatchTimeMetrics(metricsData.metrics);
+      }
+
+      // Load watch time trends
+      const trendsResponse = await fetch('/monetization/watch-time/trends', {
+        method: 'GET',
+      });
+      const trendsData = await trendsResponse.json();
+      if (trendsData.success) {
+        setWatchTimeTrends(trendsData.trends);
+      }
+
+      // Load top videos
+      const videosResponse = await fetch('/monetization/watch-time/top-videos');
+      const videosData = await videosResponse.json();
+      if (videosData.success) {
+        setTopVideos(videosData.topVideos);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('failed_to_load_data', 'Failed to load data'));
     } finally {
@@ -257,6 +287,21 @@ export const MonetizationDashboard: FC = () => {
       }
     } catch (err) {
       console.error('Failed to save preferences:', err);
+    }
+  };
+
+  const handleTrendPeriodChange = async (days: number) => {
+    setTrendDays(days);
+    try {
+      const trendsResponse = await fetch('/monetization/watch-time/trends', {
+        method: 'GET',
+      });
+      const trendsData = await trendsResponse.json();
+      if (trendsData.success) {
+        setWatchTimeTrends(trendsData.trends);
+      }
+    } catch (err) {
+      console.error('Failed to load trends:', err);
     }
   };
 
@@ -341,6 +386,18 @@ export const MonetizationDashboard: FC = () => {
           actionableCount={recommendations.actionableCount}
         />
       )}
+
+      {/* Watch Time Analytics Section */}
+      <WatchTimeMetricsCard metrics={watchTimeMetrics} loading={isLoading} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <WatchTimeTrendChart
+          trends={watchTimeTrends}
+          loading={isLoading}
+          onPeriodChange={handleTrendPeriodChange}
+        />
+        <TopVideosList videos={topVideos} loading={isLoading} limit={5} />
+      </div>
 
       {/* Alert Preferences Section */}
       {showPreferences && preferences && (

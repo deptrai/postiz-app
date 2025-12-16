@@ -60,6 +60,7 @@ import { MonetizationService } from '@gitroom/nestjs-libraries/database/prisma/m
 import { RecommendationEngine } from '@gitroom/nestjs-libraries/database/prisma/monetization/recommendation.service';
 import { MonetizationAlertService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization-alert.service';
 import { MonetizationAlertJobService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization-alert-job.service';
+import { WatchTimeAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/monetization/watch-time-analytics.service';
 
 @Global()
 @Module({
@@ -129,6 +130,7 @@ import { MonetizationAlertJobService } from '@gitroom/nestjs-libraries/database/
     RecommendationEngine,
     MonetizationAlertService,
     MonetizationAlertJobService,
+    WatchTimeAnalyticsService,
   ],
   get exports() {
     return this.providers;

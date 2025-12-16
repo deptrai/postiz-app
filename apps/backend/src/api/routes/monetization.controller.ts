@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MonetizationService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization.service';
 import { RecommendationEngine } from '@gitroom/nestjs-libraries/database/prisma/monetization/recommendation.service';
 import { MonetizationAlertJobService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization-alert-job.service';
+import { WatchTimeAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/monetization/watch-time-analytics.service';
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
@@ -14,6 +15,7 @@ export class MonetizationController {
     private readonly _monetizationService: MonetizationService,
     private readonly _recommendationEngine: RecommendationEngine,
     private readonly _monetizationAlertJobService: MonetizationAlertJobService,
+    private readonly _watchTimeAnalyticsService: WatchTimeAnalyticsService,
     private readonly _prisma: PrismaService
   ) {}
 
@@ -324,6 +326,77 @@ export class MonetizationController {
       return {
         success: true,
         message: 'Alert check triggered successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/watch-time')
+  @ApiOperation({ summary: 'Get watch time metrics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Watch time metrics retrieved successfully',
+  })
+  async getWatchTimeMetrics(@GetOrgFromRequest() org: Organization) {
+    try {
+      const metrics = await this._watchTimeAnalyticsService.getWatchTimeMetrics(org.id);
+      return {
+        success: true,
+        metrics,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/watch-time/trends')
+  @ApiOperation({ summary: 'Get watch time trends over time' })
+  @ApiResponse({
+    status: 200,
+    description: 'Watch time trends retrieved successfully',
+  })
+  async getWatchTimeTrends(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body?: { days?: number }
+  ) {
+    try {
+      const days = body?.days || 30;
+      const trends = await this._watchTimeAnalyticsService.getWatchTimeTrends(org.id, days);
+      return {
+        success: true,
+        trends,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/watch-time/top-videos')
+  @ApiOperation({ summary: 'Get top videos by watch time' })
+  @ApiResponse({
+    status: 200,
+    description: 'Top videos retrieved successfully',
+  })
+  async getTopVideosByWatchTime(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body?: { limit?: number }
+  ) {
+    try {
+      const limit = body?.limit || 10;
+      const topVideos = await this._watchTimeAnalyticsService.getTopVideosByWatchTime(org.id, limit);
+      return {
+        success: true,
+        topVideos,
       };
     } catch (error) {
       return {
