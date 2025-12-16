@@ -134,17 +134,58 @@ export class ThemeService {
       },
     });
 
-    return content.map(tc => ({
-      id: tc.content.id,
-      caption: tc.content.caption,
-      hashtags: tc.content.hashtags,
-      contentType: tc.content.contentType,
-      publishedAt: tc.content.publishedAt.toISOString(),
-      metrics: tc.content.metrics.map(m => ({
-        metricType: m.metricType,
-        metricValue: m.metricValue,
-      })),
-    }));
+    const themeKeywords = Array.isArray(theme.keywords) 
+      ? (theme.keywords as string[])
+      : [];
+
+    return content.map(tc => {
+      // Calculate metrics from raw data
+      const metrics = tc.content.metrics || [];
+      let reach = 0;
+      let engagement = 0;
+
+      for (const metric of metrics) {
+        if (metric.metricType === 'reach') {
+          reach = Math.max(reach, metric.metricValue);
+        } else if (['likes', 'comments', 'shares'].includes(metric.metricType)) {
+          engagement += metric.metricValue;
+        }
+      }
+
+      const engagementRate = reach > 0 ? (engagement / reach) * 100 : 0;
+
+      // Calculate similarity between content keywords and theme keywords
+      const contentKeywords = tc.content.hashtags 
+        ? tc.content.hashtags.split(',').map(k => k.trim().toLowerCase()) 
+        : [];
+      const similarity = this.calculateJaccardSimilarity(contentKeywords, themeKeywords);
+
+      return {
+        id: tc.content.id,
+        externalContentId: tc.content.externalContentId,
+        caption: tc.content.caption,
+        hashtags: tc.content.hashtags,
+        contentType: tc.content.contentType,
+        publishedAt: tc.content.publishedAt.toISOString(),
+        similarity,
+        totalReach: reach,
+        totalEngagement: engagement,
+        engagementRate,
+      };
+    });
+  }
+
+  /**
+   * Calculate Jaccard similarity between two keyword sets
+   */
+  private calculateJaccardSimilarity(keywords1: string[], keywords2: string[]): number {
+    const set1 = new Set(keywords1);
+    const set2 = new Set(keywords2);
+
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+
+    return union.size === 0 ? 0 : intersection.size / union.size;
   }
 
   /**

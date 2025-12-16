@@ -29,6 +29,9 @@ interface ThemeContent {
   hashtags: string | null;
   publishedAt: string;
   similarity: number | null;
+  totalReach: number;
+  totalEngagement: number;
+  engagementRate: number;
 }
 
 export const ThemesListPage: FC = () => {
@@ -508,15 +511,37 @@ export const ThemesListPage: FC = () => {
                         <span className="text-xs text-textColor/60 capitalize">
                           {content.contentType}
                         </span>
-                        {content.similarity !== null && (
+                        {content.similarity != null && !isNaN(content.similarity) && (
                           <span className="text-xs text-customColor10">
                             {(content.similarity * 100).toFixed(0)}% match
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-textColor line-clamp-2">
+                      <p className="text-sm text-textColor line-clamp-2 mb-2">
                         {content.caption || 'No caption'}
                       </p>
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div>
+                          <p className="text-xs text-textColor/60">Avg Reach</p>
+                          <p className="text-sm font-medium text-textColor">
+                            {formatNumber(content.totalReach)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-textColor/60">Avg Engagement</p>
+                          <p className="text-sm font-medium text-textColor">
+                            {formatNumber(content.totalEngagement)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-textColor/60">Eng. Rate</p>
+                          <p className="text-sm font-medium text-textColor">
+                            {content.engagementRate != null && !isNaN(content.engagementRate) 
+                              ? content.engagementRate.toFixed(1) 
+                              : '-'}%
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
