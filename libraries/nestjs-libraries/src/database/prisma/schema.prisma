@@ -1013,6 +1013,7 @@ model NotificationPreferences {
   // Alert type settings
   kpiDropEnabled       Boolean @default(true)
   viralSpikeEnabled    Boolean @default(true)
+  monetizationMilestoneEnabled Boolean @default(true)
   
   // Severity filter (only send for these severities)
   criticalEnabled      Boolean @default(true)

@@ -5,6 +5,8 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { GapAnalysisCard, type MetricGap } from './gap-analysis-card';
 import { RecommendationsPanel, type Recommendation } from './recommendations-panel';
+import { AlertNotification, type Alert } from './alert-notification';
+import { AlertPreferences, type AlertPreferencesData } from './alert-preferences';
 
 interface FeatureProgress {
   name: string;
@@ -166,6 +168,9 @@ export const MonetizationDashboard: FC = () => {
   const [status, setStatus] = useState<MonetizationStatus | null>(null);
   const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null);
   const [recommendations, setRecommendations] = useState<RecommendationsData | null>(null);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [preferences, setPreferences] = useState<AlertPreferencesData | null>(null);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetch = useFetch();
@@ -201,10 +206,57 @@ export const MonetizationDashboard: FC = () => {
       if (recsData.success) {
         setRecommendations(recsData.recommendations);
       }
+
+      // Load alerts
+      const alertsResponse = await fetch('/monetization/alerts');
+      const alertsData = await alertsResponse.json();
+      if (alertsData.success) {
+        setAlerts(alertsData.alerts);
+      }
+
+      // Load preferences
+      const prefsResponse = await fetch('/monetization/alerts/preferences');
+      const prefsData = await prefsResponse.json();
+      if (prefsData.success) {
+        setPreferences(prefsData.preferences);
+      }
     } catch (err) {
-      setError(t('failed_to_load_monetization_status', 'Failed to load monetization status'));
+      setError(err instanceof Error ? err.message : t('failed_to_load_data', 'Failed to load data'));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMarkAlertAsRead = async (alertId: string) => {
+    try {
+      await fetch(`/monetization/alerts/${alertId}/read`, {
+        method: 'POST',
+      });
+      // Update local state
+      setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, isRead: true } : a));
+    } catch (err) {
+      console.error('Failed to mark alert as read:', err);
+    }
+  };
+
+  const handleDismissAlert = (alertId: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+  };
+
+  const handleSavePreferences = async (newPreferences: AlertPreferencesData) => {
+    try {
+      const response = await fetch('/monetization/alerts/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPreferences),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setPreferences(data.preferences);
+        setShowPreferences(false);
+      }
+    } catch (err) {
+      console.error('Failed to save preferences:', err);
     }
   };
 
@@ -290,11 +342,38 @@ export const MonetizationDashboard: FC = () => {
         />
       )}
 
+      {/* Alert Preferences Section */}
+      {showPreferences && preferences && (
+        <AlertPreferences
+          preferences={preferences}
+          onSave={handleSavePreferences}
+          onCancel={() => setShowPreferences(false)}
+        />
+      )}
+
+      {!showPreferences && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowPreferences(true)}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-textColor rounded-lg transition-colors text-sm"
+          >
+            {t('view_preferences', 'Alert Preferences')}
+          </button>
+        </div>
+      )}
+
       <div className="bg-newBgColorInner rounded-lg p-4 border border-gray-700/50">
         <p className="text-xs text-textColor/50">
           {t('last_updated', 'Last updated')}: {new Date(status.lastUpdated).toLocaleString()}
         </p>
       </div>
+
+      {/* Alert Notifications Toast */}
+      <AlertNotification
+        alerts={alerts}
+        onMarkAsRead={handleMarkAlertAsRead}
+        onDismiss={handleDismissAlert}
+      />
     </div>
   );
 };

@@ -1,7 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MonetizationService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization.service';
 import { RecommendationEngine } from '@gitroom/nestjs-libraries/database/prisma/monetization/recommendation.service';
+import { MonetizationAlertJobService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization-alert-job.service';
+import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 
@@ -10,7 +12,9 @@ import { Organization } from '@prisma/client';
 export class MonetizationController {
   constructor(
     private readonly _monetizationService: MonetizationService,
-    private readonly _recommendationEngine: RecommendationEngine
+    private readonly _recommendationEngine: RecommendationEngine,
+    private readonly _monetizationAlertJobService: MonetizationAlertJobService,
+    private readonly _prisma: PrismaService
   ) {}
 
   @Get('/status')
@@ -149,6 +153,177 @@ export class MonetizationController {
       return {
         success: true,
         recommendations,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/alerts')
+  @ApiOperation({ summary: 'Get monetization alerts for the organization' })
+  @ApiResponse({
+    status: 200,
+    description: 'Alerts retrieved successfully',
+  })
+  async getAlerts(@GetOrgFromRequest() org: Organization) {
+    try {
+      const alerts = await this._prisma.alert.findMany({
+        where: {
+          organizationId: org.id,
+          type: 'MONETIZATION_MILESTONE',
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 50,
+      });
+
+      return {
+        success: true,
+        alerts,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Post('/alerts/:id/read')
+  @ApiOperation({ summary: 'Mark an alert as read' })
+  @ApiResponse({
+    status: 200,
+    description: 'Alert marked as read successfully',
+  })
+  async markAlertAsRead(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') alertId: string
+  ) {
+    try {
+      const alert = await this._prisma.alert.update({
+        where: {
+          id: alertId,
+          organizationId: org.id,
+        },
+        data: {
+          isRead: true,
+          readAt: new Date(),
+        },
+      });
+
+      return {
+        success: true,
+        alert,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Put('/alerts/preferences')
+  @ApiOperation({ summary: 'Update notification preferences for monetization alerts' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preferences updated successfully',
+  })
+  async updateAlertPreferences(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: {
+      monetizationMilestoneEnabled?: boolean;
+      emailEnabled?: boolean;
+      inAppEnabled?: boolean;
+      criticalEnabled?: boolean;
+      warningEnabled?: boolean;
+      infoEnabled?: boolean;
+    }
+  ) {
+    try {
+      // Find or create preferences
+      let preferences = await this._prisma.notificationPreferences.findFirst({
+        where: { organizationId: org.id },
+      });
+
+      if (!preferences) {
+        preferences = await this._prisma.notificationPreferences.create({
+          data: {
+            organizationId: org.id,
+            userId: 'system', // TODO: Get actual user ID
+            ...body,
+          },
+        });
+      } else {
+        preferences = await this._prisma.notificationPreferences.update({
+          where: { id: preferences.id },
+          data: body,
+        });
+      }
+
+      return {
+        success: true,
+        preferences,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/alerts/preferences')
+  @ApiOperation({ summary: 'Get notification preferences for monetization alerts' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preferences retrieved successfully',
+  })
+  async getAlertPreferences(@GetOrgFromRequest() org: Organization) {
+    try {
+      let preferences = await this._prisma.notificationPreferences.findFirst({
+        where: { organizationId: org.id },
+      });
+
+      if (!preferences) {
+        // Create default preferences
+        preferences = await this._prisma.notificationPreferences.create({
+          data: {
+            organizationId: org.id,
+            userId: 'system', // TODO: Get actual user ID
+          },
+        });
+      }
+
+      return {
+        success: true,
+        preferences,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Post('/alerts/trigger')
+  @ApiOperation({ summary: 'Manually trigger monetization alert check (for testing)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Alert check triggered successfully',
+  })
+  async triggerAlertCheck(@GetOrgFromRequest() org: Organization) {
+    try {
+      await this._monetizationAlertJobService.triggerManualCheck(org.id);
+      return {
+        success: true,
+        message: 'Alert check triggered successfully',
       };
     } catch (error) {
       return {

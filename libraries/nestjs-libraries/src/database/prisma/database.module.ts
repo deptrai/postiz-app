@@ -58,6 +58,8 @@ import { ThemeManagerService } from '@gitroom/nestjs-libraries/database/prisma/t
 import { ThemeTrendingService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-trending.service';
 import { MonetizationService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization.service';
 import { RecommendationEngine } from '@gitroom/nestjs-libraries/database/prisma/monetization/recommendation.service';
+import { MonetizationAlertService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization-alert.service';
+import { MonetizationAlertJobService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization-alert-job.service';
 
 @Global()
 @Module({
@@ -125,6 +127,8 @@ import { RecommendationEngine } from '@gitroom/nestjs-libraries/database/prisma/
     ThemeTrendingService,
     MonetizationService,
     RecommendationEngine,
+    MonetizationAlertService,
+    MonetizationAlertJobService,
   ],
   get exports() {
     return this.providers;
