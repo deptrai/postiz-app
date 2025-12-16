@@ -768,6 +768,7 @@ model AnalyticsContent {
   contentType        String   // post, reel, story
   caption            String?
   hashtags           String?  // JSON array of hashtags
+  duration           Int?     // Video duration in seconds (for watch time calculation)
   publishedAt        DateTime
   metrics                  AnalyticsMetric[]
   tags                     AnalyticsContentTag[]
@@ -811,6 +812,8 @@ model AnalyticsMetric {
   date               DateTime  // Date for which metrics are recorded
   metricType         String    // reach, views, engagement, likes, comments, shares
   metricValue        Float
+  watchTime          Int?      // Actual watch time in seconds (when available from API)
+  completionRate     Float?    // Actual completion rate percentage (when available from API)
   externalContentId  String    // Required for idempotency (Facebook post/reel ID)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

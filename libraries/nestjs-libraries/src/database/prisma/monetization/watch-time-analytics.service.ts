@@ -8,6 +8,14 @@ export interface WatchTimeMetrics {
   completionRate: number;
   totalViews: number;
   totalVideos: number;
+  dataSource: 'real' | 'estimated' | 'mixed'; // Indicates if data is from API or estimated
+}
+
+export interface WatchTimeFilters {
+  startDate?: Date;
+  endDate?: Date;
+  contentType?: string;
+  integrationId?: string;
 }
 
 export interface WatchTimeTrend {
@@ -42,14 +50,39 @@ export class WatchTimeAnalyticsService {
 
   /**
    * Get comprehensive watch time metrics (AC#1, #2, #3)
+   * Enhanced with filters and real data support
    */
-  async getWatchTimeMetrics(organizationId: string): Promise<WatchTimeMetrics> {
+  async getWatchTimeMetrics(
+    organizationId: string,
+    filters?: WatchTimeFilters
+  ): Promise<WatchTimeMetrics> {
+    // Build where clause with filters
+    const where: any = {
+      organizationId,
+      deletedAt: null,
+    };
+
+    if (filters?.contentType) {
+      where.contentType = filters.contentType;
+    }
+
+    if (filters?.integrationId) {
+      where.integrationId = filters.integrationId;
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      where.publishedAt = {};
+      if (filters.startDate) {
+        where.publishedAt.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.publishedAt.lte = filters.endDate;
+      }
+    }
+
     // Get all content with view metrics
     const contentWithViews = await this.prisma.analyticsContent.findMany({
-      where: {
-        organizationId,
-        deletedAt: null,
-      },
+      where,
       include: {
         metrics: {
           where: {
@@ -62,32 +95,71 @@ export class WatchTimeAnalyticsService {
     let totalViews = 0;
     let totalWatchTimeSeconds = 0;
     let totalVideos = 0;
+    let hasRealData = false;
+    let hasEstimatedData = false;
+    let totalCompletionRate = 0;
+    let completionRateCount = 0;
 
     // Calculate watch time based on content type and views
     for (const content of contentWithViews) {
       const contentType = content.contentType.toLowerCase();
-      const durationSeconds = this.DURATION_ESTIMATES[contentType] || 0;
+      
+      // Use real duration if available, otherwise estimate
+      const durationSeconds = content.duration || this.DURATION_ESTIMATES[contentType] || 0;
 
       // Skip content with no duration (e.g., posts)
       if (durationSeconds === 0) continue;
 
-      const views = content.metrics.reduce((sum, m) => sum + m.metricValue, 0);
+      // Calculate views and watch time
+      for (const metric of content.metrics) {
+        const views = metric.metricValue;
+        
+        // Use real watch time if available, otherwise calculate from views
+        let watchTimeSeconds: number;
+        if (metric.watchTime) {
+          watchTimeSeconds = metric.watchTime;
+          hasRealData = true;
+        } else {
+          watchTimeSeconds = views * durationSeconds;
+          hasEstimatedData = true;
+        }
+
+        totalViews += views;
+        totalWatchTimeSeconds += watchTimeSeconds;
+
+        // Aggregate completion rates
+        if (metric.completionRate !== null && metric.completionRate !== undefined) {
+          totalCompletionRate += metric.completionRate;
+          completionRateCount++;
+        }
+      }
       
-      totalViews += views;
-      totalWatchTimeSeconds += views * durationSeconds;
       totalVideos++;
     }
 
     // Calculate metrics
     const totalWatchTimeMinutes = totalWatchTimeSeconds / 60;
     const totalWatchTimeHours = totalWatchTimeMinutes / 60;
-    const averageViewDurationSeconds = totalVideos > 0 
+    const averageViewDurationSeconds = totalViews > 0 
       ? totalWatchTimeSeconds / totalViews 
       : 0;
 
-    // Estimate completion rate (simplified: assume 70% avg completion for engaged viewers)
-    // In reality, this would come from Facebook API retention data
-    const completionRate = totalViews > 0 ? 70 : 0;
+    // Use real completion rate if available, otherwise estimate
+    const completionRate = completionRateCount > 0
+      ? totalCompletionRate / completionRateCount
+      : (totalViews > 0 ? 70 : 0);
+
+    // Determine data source
+    let dataSource: 'real' | 'estimated' | 'mixed';
+    if (hasRealData && !hasEstimatedData) {
+      dataSource = 'real';
+    } else if (!hasRealData && hasEstimatedData) {
+      dataSource = 'estimated';
+    } else if (hasRealData && hasEstimatedData) {
+      dataSource = 'mixed';
+    } else {
+      dataSource = 'estimated';
+    }
 
     return {
       totalWatchTimeMinutes: Math.round(totalWatchTimeMinutes),
@@ -96,6 +168,7 @@ export class WatchTimeAnalyticsService {
       completionRate,
       totalViews: Math.round(totalViews),
       totalVideos,
+      dataSource,
     };
   }
 
@@ -236,6 +309,64 @@ export class WatchTimeAnalyticsService {
     }));
 
     return topVideos;
+  }
+
+  /**
+   * Export watch time report in CSV or JSON format
+   */
+  async exportWatchTimeReport(
+    organizationId: string,
+    format: 'csv' | 'json',
+    filters?: WatchTimeFilters
+  ): Promise<string> {
+    // Get comprehensive data
+    const metrics = await this.getWatchTimeMetrics(organizationId, filters);
+    const trends = await this.getWatchTimeTrends(organizationId, 30);
+    const topVideos = await this.getTopVideosByWatchTime(organizationId, 20);
+
+    if (format === 'json') {
+      return JSON.stringify({
+        generatedAt: new Date().toISOString(),
+        organizationId,
+        filters,
+        metrics,
+        trends,
+        topVideos,
+      }, null, 2);
+    }
+
+    // CSV format
+    const csvLines: string[] = [];
+    
+    // Metrics section
+    csvLines.push('# Watch Time Metrics');
+    csvLines.push('Metric,Value');
+    csvLines.push(`Total Watch Time (hours),${metrics.totalWatchTimeHours}`);
+    csvLines.push(`Total Watch Time (minutes),${metrics.totalWatchTimeMinutes}`);
+    csvLines.push(`Average View Duration (seconds),${metrics.averageViewDurationSeconds}`);
+    csvLines.push(`Completion Rate (%),${metrics.completionRate}`);
+    csvLines.push(`Total Views,${metrics.totalViews}`);
+    csvLines.push(`Total Videos,${metrics.totalVideos}`);
+    csvLines.push(`Data Source,${metrics.dataSource}`);
+    csvLines.push('');
+
+    // Trends section
+    csvLines.push('# Watch Time Trends');
+    csvLines.push('Date,Watch Time (minutes),Views,Growth Rate (%)');
+    trends.forEach(t => {
+      csvLines.push(`${t.date},${t.watchTimeMinutes},${t.views},${t.growthRate}`);
+    });
+    csvLines.push('');
+
+    // Top videos section
+    csvLines.push('# Top Videos by Watch Time');
+    csvLines.push('Rank,Content Type,Caption,Published At,Views,Watch Time (minutes)');
+    topVideos.forEach(v => {
+      const caption = (v.caption || '').replace(/,/g, ';').substring(0, 100);
+      csvLines.push(`${v.rank},${v.contentType},"${caption}",${v.publishedAt},${v.totalViews},${v.estimatedWatchTimeMinutes}`);
+    });
+
+    return csvLines.join('\n');
   }
 
   /**

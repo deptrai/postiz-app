@@ -747,5 +747,20 @@
     "untitled_video": "Video Không Tiêu đề",
     "watch_time": "thời gian xem",
     "views": "lượt xem",
-    "showing_top_n_of_total": "Hiển thị top {n} trong tổng số {total} video"
+    "showing_top_n_of_total": "Hiển thị top {n} trong tổng số {total} video",
+    "filters": "Bộ lọc",
+    "active": "Đang hoạt động",
+    "start_date": "Ngày bắt đầu",
+    "end_date": "Ngày kết thúc",
+    "content_type": "Loại nội dung",
+    "all_types": "Tất cả loại",
+    "reels": "Reels",
+    "stories": "Stories",
+    "apply_filters": "Áp dụng Bộ lọc",
+    "reset_filters": "Đặt lại",
+    "data_real": "Dữ liệu Thực",
+    "data_estimated": "Ước tính",
+    "data_mixed": "Dữ liệu Hỗn hợp",
+    "export_csv": "Xuất CSV",
+    "export_json": "Xuất JSON"
 }

@@ -10,6 +10,7 @@ import { AlertPreferences, type AlertPreferencesData } from './alert-preferences
 import { WatchTimeMetricsCard } from './watch-time-metrics-card';
 import { WatchTimeTrendChart } from './watch-time-trend-chart';
 import { TopVideosList } from './top-videos-list';
+import { WatchTimeFilters, WatchTimeFilterValues } from './watch-time-filters';
 
 interface FeatureProgress {
   name: string;
@@ -178,6 +179,7 @@ export const MonetizationDashboard: FC = () => {
   const [watchTimeTrends, setWatchTimeTrends] = useState<any[]>([]);
   const [topVideos, setTopVideos] = useState<any[]>([]);
   const [trendDays, setTrendDays] = useState(30);
+  const [watchTimeFilters, setWatchTimeFilters] = useState<WatchTimeFilterValues>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetch = useFetch();
@@ -305,6 +307,64 @@ export const MonetizationDashboard: FC = () => {
     }
   };
 
+  const handleApplyFilters = async (filters: WatchTimeFilterValues) => {
+    setWatchTimeFilters(filters);
+    try {
+      // Build query string from filters
+      const params = new URLSearchParams();
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.contentType) params.append('contentType', filters.contentType);
+      if (filters.integrationId) params.append('integrationId', filters.integrationId);
+
+      const queryString = params.toString();
+      const metricsUrl = `/monetization/watch-time${queryString ? `?${queryString}` : ''}`;
+
+      const metricsResponse = await fetch(metricsUrl);
+      const metricsData = await metricsResponse.json();
+      if (metricsData.success) {
+        setWatchTimeMetrics(metricsData.metrics);
+      }
+    } catch (err) {
+      console.error('Failed to apply filters:', err);
+    }
+  };
+
+  const handleResetFilters = async () => {
+    setWatchTimeFilters({});
+    try {
+      const metricsResponse = await fetch('/monetization/watch-time');
+      const metricsData = await metricsResponse.json();
+      if (metricsData.success) {
+        setWatchTimeMetrics(metricsData.metrics);
+      }
+    } catch (err) {
+      console.error('Failed to reset filters:', err);
+    }
+  };
+
+  const handleExportReport = async (format: 'csv' | 'json') => {
+    try {
+      const params = new URLSearchParams({ format });
+      if (watchTimeFilters.startDate) params.append('startDate', watchTimeFilters.startDate);
+      if (watchTimeFilters.endDate) params.append('endDate', watchTimeFilters.endDate);
+      if (watchTimeFilters.contentType) params.append('contentType', watchTimeFilters.contentType);
+      if (watchTimeFilters.integrationId) params.append('integrationId', watchTimeFilters.integrationId);
+
+      const exportUrl = `/monetization/watch-time/export?${params.toString()}`;
+      
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = exportUrl;
+      link.download = `watch-time-report-${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Failed to export report:', err);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -388,7 +448,16 @@ export const MonetizationDashboard: FC = () => {
       )}
 
       {/* Watch Time Analytics Section */}
-      <WatchTimeMetricsCard metrics={watchTimeMetrics} loading={isLoading} />
+      <WatchTimeFilters
+        onApplyFilters={handleApplyFilters}
+        onResetFilters={handleResetFilters}
+      />
+      
+      <WatchTimeMetricsCard 
+        metrics={watchTimeMetrics} 
+        loading={isLoading}
+        onExport={handleExportReport}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <WatchTimeTrendChart

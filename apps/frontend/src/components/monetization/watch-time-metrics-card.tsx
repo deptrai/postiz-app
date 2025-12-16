@@ -8,18 +8,30 @@ interface WatchTimeMetrics {
   completionRate: number;
   totalViews: number;
   totalVideos: number;
+  dataSource: 'real' | 'estimated' | 'mixed';
 }
 
 interface WatchTimeMetricsCardProps {
   metrics: WatchTimeMetrics | null;
   loading?: boolean;
+  onExport?: (format: 'csv' | 'json') => void;
 }
 
 export const WatchTimeMetricsCard: React.FC<WatchTimeMetricsCardProps> = ({
   metrics,
   loading = false,
+  onExport,
 }) => {
   const t = useT();
+
+  const getDataSourceBadge = (source: 'real' | 'estimated' | 'mixed') => {
+    const badges = {
+      real: { color: 'bg-green-500/20 text-green-400 border-green-500/30', text: t('data_real', 'Real Data') },
+      estimated: { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', text: t('data_estimated', 'Estimated') },
+      mixed: { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', text: t('data_mixed', 'Mixed Data') },
+    };
+    return badges[source];
+  };
 
   if (loading) {
     return (
@@ -69,14 +81,45 @@ export const WatchTimeMetricsCard: React.FC<WatchTimeMetricsCardProps> = ({
     return num.toLocaleString();
   };
 
+  const sourceBadge = getDataSourceBadge(metrics.dataSource);
+
   return (
     <div className="bg-newBgColorInner rounded-lg p-6 border border-gray-700/50">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-textColor">
-          {t('watch_time_analytics', 'Watch Time Analytics')}
-        </h3>
-        <div className="text-sm text-gray-400">
-          {metrics.totalVideos} {t('videos', 'videos')}
+        <div className="flex items-center gap-3">
+          <h3 className="text-xl font-bold text-textColor">
+            {t('watch_time_analytics', 'Watch Time Analytics')}
+          </h3>
+          <span className={`px-2 py-1 text-xs rounded border ${sourceBadge.color}`}>
+            {sourceBadge.text}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-gray-400">
+            {metrics.totalVideos} {t('videos', 'videos')}
+          </div>
+          {onExport && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => onExport('csv')}
+                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-textColor rounded text-xs font-medium transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                CSV
+              </button>
+              <button
+                onClick={() => onExport('json')}
+                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-textColor rounded text-xs font-medium transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                JSON
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

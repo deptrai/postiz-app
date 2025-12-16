@@ -1,4 +1,5 @@
-import { Controller, Get, Put, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Param, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MonetizationService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization.service';
 import { RecommendationEngine } from '@gitroom/nestjs-libraries/database/prisma/monetization/recommendation.service';
@@ -341,9 +342,21 @@ export class MonetizationController {
     status: 200,
     description: 'Watch time metrics retrieved successfully',
   })
-  async getWatchTimeMetrics(@GetOrgFromRequest() org: Organization) {
+  async getWatchTimeMetrics(
+    @GetOrgFromRequest() org: Organization,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('contentType') contentType?: string,
+    @Query('integrationId') integrationId?: string,
+  ) {
     try {
-      const metrics = await this._watchTimeAnalyticsService.getWatchTimeMetrics(org.id);
+      const filters: any = {};
+      if (startDate) filters.startDate = new Date(startDate);
+      if (endDate) filters.endDate = new Date(endDate);
+      if (contentType) filters.contentType = contentType;
+      if (integrationId) filters.integrationId = integrationId;
+
+      const metrics = await this._watchTimeAnalyticsService.getWatchTimeMetrics(org.id, filters);
       return {
         success: true,
         metrics,
@@ -389,14 +402,65 @@ export class MonetizationController {
   })
   async getTopVideosByWatchTime(
     @GetOrgFromRequest() org: Organization,
-    @Body() body?: { limit?: number }
+    @Query('limit') limit?: string,
   ) {
     try {
-      const limit = body?.limit || 10;
-      const topVideos = await this._watchTimeAnalyticsService.getTopVideosByWatchTime(org.id, limit);
+      const videoLimit = limit ? parseInt(limit, 10) : 10;
+      const topVideos = await this._watchTimeAnalyticsService.getTopVideosByWatchTime(org.id, videoLimit);
       return {
         success: true,
         topVideos,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/watch-time/export')
+  @ApiOperation({ summary: 'Export watch time report' })
+  @ApiResponse({
+    status: 200,
+    description: 'Watch time report exported successfully',
+  })
+  async exportWatchTimeReport(
+    @GetOrgFromRequest() org: Organization,
+    @Query('format') format?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('contentType') contentType?: string,
+    @Query('integrationId') integrationId?: string,
+    @Res() res?: Response,
+  ) {
+    try {
+      const exportFormat = (format === 'json' || format === 'csv') ? format : 'csv';
+      
+      const filters: any = {};
+      if (startDate) filters.startDate = new Date(startDate);
+      if (endDate) filters.endDate = new Date(endDate);
+      if (contentType) filters.contentType = contentType;
+      if (integrationId) filters.integrationId = integrationId;
+
+      const reportData = await this._watchTimeAnalyticsService.exportWatchTimeReport(
+        org.id,
+        exportFormat,
+        filters
+      );
+
+      if (res) {
+        const filename = `watch-time-report-${new Date().toISOString().split('T')[0]}.${exportFormat}`;
+        const contentType = exportFormat === 'json' ? 'application/json' : 'text/csv';
+        
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(reportData);
+      }
+
+      return {
+        success: true,
+        format: exportFormat,
       };
     } catch (error) {
       return {
