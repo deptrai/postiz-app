@@ -78,6 +78,47 @@ export const RecommendationsPanel: FC<RecommendationsPanelProps> = ({
     return labels[type] || type;
   };
 
+  const translateRecommendation = (rec: Recommendation) => {
+    // Map backend English text to translation keys
+    const titleMap: Record<string, string> = {
+      'Increase Reels for Maximum Watch Time': 'rec_reels_title',
+      'Consistent Posting Frequency': 'rec_posting_freq_title',
+      'Meet Minimum Video Count': 'rec_video_count_title',
+      'Create Longer-Form Videos': 'rec_long_form_title',
+      'Boost Engagement with Your Audience': 'rec_engagement_title',
+      'Use Call-to-Actions': 'rec_cta_title',
+      'Post at Optimal Times': 'rec_timing_title',
+    };
+
+    const descMap: Record<string, string> = {
+      'Reels generate significantly higher watch time. Aim for 3-5 Reels per week to boost your viewed minutes.': 'rec_reels_desc',
+      'Post consistently 5-7 times per week to accelerate follower growth. Consistency is key for algorithm visibility.': 'rec_posting_freq_desc',
+      'Videos over 3 minutes duration count toward watch time requirements. Focus on engaging content that keeps viewers watching.': 'rec_long_form_desc',
+      'Use polls, questions, and trending sounds in your content. Respond to comments within the first hour to increase engagement.': 'rec_engagement_desc',
+      'Include CTAs like "Follow for more", "Comment your thoughts", or "Share with friends" to drive engagement.': 'rec_cta_desc',
+      'Post when your audience is most active (typically 6-9 PM on weekdays). Check your analytics for your specific peak times.': 'rec_timing_desc',
+    };
+
+    // Special handling for video count description with dynamic count
+    let translatedTitle = rec.title;
+    let translatedDesc = rec.description;
+
+    if (titleMap[rec.title]) {
+      translatedTitle = t(titleMap[rec.title], rec.title);
+    }
+
+    if (descMap[rec.description]) {
+      translatedDesc = t(descMap[rec.description], rec.description);
+    } else if (rec.description.includes('more videos to meet the minimum requirement')) {
+      // Extract count from backend description
+      const match = rec.description.match(/You need (\d+) more videos/);
+      const count = match ? match[1] : '5';
+      translatedDesc = t('rec_video_count_desc', rec.description).replace('{count}', count);
+    }
+
+    return { title: translatedTitle, description: translatedDesc };
+  };
+
   if (totalRecommendations === 0) {
     return (
       <div className="bg-newBgColorInner rounded-lg p-6 border border-gray-700/50">
@@ -101,48 +142,51 @@ export const RecommendationsPanel: FC<RecommendationsPanelProps> = ({
       </p>
 
       <div className="space-y-4">
-        {recommendations.map((rec) => (
-          <div key={rec.id} className="bg-newBgColor rounded-lg p-5 border border-gray-700/30 hover:border-gray-600/50 transition-colors">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400">
-                <RecommendationTypeIcon type={rec.type} />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-base font-semibold text-textColor">{rec.title}</h4>
-                    <PriorityDot priority={rec.priority} />
-                  </div>
-                  <span className="text-xs text-textColor/50 bg-gray-700/30 px-2 py-1 rounded">
-                    {getTypeLabel(rec.type)}
-                  </span>
+        {recommendations.map((rec) => {
+          const translated = translateRecommendation(rec);
+          return (
+            <div key={rec.id} className="bg-newBgColor rounded-lg p-5 border border-gray-700/30 hover:border-gray-600/50 transition-colors">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400">
+                  <RecommendationTypeIcon type={rec.type} />
                 </div>
 
-                <p className="text-sm text-textColor/70 mb-4">{rec.description}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-base font-semibold text-textColor">{translated.title}</h4>
+                      <PriorityDot priority={rec.priority} />
+                    </div>
+                    <span className="text-xs text-textColor/50 bg-gray-700/30 px-2 py-1 rounded">
+                      {getTypeLabel(rec.type)}
+                    </span>
+                  </div>
 
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-xs text-blue-400/80 font-medium mb-1">
-                        {t('expected_impact', 'Expected Impact')}
-                      </p>
-                      <p className="text-sm text-blue-400 font-semibold">
-                        {rec.expectedImpact.estimatedIncrease}
-                      </p>
-                      <p className="text-xs text-blue-400/60 mt-1">
-                        {t('timeframe', 'Timeframe')}: {rec.expectedImpact.timeframe}
-                      </p>
+                  <p className="text-sm text-textColor/70 mb-4">{translated.description}</p>
+
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-xs text-blue-400/80 font-medium mb-1">
+                          {t('expected_impact', 'Expected Impact')}
+                        </p>
+                        <p className="text-sm text-blue-400 font-semibold">
+                          {rec.expectedImpact.estimatedIncrease}
+                        </p>
+                        <p className="text-xs text-blue-400/60 mt-1">
+                          {t('timeframe', 'Timeframe')}: {rec.expectedImpact.timeframe}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-6 pt-4 border-t border-gray-700/50">

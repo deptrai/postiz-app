@@ -677,5 +677,19 @@
     "optimal_timing": "Thời gian tối ưu",
     "expected_impact": "Tác động dự kiến",
     "timeframe": "Khung thời gian",
-    "recommendations_note": "Ước tính tác động dựa trên trung bình ngành và tốc độ tăng trưởng hiện tại của bạn."
+    "recommendations_note": "Ước tính tác động dựa trên trung bình ngành và tốc độ tăng trưởng hiện tại của bạn.",
+    "rec_reels_title": "Tăng Reels để tối đa thời gian xem",
+    "rec_reels_desc": "Reels tạo ra thời gian xem cao hơn đáng kể. Hướng tới 3-5 Reels mỗi tuần để tăng phút đã xem.",
+    "rec_posting_freq_title": "Tần suất đăng bài nhất quán",
+    "rec_posting_freq_desc": "Đăng bài nhất quán 5-7 lần mỗi tuần để tăng tốc tăng trưởng người theo dõi. Tính nhất quán là chìa khóa cho thuật toán.",
+    "rec_video_count_title": "Đạt yêu cầu tối thiểu số video",
+    "rec_video_count_desc": "Bạn cần {count} video nữa để đáp ứng yêu cầu tối thiểu. Tập trung tạo nội dung video chất lượng.",
+    "rec_long_form_title": "Tạo video dài hơn 3 phút",
+    "rec_long_form_desc": "Video trên 3 phút được tính vào yêu cầu thời gian xem. Tập trung vào nội dung hấp dẫn giữ chân người xem.",
+    "rec_engagement_title": "Tăng tương tác với khán giả",
+    "rec_engagement_desc": "Sử dụng khảo sát, câu hỏi và âm thanh xu hướng trong nội dung. Trả lời bình luận trong giờ đầu tiên để tăng tương tác.",
+    "rec_cta_title": "Sử dụng lời kêu gọi hành động",
+    "rec_cta_desc": "Bao gồm CTA như 'Theo dõi để xem thêm', 'Bình luận suy nghĩ của bạn', hoặc 'Chia sẻ với bạn bè' để thúc đẩy tương tác.",
+    "rec_timing_title": "Đăng vào thời gian tối ưu",
+    "rec_timing_desc": "Đăng khi khán giả của bạn hoạt động nhiều nhất (thường là 6-9 giờ tối các ngày trong tuần). Kiểm tra phân tích của bạn để biết thời gian đỉnh cụ thể."
 }
