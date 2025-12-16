@@ -316,7 +316,9 @@ export const ThemesListPage: FC = () => {
                 <div>
                   <p className="text-xs text-textColor/60">Eng. Rate</p>
                   <p className="text-sm font-medium text-textColor">
-                    {theme.avgEngagementRate?.toFixed(1) || '-'}%
+                    {theme.avgEngagementRate != null && !isNaN(theme.avgEngagementRate) 
+                      ? theme.avgEngagementRate.toFixed(1) 
+                      : '-'}%
                   </p>
                 </div>
               </div>
@@ -473,7 +475,9 @@ export const ThemesListPage: FC = () => {
                 <div className="bg-newBgColorInner p-3 rounded-lg text-center">
                   <p className="text-xs text-textColor/60 mb-1">Eng. Rate</p>
                   <p className="text-lg font-semibold text-textColor">
-                    {selectedTheme.avgEngagementRate?.toFixed(1) || '-'}%
+                    {selectedTheme.avgEngagementRate != null && !isNaN(selectedTheme.avgEngagementRate) 
+                      ? selectedTheme.avgEngagementRate.toFixed(1) 
+                      : '-'}%
                   </p>
                 </div>
               </div>
