@@ -3,6 +3,8 @@
 import { FC, useEffect, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { GapAnalysisCard, type MetricGap } from './gap-analysis-card';
+import { RecommendationsPanel, type Recommendation } from './recommendations-panel';
 
 interface FeatureProgress {
   name: string;
@@ -20,6 +22,20 @@ interface MonetizationStatus {
   stars: FeatureProgress;
   fanSubscription: FeatureProgress;
   lastUpdated: Date;
+}
+
+interface GapAnalysis {
+  gaps: MetricGap[];
+  totalGaps: number;
+  highPriorityCount: number;
+  mediumPriorityCount: number;
+  lowPriorityCount: number;
+}
+
+interface RecommendationsData {
+  recommendations: Recommendation[];
+  totalRecommendations: number;
+  actionableCount: number;
 }
 
 const StatusBadge: FC<{ status: string }> = ({ status }) => {
@@ -148,24 +164,42 @@ const FeatureCard: FC<{ feature: FeatureProgress }> = ({ feature }) => {
 export const MonetizationDashboard: FC = () => {
   const t = useT();
   const [status, setStatus] = useState<MonetizationStatus | null>(null);
+  const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null);
+  const [recommendations, setRecommendations] = useState<RecommendationsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetch = useFetch();
 
   useEffect(() => {
-    loadMonetizationStatus();
+    loadMonetizationData();
   }, []);
 
-  const loadMonetizationStatus = async () => {
+  const loadMonetizationData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/monetization/status');
-      const data = await response.json();
-      if (data.success) {
-        setStatus(data.status);
+      // Load status
+      const statusResponse = await fetch('/monetization/status');
+      const statusData = await statusResponse.json();
+      if (statusData.success) {
+        setStatus(statusData.status);
       } else {
-        setError(data.error || t('failed_to_load_monetization_status', 'Failed to load monetization status'));
+        setError(statusData.error || t('failed_to_load_monetization_status', 'Failed to load monetization status'));
+        return;
+      }
+
+      // Load gap analysis
+      const gapsResponse = await fetch('/monetization/gaps');
+      const gapsData = await gapsResponse.json();
+      if (gapsData.success) {
+        setGapAnalysis(gapsData.gapAnalysis);
+      }
+
+      // Load recommendations
+      const recsResponse = await fetch('/monetization/recommendations');
+      const recsData = await recsResponse.json();
+      if (recsData.success) {
+        setRecommendations(recsData.recommendations);
       }
     } catch (err) {
       setError(t('failed_to_load_monetization_status', 'Failed to load monetization status'));
@@ -237,6 +271,24 @@ export const MonetizationDashboard: FC = () => {
         <FeatureCard feature={status.stars} />
         <FeatureCard feature={status.fanSubscription} />
       </div>
+
+      {gapAnalysis && gapAnalysis.totalGaps > 0 && (
+        <GapAnalysisCard
+          gaps={gapAnalysis.gaps}
+          totalGaps={gapAnalysis.totalGaps}
+          highPriorityCount={gapAnalysis.highPriorityCount}
+          mediumPriorityCount={gapAnalysis.mediumPriorityCount}
+          lowPriorityCount={gapAnalysis.lowPriorityCount}
+        />
+      )}
+
+      {recommendations && recommendations.totalRecommendations > 0 && (
+        <RecommendationsPanel
+          recommendations={recommendations.recommendations}
+          totalRecommendations={recommendations.totalRecommendations}
+          actionableCount={recommendations.actionableCount}
+        />
+      )}
 
       <div className="bg-newBgColorInner rounded-lg p-4 border border-gray-700/50">
         <p className="text-xs text-textColor/50">

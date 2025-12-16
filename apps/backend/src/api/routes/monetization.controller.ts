@@ -1,13 +1,17 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MonetizationService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization.service';
+import { RecommendationEngine } from '@gitroom/nestjs-libraries/database/prisma/monetization/recommendation.service';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 
 @ApiTags('Monetization')
 @Controller('/monetization')
 export class MonetizationController {
-  constructor(private readonly _monetizationService: MonetizationService) {}
+  constructor(
+    private readonly _monetizationService: MonetizationService,
+    private readonly _recommendationEngine: RecommendationEngine
+  ) {}
 
   @Get('/status')
   @ApiOperation({ summary: 'Get monetization status for all features' })
@@ -84,6 +88,67 @@ export class MonetizationController {
         success: true,
         progress,
         lastUpdated: status.lastUpdated,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/gaps')
+  @ApiOperation({ summary: 'Get gap analysis for monetization features' })
+  @ApiResponse({
+    status: 200,
+    description: 'Gap analysis retrieved successfully',
+  })
+  async getGapAnalysis(@GetOrgFromRequest() org: Organization) {
+    try {
+      const gapAnalysis = await this._monetizationService.getGapAnalysis(org.id);
+      return {
+        success: true,
+        gapAnalysis,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Get('/recommendations')
+  @ApiOperation({ summary: 'Get recommendations to reach monetization eligibility' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recommendations retrieved successfully',
+  })
+  async getRecommendations(@GetOrgFromRequest() org: Organization) {
+    try {
+      const gapAnalysis = await this._monetizationService.getGapAnalysis(org.id);
+      const status = await this._monetizationService.getMonetizationStatus(org.id);
+      
+      // Calculate average growth rate from all features
+      const growthRates = [
+        status.inStreamAds.estimatedDays,
+        status.reels.estimatedDays,
+        status.stars.estimatedDays,
+        status.fanSubscription.estimatedDays,
+      ].filter(d => d !== undefined) as number[];
+      
+      const avgGrowthRate = growthRates.length > 0 
+        ? growthRates.reduce((sum, d) => sum + (1 / d), 0) / growthRates.length 
+        : 0;
+
+      const recommendations = await this._recommendationEngine.generateRecommendations(
+        gapAnalysis.gaps,
+        avgGrowthRate
+      );
+
+      return {
+        success: true,
+        recommendations,
       };
     } catch (error) {
       return {

@@ -50,6 +50,24 @@ export interface MonetizationStatus {
   lastUpdated: Date;
 }
 
+export interface MetricGap {
+  feature: string;
+  metric: string;
+  current: number;
+  required: number;
+  gap: number;
+  percentageGap: number;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface GapAnalysis {
+  gaps: MetricGap[];
+  totalGaps: number;
+  highPriorityCount: number;
+  mediumPriorityCount: number;
+  lowPriorityCount: number;
+}
+
 @Injectable()
 export class MonetizationService {
   private readonly thresholds: MonetizationThresholds = {
@@ -311,5 +329,76 @@ export class MonetizationService {
       relevant[key as keyof MonetizationMetrics] = allMetrics[key as keyof MonetizationMetrics];
     }
     return relevant;
+  }
+
+  async getGapAnalysis(organizationId: string): Promise<GapAnalysis> {
+    const status = await this.getMonetizationStatus(organizationId);
+    const gaps: MetricGap[] = [];
+
+    // Analyze gaps for each feature
+    const features = [
+      { name: 'In-Stream Ads', data: status.inStreamAds },
+      { name: 'Reels', data: status.reels },
+      { name: 'Stars', data: status.stars },
+      { name: 'Fan Subscription', data: status.fanSubscription },
+    ];
+
+    for (const feature of features) {
+      // Skip if already eligible
+      if (feature.data.status === 'eligible') {
+        continue;
+      }
+
+      // Analyze each metric gap
+      for (const [metricKey, gapValue] of Object.entries(feature.data.gap)) {
+        const gap = Number(gapValue);
+        if (gap > 0) {
+          const current = (feature.data.currentMetrics as any)[metricKey] || 0;
+          const required = (feature.data.requiredMetrics as any)[metricKey];
+          const percentageGap = (gap / required) * 100;
+
+          gaps.push({
+            feature: feature.name,
+            metric: metricKey,
+            current,
+            required,
+            gap,
+            percentageGap,
+            priority: this.calculateGapPriority(percentageGap),
+          });
+        }
+      }
+    }
+
+    // Sort by priority (high > medium > low) then by percentage gap (descending)
+    gaps.sort((a, b) => {
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      if (a.priority !== b.priority) {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      return b.percentageGap - a.percentageGap;
+    });
+
+    // Count gaps by priority
+    const highPriorityCount = gaps.filter(g => g.priority === 'high').length;
+    const mediumPriorityCount = gaps.filter(g => g.priority === 'medium').length;
+    const lowPriorityCount = gaps.filter(g => g.priority === 'low').length;
+
+    return {
+      gaps,
+      totalGaps: gaps.length,
+      highPriorityCount,
+      mediumPriorityCount,
+      lowPriorityCount,
+    };
+  }
+
+  private calculateGapPriority(percentageGap: number): 'high' | 'medium' | 'low' {
+    if (percentageGap > 50) {
+      return 'high';
+    } else if (percentageGap >= 20) {
+      return 'medium';
+    }
+    return 'low';
   }
 }
