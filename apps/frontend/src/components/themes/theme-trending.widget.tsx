@@ -51,20 +51,9 @@ export const ThemeTrendingWidget: FC<ThemeTrendingWidgetProps> = ({
       const response = await fetch(`/themes/trending?limit=${limit}`);
       const data = await response.json();
       if (data.success) {
-        // Map API response to ThemeTrend format with defaults
-        const mappedTrends = (data.themes || []).map((theme: any) => ({
-          id: theme.id,
-          name: theme.name,
-          keywords: theme.keywords,
-          velocity: 0, // Default velocity
-          direction: 'stable' as const,
-          currentPeriodMetrics: {
-            contentCount: theme.contentCount || 0,
-            totalReach: theme.avgReach || 0,
-            totalEngagement: theme.avgEngagement || 0,
-          },
-        }));
-        setTrends(mappedTrends);
+        // New API returns trends with velocity and direction
+        const trends = data.trends || [];
+        setTrends(trends);
       } else {
         setError(data.error || 'Failed to load trending themes');
       }

@@ -6,6 +6,7 @@ import { ThemeService } from '@gitroom/nestjs-libraries/database/prisma/themes/t
 import { ThemeClusteringService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-clustering.service';
 import { ThemeAssignmentService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-assignment.service';
 import { ThemeManagerService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-manager.service';
+import { ThemeTrendingService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-trending.service';
 
 @ApiTags('Themes')
 @Controller('/themes')
@@ -14,7 +15,8 @@ export class ThemesController {
     private _themeService: ThemeService,
     private _clusteringService: ThemeClusteringService,
     private _assignmentService: ThemeAssignmentService,
-    private _managerService: ThemeManagerService
+    private _managerService: ThemeManagerService,
+    private _trendingService: ThemeTrendingService
   ) {}
 
   /**
@@ -96,29 +98,79 @@ export class ThemesController {
   }
 
   /**
-   * Get trending themes based on recent engagement
+   * Get trending themes with velocity calculation
    */
   @Get('/trending')
-  @ApiOperation({ summary: 'Get trending themes with high engagement' })
+  @ApiOperation({ summary: 'Get trending themes with velocity and direction' })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Max number of trending themes to return (default: 5)',
+    description: 'Max number of trending themes to return (default: 10)',
+  })
+  @ApiQuery({
+    name: 'currentPeriodHours',
+    required: false,
+    type: Number,
+    description: 'Hours for current period (default: 24)',
+  })
+  @ApiQuery({
+    name: 'previousPeriodHours',
+    required: false,
+    type: Number,
+    description: 'Hours for previous period (default: 24)',
   })
   @ApiResponse({ status: 200, description: 'Trending themes retrieved successfully' })
   async getTrendingThemes(
     @GetOrgFromRequest() org: Organization,
-    @Query('limit') limit?: number
+    @Query('limit') limit?: number,
+    @Query('currentPeriodHours') currentPeriodHours?: number,
+    @Query('previousPeriodHours') previousPeriodHours?: number
   ) {
-    const themes = await this._themeService.getTrendingThemes(org.id, {
-      limit: limit ? parseInt(limit.toString()) : 5,
+    const trends = await this._trendingService.getThemeTrends(org.id, {
+      limit: limit ? parseInt(limit.toString()) : 10,
+      currentPeriodHours: currentPeriodHours ? parseInt(currentPeriodHours.toString()) : 24,
+      previousPeriodHours: previousPeriodHours ? parseInt(previousPeriodHours.toString()) : 24,
     });
 
     return {
       success: true,
-      themes,
-      count: themes.length,
+      trends,
+      count: trends.length,
+    };
+  }
+
+  /**
+   * Get trending summary (rising, falling, stable counts)
+   */
+  @Get('/trending/summary')
+  @ApiOperation({ summary: 'Get trending themes summary with counts by direction' })
+  @ApiQuery({
+    name: 'currentPeriodHours',
+    required: false,
+    type: Number,
+    description: 'Hours for current period (default: 24)',
+  })
+  @ApiQuery({
+    name: 'previousPeriodHours',
+    required: false,
+    type: Number,
+    description: 'Hours for previous period (default: 24)',
+  })
+  @ApiResponse({ status: 200, description: 'Trending summary retrieved successfully' })
+  async getTrendingSummary(
+    @GetOrgFromRequest() org: Organization,
+    @Query('currentPeriodHours') currentPeriodHours?: number,
+    @Query('previousPeriodHours') previousPeriodHours?: number
+  ) {
+    const summary = await this._trendingService.getTrendingSummary(org.id, {
+      currentPeriodHours: currentPeriodHours ? parseInt(currentPeriodHours.toString()) : 24,
+      previousPeriodHours: previousPeriodHours ? parseInt(previousPeriodHours.toString()) : 24,
+    });
+
+    return {
+      success: true,
+      ...summary,
     };
   }
 
@@ -148,6 +200,46 @@ export class ThemesController {
       success: true,
       theme,
     };
+  }
+
+  /**
+   * Get top-performing content for a theme
+   * AC3: Show top posts related to theme
+   */
+  @Get('/:id/top-content')
+  @ApiOperation({ summary: 'Get top-performing content for a theme' })
+  @ApiParam({ name: 'id', description: 'Theme ID' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max number of top content items to return (default: 10)',
+  })
+  @ApiResponse({ status: 200, description: 'Top content retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Theme not found' })
+  async getThemeTopContent(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string,
+    @Query('limit') limit?: number
+  ) {
+    try {
+      const content = await this._trendingService.getThemeTopContent(
+        id,
+        org.id,
+        limit ? parseInt(limit.toString()) : 10
+      );
+
+      return {
+        success: true,
+        content,
+        count: content.length,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: (error as Error).message || 'Failed to get top content',
+      };
+    }
   }
 
   /**
