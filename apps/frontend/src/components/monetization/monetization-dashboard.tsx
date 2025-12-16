@@ -2,6 +2,7 @@
 
 import { FC, useEffect, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 interface FeatureProgress {
   name: string;
@@ -28,10 +29,11 @@ const StatusBadge: FC<{ status: string }> = ({ status }) => {
     not_eligible: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
   };
 
+  const t = useT();
   const labels = {
-    eligible: 'Eligible',
-    close: 'Close',
-    not_eligible: 'Not Eligible',
+    eligible: t('eligible', 'Eligible'),
+    close: t('close_to_eligible', 'Close'),
+    not_eligible: t('not_eligible', 'Not Eligible'),
   };
 
   return (
@@ -55,6 +57,7 @@ const ProgressBar: FC<{ progress: number; status: string }> = ({ progress, statu
 };
 
 const FeatureCard: FC<{ feature: FeatureProgress }> = ({ feature }) => {
+  const t = useT();
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -74,33 +77,34 @@ const FeatureCard: FC<{ feature: FeatureProgress }> = ({ feature }) => {
             <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-green-400 font-medium">Congratulations! You're eligible for this feature.</span>
+            <span className="text-green-400 font-medium">{t('congratulations_eligible_for_feature', "Congratulations! You're eligible for this feature.")}</span>
           </div>
         </div>
       )}
 
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-textColor/60">Progress</span>
+          <span className="text-sm text-textColor/60">{t('progress', 'Progress')}</span>
           <span className="text-sm font-medium text-textColor">{feature.progress.toFixed(1)}%</span>
         </div>
         <ProgressBar progress={feature.progress} status={feature.status} />
       </div>
 
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-textColor/80">Requirements</h4>
+        <h4 className="text-sm font-medium text-textColor/80">{t('requirements', 'Requirements')}</h4>
         {Object.entries(feature.requiredMetrics).map(([key, required]) => {
+          const requiredValue = Number(required);
           const current = feature.currentMetrics[key] || 0;
           const gap = feature.gap[key] || 0;
-          const metricProgress = required > 0 ? Math.min(100, (current / required) * 100) : 100;
+          const metricProgress = requiredValue > 0 ? Math.min(100, (current / requiredValue) * 100) : 100;
 
           const metricLabels: Record<string, string> = {
-            followers: 'Followers',
-            oneMinuteViews: 'One-Minute Views',
-            viewedMinutes: 'Viewed Minutes',
-            watchedMinutes: 'Watched Minutes',
-            engagements: 'Engagements',
-            videosCount: 'Videos',
+            followers: t('followers', 'Followers'),
+            oneMinuteViews: t('one_minute_views', 'One-Minute Views'),
+            viewedMinutes: t('viewed_minutes', 'Viewed Minutes'),
+            watchedMinutes: t('watched_minutes', 'Watched Minutes'),
+            engagements: t('engagements', 'Engagements'),
+            videosCount: t('videos', 'Videos'),
           };
 
           return (
@@ -108,7 +112,7 @@ const FeatureCard: FC<{ feature: FeatureProgress }> = ({ feature }) => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-textColor/60">{metricLabels[key] || key}</span>
                 <span className="text-xs font-medium text-textColor">
-                  {formatNumber(current)} / {formatNumber(required)}
+                  {formatNumber(current)} / {formatNumber(requiredValue)}
                 </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -119,7 +123,7 @@ const FeatureCard: FC<{ feature: FeatureProgress }> = ({ feature }) => {
               </div>
               {gap > 0 && (
                 <p className="text-xs text-textColor/50 mt-1">
-                  {formatNumber(gap)} more needed
+                  {formatNumber(gap)} {t('more_needed', 'more needed')}
                 </p>
               )}
             </div>
@@ -130,10 +134,10 @@ const FeatureCard: FC<{ feature: FeatureProgress }> = ({ feature }) => {
       {feature.estimatedDays && feature.status !== 'eligible' && (
         <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
           <p className="text-sm text-blue-400">
-            <span className="font-medium">Estimated time:</span>{' '}
+            <span className="font-medium">{t('estimated_time', 'Estimated time')}:</span>{' '}
             {feature.estimatedDays < 30
-              ? `${feature.estimatedDays} days`
-              : `${Math.round(feature.estimatedDays / 30)} months`}
+              ? `${feature.estimatedDays} ${t('days', 'days')}`
+              : `${Math.round(feature.estimatedDays / 30)} ${t('months', 'months')}`}
           </p>
         </div>
       )}
@@ -142,6 +146,7 @@ const FeatureCard: FC<{ feature: FeatureProgress }> = ({ feature }) => {
 };
 
 export const MonetizationDashboard: FC = () => {
+  const t = useT();
   const [status, setStatus] = useState<MonetizationStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,10 +165,10 @@ export const MonetizationDashboard: FC = () => {
       if (data.success) {
         setStatus(data.status);
       } else {
-        setError(data.error || 'Failed to load monetization status');
+        setError(data.error || t('failed_to_load_monetization_status', 'Failed to load monetization status'));
       }
     } catch (err) {
-      setError('Failed to load monetization status');
+      setError(t('failed_to_load_monetization_status', 'Failed to load monetization status'));
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +177,7 @@ export const MonetizationDashboard: FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-textColor/60">Loading monetization status...</div>
+        <div className="text-textColor/60">{t('loading_monetization_status', 'Loading monetization status...')}</div>
       </div>
     );
   }
@@ -196,14 +201,14 @@ export const MonetizationDashboard: FC = () => {
   return (
     <div className="space-y-6">
       <div className="bg-newBgColorInner rounded-lg p-6 border border-gray-700/50">
-        <h2 className="text-2xl font-bold text-textColor mb-2">Monetization Dashboard</h2>
+        <h2 className="text-2xl font-bold text-textColor mb-2">{t('monetization_dashboard', 'Monetization Dashboard')}</h2>
         <p className="text-textColor/60 mb-4">
-          Track your progress towards Facebook monetization eligibility
+          {t('track_your_progress_towards_facebook_monetization_eligibility', 'Track your progress towards Facebook monetization eligibility')}
         </p>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 rounded-full" />
-            <span className="text-sm text-textColor/80">{eligibleCount} Eligible</span>
+            <span className="text-sm text-textColor/80">{eligibleCount} {t('eligible', 'Eligible')}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-yellow-500 rounded-full" />
@@ -211,7 +216,7 @@ export const MonetizationDashboard: FC = () => {
               {[status.inStreamAds, status.reels, status.stars, status.fanSubscription].filter(
                 (f) => f.status === 'close'
               ).length}{' '}
-              Close
+              {t('close_to_eligible', 'Close')}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -220,7 +225,7 @@ export const MonetizationDashboard: FC = () => {
               {[status.inStreamAds, status.reels, status.stars, status.fanSubscription].filter(
                 (f) => f.status === 'not_eligible'
               ).length}{' '}
-              Not Eligible
+              {t('not_eligible', 'Not Eligible')}
             </span>
           </div>
         </div>
@@ -235,7 +240,7 @@ export const MonetizationDashboard: FC = () => {
 
       <div className="bg-newBgColorInner rounded-lg p-4 border border-gray-700/50">
         <p className="text-xs text-textColor/50">
-          Last updated: {new Date(status.lastUpdated).toLocaleString()}
+          {t('last_updated', 'Last updated')}: {new Date(status.lastUpdated).toLocaleString()}
         </p>
       </div>
     </div>
