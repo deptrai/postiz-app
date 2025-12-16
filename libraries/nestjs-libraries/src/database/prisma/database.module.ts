@@ -51,6 +51,10 @@ import { ExperimentService } from '@gitroom/nestjs-libraries/database/prisma/exp
 import { ExperimentTrackingService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-tracking.service';
 import { ExperimentAnalysisService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-analysis.service';
 import { ExperimentAutoTrackingService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-auto-tracking.service';
+import { ThemeService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme.service';
+import { ThemeClusteringService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-clustering.service';
+import { ThemeAssignmentService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-assignment.service';
+import { ThemeManagerService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-manager.service';
 
 @Global()
 @Module({
@@ -111,6 +115,10 @@ import { ExperimentAutoTrackingService } from '@gitroom/nestjs-libraries/databas
     ExperimentTrackingService,
     ExperimentAnalysisService,
     ExperimentAutoTrackingService,
+    ThemeService,
+    ThemeClusteringService,
+    ThemeAssignmentService,
+    ThemeManagerService,
   ],
   get exports() {
     return this.providers;

@@ -56,6 +56,7 @@ model Organization {
   aiConversations              AIConversation[]
   playbooks                    Playbook[]
   experiments                  Experiment[]
+  themes                       Theme[]
 
   @@unique([paymentId])
 }
@@ -772,6 +773,7 @@ model AnalyticsContent {
   tags                     AnalyticsContentTag[]
   playbookSources          PlaybookSourceContent[]
   experimentTrackedContent ExperimentTrackedContent[]
+  themeContent             ThemeContent[]
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
   deletedAt                DateTime?
@@ -1166,4 +1168,53 @@ model ExperimentTrackedContent {
   @@unique([experimentVariantId, contentId])
   @@index([experimentVariantId])
   @@index([contentId])
+}
+
+model Theme {
+  id              String   @id @default(cuid())
+  name            String
+  organizationId  String
+  keywords        Json?
+  contentCount    Int      @default(0)
+  avgReach        Float    @default(0)
+  avgEngagement   Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  content         ThemeContent[]
+  history         ThemeHistory[]
+
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model ThemeContent {
+  id        String   @id @default(cuid())
+  themeId   String
+  contentId String
+  createdAt DateTime @default(now())
+
+  theme     Theme            @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  content   AnalyticsContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([themeId, contentId])
+  @@index([themeId])
+  @@index([contentId])
+}
+
+model ThemeHistory {
+  id              String   @id @default(cuid())
+  themeId         String
+  action          String   // 'rename' | 'merge' | 'split'
+  previousState   Json     // { name, keywords, contentCount }
+  newState        Json     // { name, keywords, contentCount }
+  relatedThemeIds String[] // For merge/split operations
+  createdAt       DateTime @default(now())
+
+  theme           Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+
+  @@index([themeId])
+  @@index([createdAt])
 }

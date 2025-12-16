@@ -19,7 +19,7 @@ Ghi chú thực tế (từ hành vi chạy lệnh gần đây): nếu chạy `ap
 
 **Starter Template Decision:** Đây không phải dự án greenfield. “Starter template” của dự án chính là **Postiz repo hiện tại**. Kiến trúc yêu cầu mọi thay đổi đều là **extend trong monorepo**, không tạo app mới ngoài workspace.
 
-## Decision Summary
+## Decision Summa
 
 | Category | Decision | Version | Affects Epics | Rationale |
 | -------- | -------- | ------- | ------------- | --------- |

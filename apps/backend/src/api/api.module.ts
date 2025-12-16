@@ -18,8 +18,7 @@ import { AlertService } from '@gitroom/nestjs-libraries/database/prisma/alerts/a
 import { AnalyticsController } from '@gitroom/backend/api/routes/analytics.controller';
 import { PlaybooksController } from '@gitroom/backend/api/routes/playbooks.controller';
 import { ExperimentsController } from '@gitroom/backend/api/routes/experiments.controller';
-// Themes temporarily disabled - will implement in Story 7.x
-// import { ThemesController } from '@gitroom/backend/api/routes/themes.controller';
+import { ThemesController } from '@gitroom/backend/api/routes/themes.controller';
 import { PoliciesGuard } from '@gitroom/backend/services/auth/permissions/permissions.guard';
 import { PermissionsService } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { IntegrationsController } from '@gitroom/backend/api/routes/integrations.controller';
@@ -58,6 +57,7 @@ const authenticatedController = [
   AnalyticsController,
   PlaybooksController,
   ExperimentsController,
+  ThemesController,
   IntegrationsController,
   SettingsController,
   PostsController,

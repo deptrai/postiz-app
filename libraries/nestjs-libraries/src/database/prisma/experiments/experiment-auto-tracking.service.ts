@@ -97,7 +97,7 @@ export class ExperimentAutoTrackingService {
         }
       }
     } catch (error) {
-      this.logger.error(`Failed to auto-track content ${contentId}: ${error.message}`);
+      this.logger.error(`Failed to auto-track content ${contentId}: ${(error as Error).message}`);
     }
   }
 
@@ -207,7 +207,7 @@ export class ExperimentAutoTrackingService {
     if (variant.recipe?.hook) {
       totalPatterns++;
       const hookKeywords = variant.recipe.hook.toLowerCase().split(/\s+/);
-      const matchedKeywords = hookKeywords.filter(kw => 
+      const matchedKeywords = hookKeywords.filter((kw: string) => 
         kw.length > 2 && caption.includes(kw)
       );
       if (matchedKeywords.length > 0) {
