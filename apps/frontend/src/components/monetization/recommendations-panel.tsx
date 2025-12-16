@@ -81,13 +81,13 @@ export const RecommendationsPanel: FC<RecommendationsPanelProps> = ({
   const translateRecommendation = (rec: Recommendation) => {
     // Map backend English text to translation keys
     const titleMap: Record<string, string> = {
-      'Increase Reels for Maximum Watch Time': 'rec_reels_title',
-      'Consistent Posting Frequency': 'rec_posting_freq_title',
-      'Meet Minimum Video Count': 'rec_video_count_title',
-      'Create Longer-Form Videos': 'rec_long_form_title',
-      'Boost Engagement with Your Audience': 'rec_engagement_title',
-      'Use Call-to-Actions': 'rec_cta_title',
-      'Post at Optimal Times': 'rec_timing_title',
+      'Post More Reels': 'rec_reels_title',
+      'Create Longer Videos': 'rec_long_form_title',
+      'Increase Posting Frequency': 'rec_posting_freq_title',
+      'Boost Engagement with Interactive Content': 'rec_engagement_title',
+      'Add Clear Calls-to-Action': 'rec_cta_title',
+      'Increase Video Output': 'rec_video_count_title',
+      'Post During Peak Hours': 'rec_timing_title',
     };
 
     const descMap: Record<string, string> = {
