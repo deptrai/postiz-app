@@ -56,6 +56,7 @@ import { ThemeClusteringService } from '@gitroom/nestjs-libraries/database/prism
 import { ThemeAssignmentService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-assignment.service';
 import { ThemeManagerService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-manager.service';
 import { ThemeTrendingService } from '@gitroom/nestjs-libraries/database/prisma/themes/theme-trending.service';
+import { MonetizationService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization.service';
 
 @Global()
 @Module({
@@ -121,6 +122,7 @@ import { ThemeTrendingService } from '@gitroom/nestjs-libraries/database/prisma/
     ThemeAssignmentService,
     ThemeManagerService,
     ThemeTrendingService,
+    MonetizationService,
   ],
   get exports() {
     return this.providers;

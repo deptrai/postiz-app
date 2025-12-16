@@ -19,6 +19,7 @@ import { AnalyticsController } from '@gitroom/backend/api/routes/analytics.contr
 import { PlaybooksController } from '@gitroom/backend/api/routes/playbooks.controller';
 import { ExperimentsController } from '@gitroom/backend/api/routes/experiments.controller';
 import { ThemesController } from '@gitroom/backend/api/routes/themes.controller';
+import { MonetizationController } from '@gitroom/backend/api/routes/monetization.controller';
 import { PoliciesGuard } from '@gitroom/backend/services/auth/permissions/permissions.guard';
 import { PermissionsService } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { IntegrationsController } from '@gitroom/backend/api/routes/integrations.controller';
@@ -58,6 +59,7 @@ const authenticatedController = [
   PlaybooksController,
   ExperimentsController,
   ThemesController,
+  MonetizationController,
   IntegrationsController,
   SettingsController,
   PostsController,
