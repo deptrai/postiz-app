@@ -1,0 +1,132 @@
+<story-context id="epic-13/story-13-4" v="1.0">
+  <metadata>
+    <epicId>13</epicId>
+    <storyId>13.4</storyId>
+    <title>Watch Time Analytics</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/13-4-watch-time-analytics.md</sourceStoryPath>
+    <note>Merged from Epic 15.1 - Video Performance Analyzer</note>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>analytics chi tiết về watch time</iWant>
+    <soThat>tôi hiểu viewer behavior và tối ưu cho monetization</soThat>
+    <tasks>
+      <backend>
+        <task>Create WatchTimeAnalyticsService with getWatchTimeMetrics method</task>
+        <task>Implement watch time trends aggregation</task>
+        <task>Implement top videos by watch time</task>
+        <task>Add API endpoints for watch time analytics</task>
+      </backend>
+      <frontend>
+        <task>Create WatchTimeMetricsCard component</task>
+        <task>Create WatchTimeTrendChart component</task>
+        <task>Create TopVideosList component</task>
+        <task>Integrate into MonetizationDashboard</task>
+      </frontend>
+      <testing>
+        <task>Unit tests for watch time calculation</task>
+        <task>Unit tests for trend aggregation</task>
+        <task>Component tests for UI components</task>
+      </testing>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given video metrics, When user xem watch time analytics, Then hiển thị total watch time across all videos</criterion>
+    <criterion id="2">Given video metrics, When user xem analytics, Then hiển thị average view duration per video</criterion>
+    <criterion id="3">Given video metrics, When user xem analytics, Then hiển thị completion rate (% viewers who watch to end)</criterion>
+    <criterion id="4">Given watch time data, When user xem trends, Then hiển thị watch time trend over time (7/14/30 days)</criterion>
+    <criterion id="5">Given multiple videos, When user xem analytics, Then hiển thị top videos by watch time</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/stories/13-1-monetization-dashboard.md">Prerequisite story</doc>
+      <doc path="docs/epics.md" section="Story-13.4">Story definition</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/monetization/monetization.service.ts">MonetizationService from Story 13.1</pattern>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/analytics/">Existing analytics patterns</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/monetization/watch-time-analytics.service.ts</file>
+        <file>apps/frontend/src/components/monetization/watch-time-metrics-card.tsx</file>
+        <file>apps/frontend/src/components/monetization/watch-time-trend-chart.tsx</file>
+        <file>apps/frontend/src/components/monetization/top-videos-list.tsx</file>
+      </newFiles>
+    </code>
+    <dependencies>
+      <dependency>Story 13.1 complete (Monetization Dashboard)</dependency>
+      <dependency>Video metrics available from Epic 2</dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Watch time data availability depends on Facebook API</constraint>
+    <constraint>May need to estimate watch time from views if detailed data unavailable</constraint>
+  </constraints>
+
+  <interfaces>
+    <api>
+      <endpoint method="GET" path="/api/monetization/watch-time">Get watch time metrics</endpoint>
+      <endpoint method="GET" path="/api/monetization/watch-time/trends">Get watch time trends</endpoint>
+      <endpoint method="GET" path="/api/monetization/watch-time/top-videos">Get top videos by watch time</endpoint>
+    </api>
+    <dataModels>
+      <model name="WatchTimeMetrics">
+        <field name="totalWatchTime" type="number">Total watch time in minutes</field>
+        <field name="averageViewDuration" type="number">Average view duration in seconds</field>
+        <field name="completionRate" type="number">Percentage of viewers who watch to end</field>
+        <field name="totalVideos" type="number">Total number of videos</field>
+        <field name="totalViews" type="number">Total number of views</field>
+      </model>
+      <model name="WatchTimeTrend">
+        <field name="date" type="date">Date</field>
+        <field name="watchTime" type="number">Watch time for that day</field>
+        <field name="views" type="number">Views for that day</field>
+      </model>
+      <model name="TopVideo">
+        <field name="id" type="string">Video ID</field>
+        <field name="title" type="string">Video title or caption</field>
+        <field name="watchTime" type="number">Total watch time</field>
+        <field name="views" type="number">Total views</field>
+        <field name="averageDuration" type="number">Average view duration</field>
+        <field name="publishedAt" type="datetime">Publish date</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Jest for backend unit tests</standard>
+      <standard>React Testing Library for frontend</standard>
+    </standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/monetization/watch-time-analytics.service.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea>Test watch time calculation with various video durations</idea>
+      <idea>Test trend aggregation by day/week</idea>
+      <idea>Test top videos sorting</idea>
+      <idea>Test edge cases: no videos, single video, many videos</idea>
+    </ideas>
+  </tests>
+
+  <watchTimeCalculation>
+    <metric name="totalWatchTime">Sum of all view durations across all videos</metric>
+    <metric name="averageViewDuration">Total watch time / total views</metric>
+    <metric name="completionRate">(Views to end / total views) * 100</metric>
+    <assumption>If detailed watch time not available from API, estimate as views * average_video_duration * estimated_completion_rate</assumption>
+  </watchTimeCalculation>
+
+  <monetizationRelevance>
+    <feature name="in-stream-ads">30,000 one-minute views needed</feature>
+    <feature name="reels">600,000 viewed minutes needed</feature>
+    <feature name="fan-subscription">180,000 minutes watched needed</feature>
+  </monetizationRelevance>
+</story-context>

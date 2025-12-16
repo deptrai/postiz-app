@@ -1,0 +1,109 @@
+<story-context id="epic-16/story-16-3" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>16.3</storyId>
+    <title>Policy Compliance Check</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/16-3-policy-compliance-check.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>check policy compliance trước khi đăng</iWant>
+    <soThat>tôi không mất monetization eligibility</soThat>
+    <tasks>
+      <backend>
+        <task>Create PolicyComplianceService with checkCompliance method</task>
+        <task>Build policy rules database</task>
+        <task>Implement Partner Monetization rules</task>
+        <task>Implement Content Monetization rules</task>
+        <task>Add compliance history tracking</task>
+      </backend>
+      <frontend>
+        <task>Create ComplianceCheckCard component</task>
+        <task>Create PolicyViolationDetail component</task>
+        <task>Create ComplianceHistory component</task>
+        <task>Integrate into content creation flow</task>
+      </frontend>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given content draft, When user request compliance check, Then flag potential violations và suggest fixes</criterion>
+    <criterion id="2">Given compliance check results, When violations detected, Then explain which policy violated và severity</criterion>
+    <criterion id="3">Given Partner Monetization Policies, When checking content, Then verify against all relevant policy rules</criterion>
+    <criterion id="4">Given Content Monetization Policies, When checking content, Then verify against content-specific rules</criterion>
+    <criterion id="5">Given compliance history, When user xem report, Then show compliance score trends và past violations</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/stories/16-1-quality-score-dashboard.md">Prerequisite story</doc>
+      <doc path="docs/stories/16-2-engagement-bait-detection.md">Related story</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/quality/">Quality services</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/quality/policy-compliance.service.ts</file>
+        <file>apps/frontend/src/components/quality/compliance-check-card.tsx</file>
+        <file>apps/frontend/src/components/quality/policy-violation-detail.tsx</file>
+      </newFiles>
+    </code>
+    <dependencies>
+      <dependency>Story 16.1 complete (Quality Score Dashboard)</dependency>
+      <dependency>Story 16.2 complete (Engagement Bait Detection)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <api>
+      <endpoint method="POST" path="/api/quality/compliance/check">Check content compliance</endpoint>
+      <endpoint method="GET" path="/api/quality/compliance/history">Get compliance history</endpoint>
+      <endpoint method="GET" path="/api/quality/compliance/policies">Get policy rules</endpoint>
+    </api>
+    <dataModels>
+      <model name="ComplianceResult">
+        <field name="isCompliant" type="boolean">Overall compliance status</field>
+        <field name="complianceScore" type="number">0-100</field>
+        <field name="violations" type="array">List of violations</field>
+        <field name="suggestions" type="array">Fix suggestions</field>
+      </model>
+      <model name="PolicyViolation">
+        <field name="policyName" type="string">Policy name</field>
+        <field name="policyCategory" type="string">partner/content</field>
+        <field name="severity" type="string">critical/high/medium/low</field>
+        <field name="description" type="string">Violation description</field>
+        <field name="fix" type="string">How to fix</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <policyCategories>
+    <category name="Partner Monetization Policies">
+      <rule>Original content creation</rule>
+      <rule>Proper payment terms</rule>
+      <rule>Account authenticity</rule>
+      <rule>Community standards compliance</rule>
+    </category>
+    <category name="Content Monetization Policies">
+      <rule>No clickbait</rule>
+      <rule>No engagement solicitation</rule>
+      <rule>No misleading medical information</rule>
+      <rule>No controversial/sensitive topics</rule>
+      <rule>Advertiser-friendly content</rule>
+    </category>
+  </policyCategories>
+
+  <violationSeverity>
+    <level name="critical">Immediate monetization risk</level>
+    <level name="high">May affect monetization</level>
+    <level name="medium">Best practice violation</level>
+    <level name="low">Recommendation only</level>
+  </violationSeverity>
+
+  <assumption>MVP uses rule-based checking. Some policies require manual review and cannot be fully automated.</assumption>
+</story-context>

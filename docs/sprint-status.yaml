@@ -72,14 +72,63 @@ development_status:
 
   # Epic 6 — Playbooks + Experiments (Growth)
   epic-6: backlog
-  6-1-generate-playbooks-from-top-content: ready-for-dev
-  6-2-generate-playbook-variants: ready-for-dev
-  6-3-experiments-abc-and-win-rate: ready-for-dev
+  6-1-generate-playbooks-from-top-content: done
+  6-2-generate-playbook-variants: done
+  6-3-experiments-abc-and-win-rate: done
   epic-6-retrospective: optional
 
   # Epic 7 — Themes (Topic Clustering) (Growth)
   epic-7: backlog
-  7-1-cluster-themes-from-captions-and-hashtags: backlog
-  7-2-theme-manager-rename-merge-split: backlog
-  7-3-theme-trending: backlog
+  7-1-cluster-themes-from-captions-and-hashtags: done
+  7-2-theme-manager-rename-merge-split: done
+  7-3-theme-trending: done
   epic-7-retrospective: optional
+
+  # Epic 8 — Alerts & Anomaly Detection (Growth)
+  epic-8: in-progress
+  8-1-kpi-drop-alerts: done
+  8-2-viral-spike-detection: backlog
+  8-3-notification-channels: backlog
+
+  # Epic 9 — AI Content Assistant (Growth)
+  epic-9: backlog
+  9-1-genai-qa-analytics: backlog
+  9-2-ai-caption-generator: backlog
+  9-3-hook-optimizer: backlog
+
+  # Epic 10 — Report Automation (Growth)
+  epic-10: backlog
+  10-1-scheduled-reports: backlog
+  10-2-pdf-ppt-export: backlog
+  10-3-telegram-bot-reports: backlog
+
+  # Epic 11 — Industry Benchmarking (Growth)
+  epic-11: backlog
+  11-1-industry-averages-dashboard: backlog
+  11-2-performance-gap-analysis: backlog
+
+  # Epic 12 — Content Recycling (Growth)
+  epic-12: backlog
+  12-1-evergreen-content-detection: backlog
+  12-2-repost-suggestions: backlog
+
+  # Epic 13 — Monetization Readiness Tracker (Growth) ⭐ TOP PRIORITY
+  epic-13: backlog
+  13-1-monetization-dashboard: backlog
+  13-2-gap-analysis-recommendations: backlog
+  13-3-monetization-alerts: backlog
+  13-4-watch-time-analytics: backlog
+
+  # Epic 14 — Viral Content Optimizer (Growth)
+  epic-14: backlog
+  14-1-viral-score-prediction: backlog
+  14-2-hook-analyzer: backlog
+  14-3-optimal-viral-timing: backlog
+  14-4-content-elements-analysis: backlog
+
+  # Epic 16 — Content Quality Scoring (Growth)
+  epic-16: backlog
+  16-1-quality-score-dashboard: backlog
+  16-2-engagement-bait-detection: backlog
+  16-3-policy-compliance-check: backlog
+  16-4-advertiser-friendly-scoring: backlog

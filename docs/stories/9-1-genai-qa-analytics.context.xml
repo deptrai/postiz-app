@@ -1,0 +1,48 @@
+<story-context id="epic-9/story-9-1" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>9.1</storyId>
+    <title>GenAI Q&A Analytics</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/9-1-genai-qa-analytics.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>hỏi AI "vì sao KPI thay đổi?"</iWant>
+    <soThat>tôi hiểu nguyên nhân và có action rõ ràng</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given analytics data, When user hỏi natural language, Then AI trả lời với explainability</criterion>
+    <criterion id="2">Given KPI change, When user ask why, Then AI analyze và explain causes</criterion>
+    <criterion id="3">Given AI response, When user xem details, Then hiển thị supporting data</criterion>
+    <criterion id="4">Given conversation history, When user ask follow-up, Then AI maintain context</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <newFiles>
+      <file>libraries/nestjs-libraries/src/database/prisma/ai/ai-assistant.service.ts</file>
+      <file>apps/backend/src/api/routes/ai.controller.ts</file>
+      <file>apps/frontend/src/components/ai/ai-chat.tsx</file>
+    </newFiles>
+  </artifacts>
+
+  <interfaces>
+    <api>
+      <endpoint method="POST" path="/api/ai/ask">Ask question</endpoint>
+      <endpoint method="GET" path="/api/ai/history">Get conversation history</endpoint>
+    </api>
+  </interfaces>
+
+  <llmIntegration>
+    <provider>OpenAI GPT-4 or Claude</provider>
+    <features>
+      <feature>Prompt engineering for analytics context</feature>
+      <feature>Rate limiting per user</feature>
+      <feature>Token budget management</feature>
+      <feature>Response caching</feature>
+    </features>
+  </llmIntegration>
+</story-context>

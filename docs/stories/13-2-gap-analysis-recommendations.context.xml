@@ -1,0 +1,122 @@
+<story-context id="epic-13/story-13-2" v="1.0">
+  <metadata>
+    <epicId>13</epicId>
+    <storyId>13.2</storyId>
+    <title>Gap Analysis and Recommendations</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/13-2-gap-analysis-recommendations.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>phân tích gap và gợi ý cách đạt eligibility</iWant>
+    <soThat>tôi có action plan rõ ràng</soThat>
+    <tasks>
+      <backend>
+        <task>Extend MonetizationService with getGapAnalysis method</task>
+        <task>Create RecommendationEngine service</task>
+        <task>Generate content type and posting frequency recommendations</task>
+        <task>Calculate expected impact for each recommendation</task>
+        <task>Add API endpoints for gaps and recommendations</task>
+      </backend>
+      <frontend>
+        <task>Create GapAnalysisCard component</task>
+        <task>Create RecommendationsPanel component</task>
+        <task>Integrate into MonetizationDashboard</task>
+      </frontend>
+      <testing>
+        <task>Unit tests for gap calculation</task>
+        <task>Unit tests for recommendation generation</task>
+        <task>Component tests for UI components</task>
+      </testing>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given current metrics và thresholds, When user xem gap analysis, Then hiển thị "Bạn cần thêm X followers, Y watch minutes"</criterion>
+    <criterion id="2">Given gap analysis data, When user xem recommendations, Then gợi ý content types để tăng metrics</criterion>
+    <criterion id="3">Given historical growth data, When user xem recommendations, Then gợi ý posting frequency tối ưu</criterion>
+    <criterion id="4">Given multiple gaps, When user xem analysis, Then prioritize gaps theo impact và effort</criterion>
+    <criterion id="5">Given recommendations, When user xem chi tiết, Then hiển thị expected impact của mỗi recommendation</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/stories/13-1-monetization-dashboard.md">Prerequisite story</doc>
+      <doc path="docs/epics.md" section="Story-13.2">Story definition</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/monetization/monetization.service.ts">MonetizationService from Story 13.1</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/monetization/recommendation.service.ts</file>
+        <file>apps/frontend/src/components/monetization/gap-analysis-card.tsx</file>
+        <file>apps/frontend/src/components/monetization/recommendations-panel.tsx</file>
+      </newFiles>
+    </code>
+    <dependencies>
+      <dependency>Story 13.1 complete (Monetization Dashboard)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Recommendations must be actionable and specific</constraint>
+    <constraint>Gap prioritization must consider both impact and effort</constraint>
+  </constraints>
+
+  <interfaces>
+    <api>
+      <endpoint method="GET" path="/api/monetization/gaps">Get gap analysis for all features</endpoint>
+      <endpoint method="GET" path="/api/monetization/recommendations">Get actionable recommendations</endpoint>
+    </api>
+    <dataModels>
+      <model name="GapAnalysis">
+        <field name="feature" type="string">Feature name</field>
+        <field name="metric" type="string">Metric name (followers, watch_time, etc.)</field>
+        <field name="currentValue" type="number">Current value</field>
+        <field name="requiredValue" type="number">Required value</field>
+        <field name="gap" type="number">Gap amount</field>
+        <field name="priority" type="string">high/medium/low</field>
+      </model>
+      <model name="Recommendation">
+        <field name="type" type="string">content_type/posting_frequency/engagement/timing</field>
+        <field name="title" type="string">Recommendation title</field>
+        <field name="description" type="string">Detailed description</field>
+        <field name="expectedImpact" type="string">Expected impact description</field>
+        <field name="effort" type="string">low/medium/high</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Jest for backend unit tests</standard>
+      <standard>React Testing Library for frontend</standard>
+    </standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/monetization/recommendation.service.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea>Test gap calculation accuracy</idea>
+      <idea>Test priority assignment logic</idea>
+      <idea>Test recommendation generation for different gap scenarios</idea>
+      <idea>Test impact estimation</idea>
+    </ideas>
+  </tests>
+
+  <recommendationTypes>
+    <type name="content_type">Post more Reels to increase watch time</type>
+    <type name="posting_frequency">Increase to 2 posts/day to grow faster</type>
+    <type name="engagement">Use more CTAs to boost engagement</type>
+    <type name="timing">Post at peak hours for better reach</type>
+  </recommendationTypes>
+
+  <gapPrioritization>
+    <priority level="high">Greater than 50% gap, high impact metric</priority>
+    <priority level="medium">20-50% gap</priority>
+    <priority level="low">Less than 20% gap (almost there!)</priority>
+  </gapPrioritization>
+</story-context>

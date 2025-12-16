@@ -53,6 +53,9 @@ model Organization {
   alerts                       Alert[]
   alertConfigs                 AlertConfig[]
   notificationPreferences      NotificationPreferences[]
+  aiConversations              AIConversation[]
+  playbooks                    Playbook[]
+  experiments                  Experiment[]
 
   @@unique([paymentId])
 }
@@ -118,6 +121,7 @@ model User {
   agencies              SocialMediaAgency[]
   ip                    String?
   agent                 String?
+  aiConversations       AIConversation[]
 
   @@unique([email, providerName])
   @@index([lastReadNotifications])
@@ -713,6 +717,7 @@ model AnalyticsGroup {
   niche          String?                  // Optional niche/category identifier
   metrics        AnalyticsMetric[]
   members        AnalyticsGroupMember[]   // Pages assigned to this group
+  playbooks      Playbook[]
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
   deletedAt      DateTime?
@@ -763,11 +768,13 @@ model AnalyticsContent {
   caption            String?
   hashtags           String?  // JSON array of hashtags
   publishedAt        DateTime
-  metrics            AnalyticsMetric[]
-  tags               AnalyticsContentTag[]
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  deletedAt          DateTime?
+  metrics                  AnalyticsMetric[]
+  tags                     AnalyticsContentTag[]
+  playbookSources          PlaybookSourceContent[]
+  experimentTrackedContent ExperimentTrackedContent[]
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  deletedAt                DateTime?
 
   @@unique([organizationId, integrationId, externalContentId, deletedAt])
   @@index([organizationId])
@@ -1027,4 +1034,136 @@ enum NotificationChannel {
   IN_APP
   TELEGRAM
   SLACK
+}
+
+model AIConversation {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  question       String   @db.Text
+  answer         String   @db.Text
+  context        Json?
+  tokensUsed     Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Story 6.1: Playbook Models
+model Playbook {
+  id               String                    @id @default(cuid())
+  name             String
+  organizationId   String
+  groupId          String?
+  format           String                    // post/reel
+  recipe           Json                      // {hooks, ctas, hashtags, times}
+  evidence         Json                      // {medianReach, engagementRate, consistency}
+  consistencyScore Float
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  deletedAt        DateTime?
+
+  organization     Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  group            AnalyticsGroup?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  variants         PlaybookVariant[]
+  sourceContent    PlaybookSourceContent[]
+  experiments      Experiment[]
+
+  @@index([organizationId])
+  @@index([groupId])
+  @@index([format])
+  @@index([createdAt])
+}
+
+model PlaybookVariant {
+  id          String    @id @default(cuid())
+  playbookId  String
+  name        String
+  type        String    // hook/time/hashtag
+  recipe      Json      // variant-specific recipe
+  description String?   // variant description
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  playbook            Playbook            @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  experimentVariants  ExperimentVariant[]
+
+  @@index([playbookId])
+}
+
+model PlaybookSourceContent {
+  id        String           @id @default(cuid())
+  playbookId String
+  contentId String
+  createdAt DateTime         @default(now())
+
+  playbook  Playbook         @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  content   AnalyticsContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([playbookId, contentId])
+  @@index([playbookId])
+  @@index([contentId])
+}
+
+model Experiment {
+  id              String    @id @default(cuid())
+  name            String
+  playbookId      String
+  organizationId  String
+  status          String    @default("draft") // draft, active, completed
+  startDate       DateTime?
+  endDate         DateTime?
+  successMetric   String    // reach, engagement, combined
+  winnerId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  playbook        Playbook            @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variants        ExperimentVariant[]
+
+  @@index([playbookId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model ExperimentVariant {
+  id              String    @id @default(cuid())
+  experimentId    String
+  variantId       String
+  totalReach      Int       @default(0)
+  totalEngagement Int       @default(0)
+  contentCount    Int       @default(0)
+  avgEngagementRate Float   @default(0)
+  winRate         Float     @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  experiment      Experiment                 @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant         PlaybookVariant            @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  trackedContent  ExperimentTrackedContent[]
+
+  @@unique([experimentId, variantId])
+  @@index([experimentId])
+  @@index([variantId])
+}
+
+model ExperimentTrackedContent {
+  id                  String   @id @default(cuid())
+  experimentVariantId String
+  contentId           String
+  createdAt           DateTime @default(now())
+
+  experimentVariant   ExperimentVariant @relation(fields: [experimentVariantId], references: [id], onDelete: Cascade)
+  content             AnalyticsContent  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentVariantId, contentId])
+  @@index([experimentVariantId])
+  @@index([contentId])
 }

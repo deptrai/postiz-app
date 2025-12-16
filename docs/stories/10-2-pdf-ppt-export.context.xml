@@ -1,0 +1,32 @@
+<story-context id="epic-10/story-10-2" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>10.2</storyId>
+    <title>PDF/PPT Export</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/10-2-pdf-ppt-export.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>export báo cáo dạng PDF/PPT</iWant>
+    <soThat>tôi có thể present cho stakeholders</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given report data, When user request PDF, Then generate với professional template</criterion>
+    <criterion id="2">Given report data, When user request PPT, Then generate slides với charts</criterion>
+    <criterion id="3">Given export options, When user configure, Then customize branding</criterion>
+    <criterion id="4">Given generated file, When export complete, Then download immediately</criterion>
+  </acceptanceCriteria>
+
+  <libraries>
+    <library name="pdf">puppeteer, pdfkit, or html-pdf</library>
+    <library name="ppt">pptxgenjs</library>
+  </libraries>
+
+  <dependencies>
+    <dependency>Story 10.1 complete</dependency>
+  </dependencies>
+</story-context>

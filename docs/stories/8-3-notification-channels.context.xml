@@ -1,0 +1,30 @@
+<story-context id="epic-8/story-8-3" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>8.3</storyId>
+    <title>Notification Channels</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/8-3-notification-channels.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>nhận alerts qua email/telegram</iWant>
+    <soThat>tôi không bỏ lỡ thông tin quan trọng</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given alert triggered, When user configured preferences, Then gửi qua channels đã chọn</criterion>
+    <criterion id="2">Given email channel enabled, When alert triggered, Then gửi email với summary</criterion>
+    <criterion id="3">Given in-app notifications, When alert triggered, Then hiển thị badge và toast</criterion>
+    <criterion id="4">Given notification preferences, When user update, Then save và apply immediately</criterion>
+  </acceptanceCriteria>
+
+  <channels>
+    <channel name="in-app" status="mvp">In-app notifications with badge</channel>
+    <channel name="email" status="mvp">Email with summary</channel>
+    <channel name="telegram" status="future">Telegram bot</channel>
+    <channel name="slack" status="future">Slack integration</channel>
+  </channels>
+</story-context>

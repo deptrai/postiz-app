@@ -1,0 +1,100 @@
+<story-context id="epic-16/story-16-2" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>16.2</storyId>
+    <title>Engagement Bait Detection</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/16-2-engagement-bait-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>phát hiện engagement bait</iWant>
+    <soThat>tôi tránh bị Facebook phạt</soThat>
+    <tasks>
+      <backend>
+        <task>Create EngagementBaitService with detectEngagementBait method</task>
+        <task>Build bait patterns database</task>
+        <task>Add authentic alternatives mapping</task>
+        <task>Add pre-publish check</task>
+        <task>Add bait report endpoint</task>
+      </backend>
+      <frontend>
+        <task>Create BaitDetectionCard component</task>
+        <task>Create AuthenticAlternatives component</task>
+        <task>Create PrePublishChecker component</task>
+        <task>Create BaitReport component</task>
+      </frontend>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given content caption, When hệ thống analyze, Then flag clickbait patterns</criterion>
+    <criterion id="2">Given detected bait patterns, When user xem details, Then highlight specific phrases và explain why problematic</criterion>
+    <criterion id="3">Given bait detection results, When user xem suggestions, Then suggest authentic alternatives</criterion>
+    <criterion id="4">Given content draft, When user request pre-publish check, Then scan for bait patterns</criterion>
+    <criterion id="5">Given historical content, When user xem bait report, Then show bait score trends</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/stories/16-1-quality-score-dashboard.md">Prerequisite story</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/quality/content-quality.service.ts">ContentQualityService from Story 16.1</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/quality/engagement-bait.service.ts</file>
+        <file>apps/frontend/src/components/quality/bait-detection-card.tsx</file>
+        <file>apps/frontend/src/components/quality/pre-publish-checker.tsx</file>
+      </newFiles>
+    </code>
+    <dependencies>
+      <dependency>Story 16.1 complete (Quality Score Dashboard)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <api>
+      <endpoint method="POST" path="/api/quality/bait/detect">Detect bait in caption</endpoint>
+      <endpoint method="POST" path="/api/quality/bait/check">Pre-publish check</endpoint>
+      <endpoint method="GET" path="/api/quality/bait/report">Get bait report</endpoint>
+    </api>
+    <dataModels>
+      <model name="BaitDetectionResult">
+        <field name="hasBait" type="boolean">Whether bait detected</field>
+        <field name="baitScore" type="number">0-100 (higher is worse)</field>
+        <field name="detectedPatterns" type="array">List of detected patterns</field>
+        <field name="suggestions" type="array">Authentic alternatives</field>
+      </model>
+      <model name="BaitPattern">
+        <field name="pattern" type="string">Detected phrase</field>
+        <field name="type" type="string">like/share/comment/tag/vote/reaction</field>
+        <field name="severity" type="string">high/medium/low</field>
+        <field name="explanation" type="string">Why problematic</field>
+        <field name="alternative" type="string">Authentic alternative</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <baitPatterns>
+    <pattern type="like" severity="high">LIKE this!, Hit that like button!</pattern>
+    <pattern type="share" severity="high">SHARE now!, Share with friends!</pattern>
+    <pattern type="comment" severity="medium">Comment YES if you agree!</pattern>
+    <pattern type="tag" severity="medium">Tag 3 friends!</pattern>
+    <pattern type="vote" severity="high">Like for A, Comment for B</pattern>
+    <pattern type="reaction" severity="medium">React with heart if...</pattern>
+  </baitPatterns>
+
+  <authenticAlternatives>
+    <alternative bait="LIKE this post!" authentic="What do you think about this?"/>
+    <alternative bait="SHARE with friends!" authentic="Know someone who'd find this helpful?"/>
+    <alternative bait="Comment YES!" authentic="Share your experience in the comments"/>
+    <alternative bait="Tag 3 friends!" authentic="Who comes to mind when you see this?"/>
+  </authenticAlternatives>
+
+  <assumption>MVP uses rule-based keyword detection. Phase 2 will add NLP for more sophisticated detection.</assumption>
+</story-context>

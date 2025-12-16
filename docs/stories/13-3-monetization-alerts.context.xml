@@ -1,0 +1,137 @@
+<story-context id="epic-13/story-13-3" v="1.0">
+  <metadata>
+    <epicId>13</epicId>
+    <storyId>13.3</storyId>
+    <title>Monetization Alerts</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/13-3-monetization-alerts.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>nhận thông báo khi gần đạt eligibility</iWant>
+    <soThat>tôi không bỏ lỡ cơ hội</soThat>
+    <tasks>
+      <backend>
+        <task>Create MonetizationAlertService with milestone detection</task>
+        <task>Create background job to check milestones daily</task>
+        <task>Implement progress drop detection</task>
+        <task>Add alert preferences storage</task>
+        <task>Add API endpoints for alerts and preferences</task>
+      </backend>
+      <frontend>
+        <task>Create AlertNotification component with toast notifications</task>
+        <task>Add celebration animation for 100% milestone</task>
+        <task>Create AlertPreferences component</task>
+        <task>Add Alert History section</task>
+      </frontend>
+      <testing>
+        <task>Unit tests for milestone detection</task>
+        <task>Unit tests for progress drop detection</task>
+        <task>Component tests for AlertNotification</task>
+      </testing>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given progress tracking, When đạt 80% threshold, Then hệ thống gửi "Almost there!" notification</criterion>
+    <criterion id="2">Given progress tracking, When đạt 90% threshold, Then hệ thống gửi "So close!" notification với urgency</criterion>
+    <criterion id="3">Given progress tracking, When đạt 100% threshold, Then hệ thống gửi celebration notification</criterion>
+    <criterion id="4">Given metrics đang giảm, When progress drops below previous milestone, Then hệ thống gửi warning notification</criterion>
+    <criterion id="5">Given notification preferences, When user configure settings, Then hệ thống respect preferences</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/stories/13-1-monetization-dashboard.md">Prerequisite story</doc>
+      <doc path="docs/epics.md" section="Story-13.3">Story definition</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/monetization/monetization.service.ts">MonetizationService from Story 13.1</pattern>
+        <pattern path="apps/backend/src/services/notification/">Existing notification patterns if any</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/monetization/monetization-alert.service.ts</file>
+        <file>apps/frontend/src/components/monetization/alert-notification.tsx</file>
+        <file>apps/frontend/src/components/monetization/alert-preferences.tsx</file>
+      </newFiles>
+    </code>
+    <dependencies>
+      <dependency>Story 13.1 complete (Monetization Dashboard)</dependency>
+      <dependency>BullMQ for background jobs (existing in Postiz)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Alerts must be non-intrusive but noticeable</constraint>
+    <constraint>User preferences must be respected</constraint>
+    <constraint>Background job must be efficient and not overload system</constraint>
+  </constraints>
+
+  <interfaces>
+    <api>
+      <endpoint method="GET" path="/api/monetization/alerts">Get recent alerts</endpoint>
+      <endpoint method="PUT" path="/api/monetization/alerts/preferences">Update notification preferences</endpoint>
+      <endpoint method="POST" path="/api/monetization/alerts/:id/read">Mark alert as read</endpoint>
+    </api>
+    <dataModels>
+      <model name="MonetizationAlert">
+        <field name="id" type="string">Alert ID</field>
+        <field name="type" type="string">milestone_80/milestone_90/milestone_100/progress_drop</field>
+        <field name="feature" type="string">Feature name</field>
+        <field name="message" type="string">Alert message</field>
+        <field name="createdAt" type="datetime">When alert was created</field>
+        <field name="isRead" type="boolean">Whether user has seen it</field>
+      </model>
+      <model name="AlertPreferences">
+        <field name="milestone80Enabled" type="boolean">Enable 80% alerts</field>
+        <field name="milestone90Enabled" type="boolean">Enable 90% alerts</field>
+        <field name="milestone100Enabled" type="boolean">Enable 100% alerts</field>
+        <field name="progressDropEnabled" type="boolean">Enable drop warnings</field>
+        <field name="channels" type="array">Notification channels (in-app, email)</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Jest for backend unit tests</standard>
+      <standard>React Testing Library for frontend</standard>
+    </standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/monetization/monetization-alert.service.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea>Test milestone detection at exactly 80%, 90%, 100%</idea>
+      <idea>Test edge cases: crossing multiple milestones at once</idea>
+      <idea>Test progress drop detection</idea>
+      <idea>Test preference filtering</idea>
+    </ideas>
+  </tests>
+
+  <alertTypes>
+    <alert type="milestone_80">
+      <title>Almost there!</title>
+      <message>You're 80% of the way to {feature}. Keep going!</message>
+      <urgency>low</urgency>
+    </alert>
+    <alert type="milestone_90">
+      <title>So close!</title>
+      <message>Just 10% more to unlock {feature}!</message>
+      <urgency>medium</urgency>
+    </alert>
+    <alert type="milestone_100">
+      <title>Congratulations!</title>
+      <message>You're now eligible for {feature}!</message>
+      <urgency>celebration</urgency>
+    </alert>
+    <alert type="progress_drop">
+      <title>Warning</title>
+      <message>Your {metric} has dropped. Take action to maintain progress.</message>
+      <urgency>high</urgency>
+    </alert>
+  </alertTypes>
+</story-context>

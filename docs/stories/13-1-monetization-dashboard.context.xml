@@ -1,0 +1,130 @@
+<story-context id="epic-13/story-13-1" v="1.0">
+  <metadata>
+    <epicId>13</epicId>
+    <storyId>13.1</storyId>
+    <title>Monetization Dashboard</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/13-1-monetization-dashboard.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>dashboard hiển thị tiến độ monetization</iWant>
+    <soThat>tôi biết còn thiếu gì để bật kiếm tiền</soThat>
+    <tasks>
+      <backend>
+        <task>Create MonetizationService with getMonetizationStatus method</task>
+        <task>Define monetization thresholds for each feature</task>
+        <task>Calculate progress percentages and estimated time</task>
+        <task>Add API endpoints: GET /api/monetization/status, GET /api/monetization/progress</task>
+      </backend>
+      <frontend>
+        <task>Create MonetizationDashboard component with progress bars</task>
+        <task>Add estimated time to eligibility display</task>
+        <task>Add eligibility status badges and celebration UI</task>
+        <task>Create monetization page route</task>
+      </frontend>
+      <testing>
+        <task>Unit tests for progress calculation</task>
+        <task>Unit tests for estimated time calculation</task>
+        <task>Component tests for MonetizationDashboard</task>
+      </testing>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given page metrics, When user xem dashboard, Then hiển thị progress bars cho từng monetization feature</criterion>
+    <criterion id="2">Given current metrics và thresholds, When user xem dashboard, Then hiển thị percentage completion</criterion>
+    <criterion id="3">Given progress tracking data, When user xem dashboard, Then hiển thị estimated time to eligibility</criterion>
+    <criterion id="4">Given multiple monetization features, When user xem dashboard, Then hiển thị status cho: In-Stream Ads, Reels, Stars, Fan Subscription</criterion>
+    <criterion id="5">Given page đã eligible, When user xem dashboard, Then hiển thị Eligible badge với celebration UI</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics.md" section="Epic-13">Epic 13 definition and stories</doc>
+      <doc path="docs/research/feature-improvement-proposals.md" section="Epic-13">Research and requirements</doc>
+      <doc path="docs/PRD.md">Product requirements</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/themes/">Theme services pattern for new service creation</pattern>
+        <pattern path="apps/backend/src/api/routes/themes.controller.ts">Controller pattern with Swagger docs</pattern>
+        <pattern path="apps/frontend/src/components/themes/">Frontend component patterns</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/monetization/monetization.service.ts</file>
+        <file>apps/backend/src/api/routes/monetization.controller.ts</file>
+        <file>apps/frontend/src/components/monetization/monetization-dashboard.tsx</file>
+        <file>apps/frontend/src/app/(app)/(site)/monetization/page.tsx</file>
+      </newFiles>
+    </code>
+    <dependencies>
+      <dependency>Epic 2 complete (Ingestion and Storage)</dependency>
+      <dependency>Metrics data available (followers, watch time, engagement)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Must use existing Prisma schema and NestJS patterns</constraint>
+    <constraint>Frontend must follow existing TailwindCSS styling</constraint>
+    <constraint>API must have Swagger documentation</constraint>
+  </constraints>
+
+  <interfaces>
+    <api>
+      <endpoint method="GET" path="/api/monetization/status">Get monetization status for all features</endpoint>
+      <endpoint method="GET" path="/api/monetization/progress">Get detailed progress with percentages</endpoint>
+    </api>
+    <dataModels>
+      <model name="MonetizationStatus">
+        <field name="feature" type="string">Feature name (in-stream-ads, reels, stars, fan-subscription)</field>
+        <field name="currentValue" type="number">Current metric value</field>
+        <field name="requiredValue" type="number">Required threshold</field>
+        <field name="progressPercent" type="number">Progress percentage (0-100)</field>
+        <field name="isEligible" type="boolean">Whether eligible</field>
+        <field name="estimatedDaysToEligibility" type="number">Estimated days to reach eligibility</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Jest for backend unit tests</standard>
+      <standard>React Testing Library for frontend components</standard>
+      <standard>Follow existing test patterns in themes services</standard>
+    </standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/monetization/monetization.service.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea>Test progress calculation with various metric values</idea>
+      <idea>Test edge cases: 0%, 100%, over 100%</idea>
+      <idea>Test estimated time calculation with different growth rates</idea>
+      <idea>Test eligibility determination for each feature</idea>
+    </ideas>
+  </tests>
+
+  <monetizationThresholds>
+    <threshold feature="in-stream-ads">
+      <followers>10000</followers>
+      <watchTime>30000 one-minute views in 60 days</watchTime>
+      <videoRequirement>Videos longer than 3 minutes</videoRequirement>
+    </threshold>
+    <threshold feature="reels">
+      <viewedMinutes>600000</viewedMinutes>
+      <videoRequirement>At least 5 videos</videoRequirement>
+    </threshold>
+    <threshold feature="stars">
+      <followers>500</followers>
+      <duration>30 days continuous</duration>
+    </threshold>
+    <threshold feature="fan-subscription">
+      <followers>10000 or 250+ return viewers</followers>
+      <watchTime>180000 minutes watched</watchTime>
+      <engagement>50000 post engagements</engagement>
+    </threshold>
+  </monetizationThresholds>
+</story-context>

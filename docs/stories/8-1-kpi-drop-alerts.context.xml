@@ -1,0 +1,52 @@
+<story-context id="epic-8/story-8-1" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>8.1</storyId>
+    <title>KPI Drop Alerts</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/8-1-kpi-drop-alerts.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>nhận cảnh báo khi KPI tụt đột ngột</iWant>
+    <soThat>tôi có thể phản ứng nhanh và điều chỉnh chiến lược</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given metrics daily, When engagement rate giảm >20%, Then gửi alert</criterion>
+    <criterion id="2">Given metrics daily, When reach giảm >30%, Then gửi alert với severity</criterion>
+    <criterion id="3">Given alert thresholds, When user configure, Then thresholds customizable</criterion>
+    <criterion id="4">Given alert triggered, When user xem details, Then hiển thị comparison và suggestions</criterion>
+    <criterion id="5">Given multiple alerts, When user xem history, Then list sorted by severity</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <newFiles>
+      <file>libraries/nestjs-libraries/src/database/prisma/alerts/alert.service.ts</file>
+      <file>apps/backend/src/api/routes/alerts.controller.ts</file>
+      <file>apps/frontend/src/components/alerts/alert-card.tsx</file>
+    </newFiles>
+  </artifacts>
+
+  <interfaces>
+    <api>
+      <endpoint method="GET" path="/api/alerts">Get alerts list</endpoint>
+      <endpoint method="GET" path="/api/alerts/:id">Get alert details</endpoint>
+      <endpoint method="PUT" path="/api/alerts/config">Update thresholds</endpoint>
+    </api>
+  </interfaces>
+
+  <thresholds>
+    <threshold metric="engagement_rate" drop="20%" severity="warning"/>
+    <threshold metric="reach" drop="30%" severity="warning"/>
+    <threshold metric="views" drop="25%" severity="warning"/>
+  </thresholds>
+
+  <severityLevels>
+    <level name="critical">Greater than 50% drop</level>
+    <level name="warning">30-50% drop</level>
+    <level name="info">20-30% drop</level>
+  </severityLevels>
+</story-context>

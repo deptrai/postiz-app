@@ -1,0 +1,43 @@
+<story-context id="epic-9/story-9-2" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>9.2</storyId>
+    <title>AI Caption Generator</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/9-2-ai-caption-generator.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>AI tạo caption từ playbook templates</iWant>
+    <soThat>tôi tiết kiệm thời gian viết content</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given playbook template, When user request, Then AI tạo 3-5 variants</criterion>
+    <criterion id="2">Given generated captions, When user xem, Then hiển thị với preview và edit</criterion>
+    <criterion id="3">Given caption variants, When user select, Then có thể copy hoặc apply</criterion>
+    <criterion id="4">Given generation history, When user xem, Then có thể reuse past generations</criterion>
+  </acceptanceCriteria>
+
+  <toneOptions>
+    <option>Casual</option>
+    <option>Professional</option>
+    <option>Humorous</option>
+    <option>Educational</option>
+    <option>Inspirational</option>
+  </toneOptions>
+
+  <styleOptions>
+    <option>Short and punchy</option>
+    <option>Storytelling</option>
+    <option>Question-based</option>
+    <option>List format</option>
+  </styleOptions>
+
+  <dependencies>
+    <dependency>Story 9.1 complete</dependency>
+    <dependency>Epic 6 complete (Playbooks)</dependency>
+  </dependencies>
+</story-context>

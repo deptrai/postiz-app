@@ -13,6 +13,7 @@ Tài liệu này phân rã yêu cầu từ [PRD](./PRD.md) thành các epic và 
 
 ### Epic Summary (sequencing đề xuất)
 
+**MVP (Epic 1-5):**
 1. **Epic 1 — Foundation: Analytics Intelligence Module Scaffold**
    - Mục tiêu: dựng nền trong Postiz cho module analytics intelligence (schema, jobs, API skeleton, bảo mật token).
 2. **Epic 2 — Ingestion & Storage (MVP)**
@@ -23,10 +24,34 @@ Tài liệu này phân rã yêu cầu từ [PRD](./PRD.md) thành các epic và 
    - Mục tiêu: trending velocity, best time to post, daily brief action-first với explainability.
 5. **Epic 5 — Export Reporting (MVP)**
    - Mục tiêu: export CSV theo date range, hỗ trợ workflow báo cáo tối thiểu.
+
+**Growth Phase 1 (Epic 6-7):**
 6. **Epic 6 — Playbooks + Experiments (Growth)**
    - Mục tiêu: tạo playbook từ top posts/reels + variants + A/B/C experiments.
 7. **Epic 7 — Themes (Topic Clustering) (Growth)**
    - Mục tiêu: cluster caption/hashtags thành themes + theme manager + theme trending.
+
+**Growth Phase 2 - Monetization & Viral (Epic 13-14, 16):**
+13. **Epic 13 — Monetization Readiness Tracker (Growth) ⭐**
+    - Mục tiêu: track tiến độ monetization, gap analysis, alerts khi gần đạt eligibility.
+14. **Epic 14 — Viral Content Optimizer (Growth)**
+    - Mục tiêu: viral score prediction, hook analyzer, optimal timing, content elements analysis.
+16. **Epic 16 — Content Quality Scoring (Growth)**
+    - Mục tiêu: quality score, engagement bait detection, policy compliance, advertiser-friendly scoring.
+
+**Growth Phase 3 - Alerts & AI (Epic 8-9):**
+8. **Epic 8 — Alerts & Anomaly Detection (Growth)**
+   - Mục tiêu: KPI drop alerts, viral spike detection, notification channels.
+9. **Epic 9 — AI Content Assistant (Growth)**
+   - Mục tiêu: GenAI Q&A analytics, AI caption generator, hook optimizer.
+
+**Growth Phase 4 - Advanced (Epic 10-12):**
+10. **Epic 10 — Report Automation (Growth)**
+    - Mục tiêu: scheduled reports, PDF/PPT export, Telegram bot.
+11. **Epic 11 — Industry Benchmarking (Growth)**
+    - Mục tiêu: industry averages comparison, performance gap analysis.
+12. **Epic 12 — Content Recycling (Growth)**
+    - Mục tiêu: evergreen content detection, repost suggestions.
 
 ---
 
@@ -475,6 +500,439 @@ So that **Daily Brief chỉ ra chủ đề đang lên một cách rõ ràng**.
 
 **Technical Notes:**
 - FR coverage: FR-022.
+
+---
+
+## Epic 8: Alerts & Anomaly Detection (Growth)
+
+Ưu tiên #3 sau Monetization.
+
+### Story 8.1: KPI Drop Alerts
+
+As a **Leader**,
+I want **nhận cảnh báo khi KPI tụt đột ngột**,
+So that **tôi có thể phản ứng nhanh và điều chỉnh chiến lược**.
+
+**Acceptance Criteria:**
+
+**Given** metrics daily đã có
+**When** engagement rate giảm >20% so với 7 ngày trước
+**Then** hệ thống gửi alert với chi tiết và gợi ý
+
+**And** thresholds có thể configure theo group/niche
+
+**Prerequisites:** Epic 2-4 MVP complete
+
+**Technical Notes:**
+- Background job check thresholds daily
+- Notification service (email/in-app)
+
+### Story 8.2: Viral Spike Detection
+
+As a **Leader**,
+I want **phát hiện content đang viral**,
+So that **tôi có thể tận dụng momentum**.
+
+**Acceptance Criteria:**
+
+**Given** metrics real-time hoặc daily
+**When** engagement spike >200% trong 24h
+**Then** hệ thống highlight viral content và gợi ý follow-up
+
+**Prerequisites:** Story 8.1
+
+### Story 8.3: Notification Channels
+
+As a **Leader**,
+I want **nhận alerts qua email/telegram**,
+So that **tôi không bỏ lỡ thông tin quan trọng**.
+
+**Acceptance Criteria:**
+
+**Given** alert được trigger
+**When** user đã configure notification preferences
+**Then** hệ thống gửi qua channels đã chọn
+
+**Prerequisites:** Story 8.1
+
+---
+
+## Epic 9: AI Content Assistant (Growth)
+
+Ưu tiên #4 - Major differentiator.
+
+### Story 9.1: GenAI Q&A Analytics
+
+As a **Leader**,
+I want **hỏi AI "vì sao KPI thay đổi?"**,
+So that **tôi hiểu nguyên nhân và có action rõ ràng**.
+
+**Acceptance Criteria:**
+
+**Given** analytics data đã có
+**When** user hỏi natural language question
+**Then** AI trả lời dựa trên data với explainability
+
+**Prerequisites:** Epic 2-4 MVP complete, LLM API integration
+
+**Technical Notes:**
+- OpenAI/Claude API integration
+- Prompt engineering cho analytics context
+- Rate limiting và cost management
+
+### Story 9.2: AI Caption Generator
+
+As a **Leader**,
+I want **AI tạo caption từ playbook templates**,
+So that **tôi tiết kiệm thời gian viết content**.
+
+**Acceptance Criteria:**
+
+**Given** playbook template
+**When** user request caption generation
+**Then** AI tạo 3-5 variants với tone/style customizable
+
+**Prerequisites:** Story 9.1, Epic 6 complete
+
+### Story 9.3: Hook Optimizer
+
+As a **Leader**,
+I want **AI gợi ý hooks hiệu quả**,
+So that **content của tôi thu hút hơn**.
+
+**Acceptance Criteria:**
+
+**Given** top-performing hooks database
+**When** user request hook suggestions
+**Then** AI generate hook variants based on niche/format
+
+**Prerequisites:** Story 9.1
+
+---
+
+## Epic 10: Report Automation (Growth)
+
+Ưu tiên #5 - Nice-to-have.
+
+### Story 10.1: Scheduled Reports
+
+As a **Leader**,
+I want **báo cáo tự động theo lịch**,
+So that **tôi và team luôn có data cập nhật**.
+
+**Acceptance Criteria:**
+
+**Given** report configuration
+**When** schedule trigger (daily/weekly/monthly)
+**Then** hệ thống generate và gửi report
+
+**Prerequisites:** Epic 5 complete
+
+### Story 10.2: PDF/PPT Export
+
+As a **Leader**,
+I want **export báo cáo dạng PDF/PPT**,
+So that **tôi có thể present cho stakeholders**.
+
+**Acceptance Criteria:**
+
+**Given** report data
+**When** user request PDF/PPT export
+**Then** hệ thống generate file với professional template
+
+**Prerequisites:** Story 10.1
+
+### Story 10.3: Telegram Bot Reports
+
+As a **Leader**,
+I want **nhận báo cáo qua Telegram**,
+So that **tôi xem nhanh trên mobile**.
+
+**Acceptance Criteria:**
+
+**Given** Telegram bot configured
+**When** schedule trigger hoặc user command
+**Then** bot gửi summary report
+
+**Prerequisites:** Story 10.1
+
+---
+
+## Epic 11: Industry Benchmarking (Growth)
+
+Ưu tiên #6 - Revised from Competitor Benchmarking.
+
+### Story 11.1: Industry Averages Dashboard
+
+As a **Leader**,
+I want **so sánh metrics với industry averages**,
+So that **tôi biết mình đang ở đâu**.
+
+**Acceptance Criteria:**
+
+**Given** industry benchmark data
+**When** user xem dashboard
+**Then** hiển thị comparison với averages theo niche
+
+**Prerequisites:** Epic 3 complete
+
+**Technical Notes:**
+- Dùng industry averages (không scrape competitors)
+- User có thể manual input competitor data
+
+### Story 11.2: Performance Gap Analysis
+
+As a **Leader**,
+I want **phân tích gap với benchmarks**,
+So that **tôi biết cần cải thiện gì**.
+
+**Acceptance Criteria:**
+
+**Given** own metrics và benchmarks
+**When** user request gap analysis
+**Then** hệ thống highlight gaps và gợi ý improvements
+
+**Prerequisites:** Story 11.1
+
+---
+
+## Epic 12: Content Recycling (Growth)
+
+Ưu tiên #7 - Lower priority.
+
+### Story 12.1: Evergreen Content Detection
+
+As a **Leader**,
+I want **phát hiện evergreen content**,
+So that **tôi có thể repost hiệu quả**.
+
+**Acceptance Criteria:**
+
+**Given** historical content performance
+**When** hệ thống analyze patterns
+**Then** identify content với consistent performance over time
+
+**Prerequisites:** Epic 2-4 complete
+
+### Story 12.2: Repost Suggestions
+
+As a **Leader**,
+I want **gợi ý repost timing**,
+So that **tôi maximize reach của evergreen content**.
+
+**Acceptance Criteria:**
+
+**Given** evergreen content identified
+**When** user xem suggestions
+**Then** hệ thống recommend optimal repost timing
+
+**Prerequisites:** Story 12.1
+
+---
+
+## Epic 13: Monetization Readiness Tracker (Growth) ⭐
+
+Ưu tiên #1 - TOP PRIORITY sau Epic 7.
+
+### Story 13.1: Monetization Dashboard
+
+As a **Leader**,
+I want **dashboard hiển thị tiến độ monetization**,
+So that **tôi biết còn thiếu gì để bật kiếm tiền**.
+
+**Acceptance Criteria:**
+
+**Given** page metrics (followers, watch time, engagement)
+**When** user xem monetization dashboard
+**Then** hiển thị progress bars cho từng monetization feature
+
+**And** estimated time to eligibility
+
+**Prerequisites:** Epic 2 complete
+
+**Technical Notes:**
+- Thresholds: In-Stream Ads (10K followers, 30K 1-min views), Reels (600K viewed minutes), Stars (500 followers), Fan Subscription (10K followers, 180K minutes)
+
+### Story 13.2: Gap Analysis & Recommendations
+
+As a **Leader**,
+I want **phân tích gap và gợi ý cách đạt eligibility**,
+So that **tôi có action plan rõ ràng**.
+
+**Acceptance Criteria:**
+
+**Given** current metrics và thresholds
+**When** user xem gap analysis
+**Then** hiển thị "Bạn cần thêm X followers, Y watch minutes"
+
+**And** gợi ý content types để tăng metrics
+
+**Prerequisites:** Story 13.1
+
+### Story 13.3: Monetization Alerts
+
+As a **Leader**,
+I want **nhận thông báo khi gần đạt eligibility**,
+So that **tôi không bỏ lỡ cơ hội**.
+
+**Acceptance Criteria:**
+
+**Given** progress tracking
+**When** đạt 80%, 90%, 100% thresholds
+**Then** hệ thống gửi celebration/warning notifications
+
+**Prerequisites:** Story 13.1
+
+### Story 13.4: Watch Time Analytics
+
+As a **Leader**,
+I want **analytics chi tiết về watch time**,
+So that **tôi hiểu viewer behavior và tối ưu cho monetization**.
+
+**Acceptance Criteria:**
+
+**Given** video metrics
+**When** user xem watch time analytics
+**Then** hiển thị total watch time, average view duration, completion rate
+
+**Prerequisites:** Story 13.1
+
+**Technical Notes:**
+- Merged from Epic 15.1
+
+---
+
+## Epic 14: Viral Content Optimizer (Growth)
+
+Ưu tiên #2 sau Monetization.
+
+### Story 14.1: Viral Score Prediction
+
+As a **Leader**,
+I want **dự đoán viral score trước khi đăng**,
+So that **tôi biết content nào có tiềm năng cao**.
+
+**Acceptance Criteria:**
+
+**Given** content metadata (caption, hashtags, format, timing)
+**When** user request viral score
+**Then** hệ thống return score 0-100 với breakdown
+
+**Prerequisites:** Epic 2-4 complete
+
+**Technical Notes:**
+- MVP: Rule-based scoring (không ML)
+- Factors: engagement rate history, timing, format, hashtags
+
+### Story 14.2: Hook Analyzer
+
+As a **Leader**,
+I want **phân tích hook effectiveness**,
+So that **tôi tạo hooks thu hút hơn**.
+
+**Acceptance Criteria:**
+
+**Given** video content
+**When** user request hook analysis
+**Then** hệ thống analyze 3 giây đầu và compare với viral hooks
+
+**Prerequisites:** Story 14.1
+
+### Story 14.3: Optimal Viral Timing
+
+As a **Leader**,
+I want **biết thời điểm tốt nhất để viral**,
+So that **tôi maximize reach potential**.
+
+**Acceptance Criteria:**
+
+**Given** historical viral content data
+**When** user request optimal timing
+**Then** hệ thống recommend posting windows cho viral potential
+
+**Prerequisites:** Story 14.1
+
+### Story 14.4: Content Elements Analysis
+
+As a **Leader**,
+I want **phân tích elements của viral content**,
+So that **tôi có thể replicate success**.
+
+**Acceptance Criteria:**
+
+**Given** top-performing content
+**When** user request elements analysis
+**Then** hệ thống breakdown: caption style, hashtags, format, CTA
+
+**Prerequisites:** Story 14.1
+
+---
+
+## Epic 16: Content Quality Scoring (Growth)
+
+Ưu tiên #2 cùng với Epic 14.
+
+### Story 16.1: Quality Score Dashboard
+
+As a **Leader**,
+I want **quality score cho mỗi post/video**,
+So that **tôi biết content nào cần cải thiện**.
+
+**Acceptance Criteria:**
+
+**Given** content metrics
+**When** user xem quality dashboard
+**Then** hiển thị overall score 0-100 với breakdown
+
+**Prerequisites:** Epic 2-4 complete
+
+### Story 16.2: Engagement Bait Detection
+
+As a **Leader**,
+I want **phát hiện engagement bait**,
+So that **tôi tránh bị Facebook phạt**.
+
+**Acceptance Criteria:**
+
+**Given** content caption
+**When** hệ thống analyze
+**Then** flag clickbait patterns ("LIKE this!", "SHARE now!")
+
+**And** suggest authentic alternatives
+
+**Prerequisites:** Story 16.1
+
+**Technical Notes:**
+- MVP: Rule-based keyword detection
+- Phase 2: NLP model
+
+### Story 16.3: Policy Compliance Check
+
+As a **Leader**,
+I want **check policy compliance trước khi đăng**,
+So that **tôi không mất monetization eligibility**.
+
+**Acceptance Criteria:**
+
+**Given** content draft
+**When** user request compliance check
+**Then** hệ thống flag potential violations và suggest fixes
+
+**Prerequisites:** Story 16.1
+
+### Story 16.4: Advertiser-Friendly Scoring
+
+As a **Leader**,
+I want **biết content có advertiser-friendly không**,
+So that **tôi maximize ad revenue**.
+
+**Acceptance Criteria:**
+
+**Given** content
+**When** user request ad-friendly score
+**Then** hệ thống score và flag sensitive topics
+
+**Prerequisites:** Story 16.1
 
 ---
 

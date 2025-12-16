@@ -1,0 +1,33 @@
+<story-context id="epic-10/story-10-3" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>10.3</storyId>
+    <title>Telegram Bot Reports</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/10-3-telegram-bot-reports.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>nhận báo cáo qua Telegram</iWant>
+    <soThat>tôi xem nhanh trên mobile</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given Telegram bot configured, When schedule trigger, Then bot gửi summary</criterion>
+    <criterion id="2">Given Telegram bot, When user send command, Then bot respond với quick stats</criterion>
+    <criterion id="3">Given bot connection, When user setup, Then có thể link Telegram account</criterion>
+    <criterion id="4">Given report preferences, When user configure, Then chọn what to receive</criterion>
+  </acceptanceCriteria>
+
+  <botCommands>
+    <command>/stats</command>
+    <command>/report</command>
+    <command>/help</command>
+  </botCommands>
+
+  <dependencies>
+    <dependency>Story 10.1 complete</dependency>
+  </dependencies>
+</story-context>

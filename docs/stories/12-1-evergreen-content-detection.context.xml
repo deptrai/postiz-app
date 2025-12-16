@@ -1,0 +1,33 @@
+<story-context id="epic-12/story-12-1" v="1.0">
+  <metadata>
+    <epicId>12</epicId>
+    <storyId>12.1</storyId>
+    <title>Evergreen Content Detection</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/12-1-evergreen-content-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>phát hiện evergreen content</iWant>
+    <soThat>tôi có thể repost hiệu quả</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given historical content performance, When hệ thống analyze, Then identify consistent performers</criterion>
+    <criterion id="2">Given evergreen content identified, When user xem list, Then show metrics và evergreen score</criterion>
+    <criterion id="3">Given evergreen criteria, When analyzing, Then consider engagement consistency</criterion>
+    <criterion id="4">Given evergreen content, When user xem details, Then show why considered evergreen</criterion>
+  </acceptanceCriteria>
+
+  <evergreenCriteria>
+    <criterion>Consistent engagement over 30+ days</criterion>
+    <criterion>Low variance in performance</criterion>
+    <criterion>Not time-sensitive content</criterion>
+  </evergreenCriteria>
+
+  <dependencies>
+    <dependency>Epic 2-4 complete</dependency>
+  </dependencies>
+</story-context>

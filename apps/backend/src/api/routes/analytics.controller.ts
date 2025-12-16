@@ -31,6 +31,7 @@ import { AnalyticsDailyBriefService } from '@gitroom/nestjs-libraries/database/p
 import { AnalyticsExportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-export.service';
 import { DashboardFiltersDto } from '@gitroom/nestjs-libraries/dtos/analytics/dashboard-filters.dto';
 import { DashboardKPIsResponseDto, DashboardTopContentResponseDto } from '@gitroom/nestjs-libraries/dtos/analytics/dashboard-response.dto';
+import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 
 @ApiTags('Analytics')
 @Controller('/analytics')
@@ -45,7 +46,8 @@ export class AnalyticsController {
     private readonly _analyticsTrendingService: AnalyticsTrendingService,
     private readonly _analyticsBestTimeService: AnalyticsBestTimeService,
     private readonly _analyticsDailyBriefService: AnalyticsDailyBriefService,
-    private readonly _analyticsExportService: AnalyticsExportService
+    private readonly _analyticsExportService: AnalyticsExportService,
+    private readonly _prismaService: PrismaService
   ) {}
   @Get('/')
   async getStars(@GetOrgFromRequest() org: Organization) {
@@ -604,6 +606,124 @@ export class AnalyticsController {
     res!.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     return res!.send(csv);
+  }
+
+  /**
+   * Manual Facebook Analytics Sync
+   * Fetches posts from connected FB pages and stores in database
+   */
+  @Post('/manual-sync')
+  @ApiOperation({ summary: 'Manually sync Facebook analytics data' })
+  @ApiResponse({ status: 200, description: 'Sync completed successfully' })
+  async manualSync(@GetOrgFromRequest() org: Organization) {
+    // Get tracked FB integrations
+    const trackedIntegrations = await this._prismaService.analyticsTrackedIntegration.findMany({
+      where: {
+        organizationId: org.id,
+        integration: {
+          providerIdentifier: 'facebook',
+          disabled: false,
+          deletedAt: null,
+        },
+      },
+      include: {
+        integration: true,
+      },
+    });
+
+    if (trackedIntegrations.length === 0) {
+      throw new NotFoundException('No tracked Facebook integrations found');
+    }
+
+    let totalPosts = 0;
+    const results = [];
+
+    // Fetch last 7 days
+    for (const tracked of trackedIntegrations) {
+      const integration = tracked.integration;
+      
+      for (let i = 0; i < 7; i++) {
+        const date = dayjs().subtract(i, 'day');
+        const since = date.unix();
+        const until = date.add(1, 'day').unix();
+
+        try {
+          // Fetch from FB Graph API
+          const postsUrl = `https://graph.facebook.com/v20.0/${integration.internalId}/posts?fields=id,message,created_time&since=${since}&until=${until}&access_token=${integration.token}`;
+          const response = await fetch(postsUrl);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`FB API error: ${errorText}`);
+          }
+
+          const data = await response.json();
+          const posts = data.data || [];
+
+          // Store each post
+          for (const post of posts) {
+            await this._prismaService.analyticsContent.upsert({
+              where: {
+                organizationId_integrationId_externalContentId_deletedAt: {
+                  organizationId: org.id,
+                  integrationId: integration.id,
+                  externalContentId: post.id,
+                  deletedAt: null,
+                },
+              },
+              create: {
+                organizationId: org.id,
+                integrationId: integration.id,
+                externalContentId: post.id,
+                contentType: 'post',
+                caption: post.message || '',
+                hashtags: '',
+                publishedAt: new Date(post.created_time),
+              },
+              update: {
+                caption: post.message || '',
+                publishedAt: new Date(post.created_time),
+              },
+            });
+
+            totalPosts++;
+          }
+
+          if (posts.length > 0) {
+            results.push({
+              integration: integration.name,
+              date: date.format('YYYY-MM-DD'),
+              posts: posts.length,
+            });
+          }
+        } catch (error: any) {
+          results.push({
+            integration: integration.name,
+            date: date.format('YYYY-MM-DD'),
+            error: error?.message || 'Unknown error',
+          });
+        }
+      }
+    }
+
+    // Delete sample data
+    const deleted = await this._prismaService.analyticsContent.deleteMany({
+      where: {
+        organizationId: org.id,
+        OR: [
+          { externalContentId: { startsWith: 'fb_post_' } },
+          { externalContentId: { startsWith: 'ext_post_' } },
+        ],
+      },
+    });
+
+    return {
+      success: true,
+      totalPosts,
+      sampleDataDeleted: deleted.count,
+      integrations: trackedIntegrations.length,
+      results,
+    };
   }
 
 }

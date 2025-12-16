@@ -18,6 +18,7 @@ import useCookie from 'react-use-cookie';
 import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { DailyBriefPlaceholder } from '@gitroom/frontend/components/analytics/daily-brief.placeholder';
+import { AIChat } from '@gitroom/frontend/components/ai/ai-chat';
 
 const allowedIntegrations = [
   'facebook',
@@ -40,6 +41,7 @@ export const PlatformAnalytics = () => {
   const [key, setKey] = useState(7);
   const [refresh, setRefresh] = useState(false);
   const [showDailyBrief, setShowDailyBrief] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
   const toaster = useToaster();
   const load = useCallback(async () => {
@@ -284,35 +286,61 @@ export const PlatformAnalytics = () => {
           >
             Daily Brief
           </Button>
+          <Button
+            className={clsx(showAIChat && 'bg-primary', 'ml-auto')}
+            onClick={() => setShowAIChat(!showAIChat)}
+          >
+            💬 AI Assistant
+          </Button>
         </div>
-        {showDailyBrief ? (
-          <DailyBriefPlaceholder />
-        ) : (
-          !!options.length && (
-            <div className="flex-1 flex flex-col gap-[14px]">
-              <div className="max-w-[200px]">
-                <Select
-                  label=""
-                  name="date"
-                  disableForm={true}
-                  hideErrors={true}
-                  onChange={(e) => setKey(+e.target.value)}
+        <div className="flex gap-4 flex-1 overflow-hidden">
+          <div className={clsx("flex-1 flex flex-col gap-[14px]", showAIChat && "max-w-[60%]")}>
+            {showDailyBrief ? (
+              <DailyBriefPlaceholder />
+            ) : (
+              !!options.length && (
+                <>
+                  <div className="max-w-[200px]">
+                    <Select
+                      label=""
+                      name="date"
+                      disableForm={true}
+                      hideErrors={true}
+                      onChange={(e) => setKey(+e.target.value)}
+                    >
+                      {options.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.value}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    {!!keys && !!currentIntegration && !refresh && (
+                      <RenderAnalytics integration={currentIntegration} date={keys} />
+                    )}
+                  </div>
+                </>
+              )
+            )}
+          </div>
+          {showAIChat && currentIntegration && (
+            <div className="w-[40%] flex flex-col border-l border-newBgColorInner pl-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">AI Analytics Assistant</h3>
+                <button
+                  onClick={() => setShowAIChat(false)}
+                  className="text-textColor hover:text-red-500 transition-colors"
                 >
-                  {options.map((option) => (
-                    <option key={option.key} value={option.key}>
-                      {option.value}
-                    </option>
-                  ))}
-                </Select>
+                  ✕
+                </button>
               </div>
-              <div className="flex-1">
-                {!!keys && !!currentIntegration && !refresh && (
-                  <RenderAnalytics integration={currentIntegration} date={keys} />
-                )}
+              <div className="flex-1 overflow-hidden">
+                <AIChat integrationId={currentIntegration.id} />
               </div>
             </div>
-          )
-        )}
+          )}
+        </div>
       </div>
     </>
   );

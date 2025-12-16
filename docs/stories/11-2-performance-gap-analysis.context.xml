@@ -1,0 +1,27 @@
+<story-context id="epic-11/story-11-2" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>11.2</storyId>
+    <title>Performance Gap Analysis</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/11-2-performance-gap-analysis.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>phân tích gap với benchmarks</iWant>
+    <soThat>tôi biết cần cải thiện gì</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given own metrics và benchmarks, When user request gap analysis, Then highlight gaps và gợi ý improvements</criterion>
+    <criterion id="2">Given gap analysis, When user xem details, Then show specific metrics và distance from benchmark</criterion>
+    <criterion id="3">Given improvement suggestions, When user xem recommendations, Then show actionable steps</criterion>
+    <criterion id="4">Given gap trends, When user xem history, Then show if gaps closing or widening</criterion>
+  </acceptanceCriteria>
+
+  <dependencies>
+    <dependency>Story 11.1 complete</dependency>
+  </dependencies>
+</story-context>

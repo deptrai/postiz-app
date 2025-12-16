@@ -1,0 +1,97 @@
+<story-context id="epic-14/story-14-2" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>14.2</storyId>
+    <title>Hook Analyzer</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/14-2-hook-analyzer.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>phân tích hook effectiveness</iWant>
+    <soThat>tôi tạo hooks thu hút hơn</soThat>
+    <tasks>
+      <backend>
+        <task>Create HookAnalyzerService with analyzeHook method</task>
+        <task>Build hook patterns database from viral content</task>
+        <task>Add hook recommendations by niche</task>
+        <task>Add API endpoints for hook analysis</task>
+      </backend>
+      <frontend>
+        <task>Create HookAnalysisCard component</task>
+        <task>Create HookPatterns component</task>
+        <task>Create HookComparison component</task>
+      </frontend>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given video content, When user request hook analysis, Then analyze 3 giây đầu và return effectiveness score</criterion>
+    <criterion id="2">Given hook analysis, When user xem details, Then hiển thị breakdown: opening type, pacing, visual impact</criterion>
+    <criterion id="3">Given historical viral hooks, When analyzing new hook, Then compare với patterns của viral content</criterion>
+    <criterion id="4">Given hook analysis results, When user xem recommendations, Then gợi ý hook patterns hiệu quả</criterion>
+    <criterion id="5">Given multiple hooks, When user compare, Then rank hooks theo effectiveness score</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/stories/14-1-viral-score-prediction.md">Prerequisite story</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/viral/viral-score.service.ts">ViralScoreService from Story 14.1</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/viral/hook-analyzer.service.ts</file>
+        <file>apps/frontend/src/components/viral/hook-analysis-card.tsx</file>
+        <file>apps/frontend/src/components/viral/hook-patterns.tsx</file>
+      </newFiles>
+    </code>
+    <dependencies>
+      <dependency>Story 14.1 complete (Viral Score Service)</dependency>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <api>
+      <endpoint method="POST" path="/api/viral/hook/analyze">Analyze hook effectiveness</endpoint>
+      <endpoint method="GET" path="/api/viral/hook/patterns">Get successful hook patterns</endpoint>
+    </api>
+    <dataModels>
+      <model name="HookAnalysis">
+        <field name="effectivenessScore" type="number">0-100</field>
+        <field name="openingType" type="string">question/statement/action/curiosity/problem</field>
+        <field name="pacingScore" type="number">Pacing effectiveness</field>
+        <field name="visualImpactScore" type="number">Visual attention score</field>
+        <field name="audioHookScore" type="number">Audio effectiveness</field>
+        <field name="recommendations" type="array">Improvement suggestions</field>
+      </model>
+      <model name="HookPattern">
+        <field name="type" type="string">Opening type</field>
+        <field name="description" type="string">Pattern description</field>
+        <field name="example" type="string">Example from viral content</field>
+        <field name="successRate" type="number">Historical success rate</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <hookEffectivenessFactors>
+    <factor name="openingType" weight="30">Question, statement, action, etc.</factor>
+    <factor name="pacing" weight="25">Fast cuts, slow reveal, etc.</factor>
+    <factor name="visualImpact" weight="25">Attention-grabbing visuals</factor>
+    <factor name="audioHook" weight="20">Music, voice, sound effects</factor>
+  </hookEffectivenessFactors>
+
+  <hookOpeningTypes>
+    <type name="question">Did you know...?</type>
+    <type name="statement">This changed everything...</type>
+    <type name="action">Jump straight into action</type>
+    <type name="curiosity">Wait for it...</type>
+    <type name="problem">Struggling with...?</type>
+  </hookOpeningTypes>
+
+  <assumption>Hook analysis is based on metadata and caption analysis, not actual video frame analysis (which would require ML/CV)</assumption>
+</story-context>

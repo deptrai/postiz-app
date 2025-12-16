@@ -16,8 +16,11 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   name = 'Facebook Page';
   isBetweenSteps = true;
   scopes = [
-    'email',
     'public_profile',
+    'pages_show_list',
+    'pages_manage_posts',
+    'pages_read_engagement',
+    'business_management',
   ];
   override maxConcurrentJob = 3; // Facebook has reasonable rate limits
   editor = 'normal' as const;
@@ -253,13 +256,45 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   }
 
   async pages(accessToken: string) {
-    const { data } = await (
-      await fetch(
-        `https://graph.facebook.com/v20.0/me/accounts?fields=id,username,name,picture.type(large)&access_token=${accessToken}`
-      )
-    ).json();
+    // Get personal pages
+    const personalPagesResponse = await fetch(
+      `https://graph.facebook.com/v20.0/me/accounts?fields=id,username,name,picture.type(large),access_token&access_token=${accessToken}&limit=500`
+    );
+    const personalPagesData = await personalPagesResponse.json();
+    const personalPages = personalPagesData.data || [];
 
-    return data;
+    // Try to get Business Manager pages
+    let businessPages: any[] = [];
+    try {
+      const businessesResponse = await fetch(
+        `https://graph.facebook.com/v20.0/me/businesses?fields=id,name&access_token=${accessToken}`
+      );
+      const businessesData = await businessesResponse.json();
+      
+      if (businessesData.data && businessesData.data.length > 0) {
+        // Get pages from all businesses
+        for (const business of businessesData.data) {
+          const businessPagesResponse = await fetch(
+            `https://graph.facebook.com/v20.0/${business.id}/client_pages?fields=id,username,name,picture.type(large),access_token&access_token=${accessToken}&limit=500`
+          );
+          const businessPagesData = await businessPagesResponse.json();
+          if (businessPagesData.data) {
+            businessPages = businessPages.concat(businessPagesData.data);
+          }
+        }
+      }
+    } catch (error) {
+      // Business Manager not available or permission denied, continue with personal pages only
+      console.log('Business Manager pages query failed:', error);
+    }
+
+    // Combine and deduplicate by page ID
+    const allPages = [...personalPages, ...businessPages];
+    const uniquePages = allPages.filter((page, index, self) => 
+      index === self.findIndex((p) => p.id === page.id)
+    );
+
+    return uniquePages;
   }
 
   async fetchPageInformation(accessToken: string, pageId: string) {

@@ -1,0 +1,163 @@
+<story-context id="7-3-theme-trending" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>3</storyId>
+    <title>Theme Trending</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/7-3-theme-trending.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>trend list by theme instead of keywords</iWant>
+    <soThat>Daily Brief shows rising topics clearly</soThat>
+    <tasks>
+      <task id="1" status="pending">Create ThemeTrendingService</task>
+      <task id="2" status="pending">Extend ThemeService for trending</task>
+      <task id="3" status="pending">Integrate with Daily Brief</task>
+      <task id="4" status="pending">Add Theme trending API endpoints</task>
+      <task id="5" status="pending">Create Theme Trending widget (frontend)</task>
+      <task id="6" status="pending">Add theme trends to Daily Brief</task>
+      <task id="7" status="pending">Add top content links</task>
+      <task id="8" status="pending">Write backend tests</task>
+      <task id="9" status="pending">Write frontend tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Given themes and their associated metrics, When the user views Insights/Daily Brief, Then trends are displayed by theme (velocity + explainability).</criterion>
+    <criterion id="AC2">Given a trending theme, When the user views the trend, Then it shows theme name, velocity score, trend direction (rising/falling/stable), and top posts related to the theme.</criterion>
+    <criterion id="AC3">Given theme trends exist, When the user clicks on a theme trend, Then they see links to top posts related to that theme.</criterion>
+    <criterion id="AC4">Given the Daily Brief is generated, When themes are included, Then theme trends replace or supplement keyword trends.</criterion>
+    <criterion id="AC5">Given theme velocity is calculated, When comparing time periods, Then the system uses the same velocity algorithm as keyword trending (Story 4.2).</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-022 (Growth)</section>
+        <snippet>Trend list theo theme. Daily Brief chỉ ra chủ đề đang lên một cách rõ ràng. Có link tới top posts liên quan.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 7: Story 7.3</section>
+        <snippet>Story 7.3: Theme trending thay cho keyword trending. Trend hiển thị theo theme (velocity + explainability).</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/4-2-trending-topics-velocity.md</path>
+        <title>Story 4.2 Reference</title>
+        <section>Dev Notes</section>
+        <snippet>Velocity algorithm implemented in AnalyticsTrendingService. Reuse for theme trending calculation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/7-1-cluster-themes-from-captions-and-hashtags.md</path>
+        <title>Story 7.1 Reference</title>
+        <section>Dev Notes</section>
+        <snippet>Theme schema and ThemeService. Theme-Content association for aggregating metrics.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-trending.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsTrendingService</symbol>
+        <reason>Reuse velocity calculation algorithm for theme trending. Reference implementation.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-daily-brief.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsDailyBriefService</symbol>
+        <reason>Extend to include theme trends in daily brief response.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/themes/theme.service.ts</path>
+        <kind>service</kind>
+        <symbol>ThemeService</symbol>
+        <reason>Base theme service. Add getThemeTopContent method. Created in Story 7.1.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/analytics/trending/trending-topics.component.tsx</path>
+        <kind>component</kind>
+        <symbol>TrendingTopicsWidget</symbol>
+        <reason>Reference for trending widget pattern. Create similar ThemeTrendingWidget.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/analytics/daily-brief/daily-brief.page.tsx</path>
+        <kind>component</kind>
+        <symbol>DailyBriefPage</symbol>
+        <reason>Extend to show theme trends section.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@nestjs/common</package>
+        <version>^10.0.0</version>
+      </node>
+      <node>
+        <package>@prisma/client</package>
+        <version>^6.5.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>^18.0.0</version>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="dependency">Story 7.1 must be complete before implementing this story</constraint>
+    <constraint type="dependency">Story 4.2 (Trending Topics Velocity) provides velocity algorithm to reuse</constraint>
+    <constraint type="architecture">Reuse velocity calculation from AnalyticsTrendingService</constraint>
+    <constraint type="architecture">Theme velocity based on content count AND engagement growth</constraint>
+    <constraint type="business">Rising: velocity > 10%, Stable: -10% to 10%, Falling: < -10%</constraint>
+    <constraint type="frontend">Add toggle for keyword vs theme view in Daily Brief</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ThemeTrendingService.getThemeTrends</name>
+      <kind>service method</kind>
+      <signature>getThemeTrends(organizationId: string, options: TrendOptions): Promise&lt;ThemeTrend[]&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/themes/theme-trending.service.ts</path>
+    </interface>
+    <interface>
+      <name>ThemeService.getThemeTopContent</name>
+      <kind>service method</kind>
+      <signature>getThemeTopContent(themeId: string, limit: number): Promise&lt;Content[]&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/themes/theme.service.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/themes/trending</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/themes/trending - Get trending themes with velocity</signature>
+      <path>apps/backend/src/api/routes/themes.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/themes/:id/top-content</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/themes/:id/top-content?limit=5 - Get top content for theme</signature>
+      <path>apps/backend/src/api/routes/themes.controller.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest for unit tests. Mock theme data and metrics. Test velocity calculation independently.</standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/themes/theme-trending.service.spec.ts</location>
+      <location>apps/frontend/src/components/themes/theme-trending.widget.spec.tsx</location>
+    </locations>
+    <ideas>
+      <idea acId="AC1">Test theme trends display with velocity and direction</idea>
+      <idea acId="AC2">Test velocity score calculation matches algorithm from Story 4.2</idea>
+      <idea acId="AC2">Test trend direction determination (rising/stable/falling)</idea>
+      <idea acId="AC3">Test top content retrieval for theme</idea>
+      <idea acId="AC4">Test Daily Brief includes theme trends section</idea>
+      <idea acId="AC5">Test velocity calculation uses same formula as keyword trending</idea>
+    </ideas>
+  </tests>
+</story-context>

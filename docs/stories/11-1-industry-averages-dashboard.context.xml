@@ -1,0 +1,38 @@
+<story-context id="epic-11/story-11-1" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>11.1</storyId>
+    <title>Industry Averages Dashboard</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/11-1-industry-averages-dashboard.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>so sánh metrics với industry averages</iWant>
+    <soThat>tôi biết mình đang ở đâu</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given industry benchmark data, When user xem dashboard, Then hiển thị comparison theo niche</criterion>
+    <criterion id="2">Given own metrics, When compared to benchmarks, Then hiển thị above/below indicators</criterion>
+    <criterion id="3">Given benchmark data, When user select niche, Then show relevant benchmarks</criterion>
+    <criterion id="4">Given manual input option, When user enter competitor data, Then store for comparison</criterion>
+  </acceptanceCriteria>
+
+  <industryAverages>
+    <metric name="engagement_rate" range="3-6%" note="varies by niche"/>
+    <metric name="reach_rate" range="10-20%"/>
+    <metric name="video_completion" range="40-60%"/>
+  </industryAverages>
+
+  <niches>
+    <niche>Lifestyle</niche>
+    <niche>Business</niche>
+    <niche>Entertainment</niche>
+    <niche>Education</niche>
+  </niches>
+
+  <assumption>Industry averages are seeded data, not scraped from competitors</assumption>
+</story-context>

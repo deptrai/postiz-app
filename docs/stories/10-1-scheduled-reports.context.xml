@@ -1,0 +1,33 @@
+<story-context id="epic-10/story-10-1" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>10.1</storyId>
+    <title>Scheduled Reports</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/10-1-scheduled-reports.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>báo cáo tự động theo lịch</iWant>
+    <soThat>tôi và team luôn có data cập nhật</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given report config, When schedule trigger, Then generate và gửi report</criterion>
+    <criterion id="2">Given report schedule, When user configure, Then chọn frequency, time, recipients</criterion>
+    <criterion id="3">Given report content, When user configure, Then chọn metrics và sections</criterion>
+    <criterion id="4">Given scheduled report, When generated, Then gửi qua email với summary</criterion>
+  </acceptanceCriteria>
+
+  <frequencies>
+    <frequency>Daily (at specified time)</frequency>
+    <frequency>Weekly (on specified day)</frequency>
+    <frequency>Monthly (on specified date)</frequency>
+  </frequencies>
+
+  <dependencies>
+    <dependency>Epic 5 complete (Export Reporting)</dependency>
+  </dependencies>
+</story-context>

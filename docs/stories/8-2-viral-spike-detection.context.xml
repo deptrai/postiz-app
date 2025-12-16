@@ -1,0 +1,35 @@
+<story-context id="epic-8/story-8-2" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>8.2</storyId>
+    <title>Viral Spike Detection</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/8-2-viral-spike-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>phát hiện content đang viral</iWant>
+    <soThat>tôi có thể tận dụng momentum</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given metrics, When engagement spike >200% trong 24h, Then highlight viral content</criterion>
+    <criterion id="2">Given viral content detected, When user xem alert, Then hiển thị spike metrics</criterion>
+    <criterion id="3">Given viral content, When user xem recommendations, Then gợi ý follow-up content</criterion>
+    <criterion id="4">Given viral history, When user xem dashboard, Then hiển thị past viral với patterns</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <dependencies>
+      <dependency>Story 8.1 complete</dependency>
+    </dependencies>
+  </artifacts>
+
+  <spikeThresholds>
+    <threshold metric="engagement" increase="200%"/>
+    <threshold metric="reach" increase="300%"/>
+    <threshold metric="views" increase="250%"/>
+  </spikeThresholds>
+</story-context>

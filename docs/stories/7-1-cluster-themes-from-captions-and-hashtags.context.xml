@@ -1,0 +1,178 @@
+<story-context id="7-1-cluster-themes-from-captions-and-hashtags" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>1</storyId>
+    <title>Cluster Themes from Captions and Hashtags</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/7-1-cluster-themes-from-captions-and-hashtags.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>themes (clusters) instead of scattered keywords</iWant>
+    <soThat>trend detection is less noisy and more actionable</soThat>
+    <tasks>
+      <task id="1" status="pending">Create Theme Prisma schema</task>
+      <task id="2" status="pending">Create ThemeClusteringService</task>
+      <task id="3" status="pending">Create ThemeService</task>
+      <task id="4" status="pending">Create ThemeAssignmentService</task>
+      <task id="5" status="pending">Add Theme API endpoints</task>
+      <task id="6" status="pending">Create Themes page (frontend)</task>
+      <task id="7" status="pending">Create Theme detail view</task>
+      <task id="8" status="pending">Create Clustering action</task>
+      <task id="9" status="pending">Write backend tests</task>
+      <task id="10" status="pending">Write frontend tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Given captions, hashtags, and tags from analytics content, When the clustering pipeline runs, Then the system creates themes with representative top keywords.</criterion>
+    <criterion id="AC2">Given a theme is created, When the user views the theme, Then it displays theme name, top keywords/hashtags, content count, and performance metrics.</criterion>
+    <criterion id="AC3">Given content exists, When the clustering algorithm runs, Then content is assigned to one or more themes based on caption/hashtag similarity.</criterion>
+    <criterion id="AC4">Given themes exist, When the user accesses the Themes page, Then themes are listed with key metrics and can be filtered by group/niche.</criterion>
+    <criterion id="AC5">Given new content is ingested, When the system processes it, Then it is automatically assigned to existing themes or flagged for new theme creation.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-020 (Growth)</section>
+        <snippet>Cluster captions/hashtags thành themes. Theme manager: rename/merge/split. Trend chuyển từ keyword → theme.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 7: Themes (Topic Clustering)</section>
+        <snippet>Story 7.1: Clustering caption/hashtags thành Themes. Hệ thống tạo themes với top keywords đại diện.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-content.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsContentService.extractHashtags</symbol>
+        <lines>140-156</lines>
+        <reason>Reuse extractHashtags method for keyword extraction from captions.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-trending.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsTrendingService</symbol>
+        <reason>Reference for trending/velocity calculation patterns. Similar approach for theme metrics.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-dashboard.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsDashboardService</symbol>
+        <reason>Reference for querying AnalyticsContent, aggregating metrics, applying filters.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/schema.prisma</path>
+        <kind>schema</kind>
+        <symbol>AnalyticsContent</symbol>
+        <lines>751-800</lines>
+        <reason>Source data for clustering - captions, hashtags, metrics. Reference for creating Theme model.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/backend/src/api/routes/analytics.controller.ts</path>
+        <kind>controller</kind>
+        <symbol>AnalyticsController</symbol>
+        <reason>Reference for API endpoint patterns, Swagger decorators.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/analytics/trending/trending-topics.component.tsx</path>
+        <kind>component</kind>
+        <symbol>TrendingTopicsWidget</symbol>
+        <reason>Reference for displaying topic/theme cards with metrics.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@nestjs/common</package>
+        <version>^10.0.0</version>
+      </node>
+      <node>
+        <package>@prisma/client</package>
+        <version>^6.5.0</version>
+      </node>
+      <node>
+        <package>dayjs</package>
+        <version>^1.11.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>^18.0.0</version>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Create new Theme models in libraries/nestjs-libraries/src/database/prisma/themes/</constraint>
+    <constraint type="architecture">Use simple rule-based clustering initially (keyword overlap with Jaccard similarity)</constraint>
+    <constraint type="architecture">Similarity threshold: 0.3 (30% keyword overlap) for same theme</constraint>
+    <constraint type="api">Create new /api/themes endpoints (separate controller)</constraint>
+    <constraint type="frontend">Follow card grid layout pattern from analytics dashboard</constraint>
+    <constraint type="testing">Create .spec.ts files alongside service files</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ThemeClusteringService.runClustering</name>
+      <kind>service method</kind>
+      <signature>runClustering(organizationId: string, options: ClusteringOptions): Promise&lt;Theme[]&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/themes/theme-clustering.service.ts</path>
+    </interface>
+    <interface>
+      <name>ThemeService.getThemes</name>
+      <kind>service method</kind>
+      <signature>getThemes(organizationId: string, filters: ThemeFilters): Promise&lt;Theme[]&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/themes/theme.service.ts</path>
+    </interface>
+    <interface>
+      <name>ThemeAssignmentService.assignNewContent</name>
+      <kind>service method</kind>
+      <signature>assignNewContent(contentId: string): Promise&lt;ThemeAssignment&gt;</signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/themes/theme-assignment.service.ts</path>
+    </interface>
+    <interface>
+      <name>POST /api/themes/cluster</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/themes/cluster - Trigger clustering pipeline</signature>
+      <path>apps/backend/src/api/routes/themes.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/themes</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/themes?groupId=&amp;niche= - List themes with filters</signature>
+      <path>apps/backend/src/api/routes/themes.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/themes/:id</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/themes/:id - Get theme details with content</signature>
+      <path>apps/backend/src/api/routes/themes.controller.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest for unit tests. Mock Prisma service. Test clustering algorithm independently from database.</standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/themes/*.spec.ts</location>
+      <location>apps/frontend/src/components/themes/*.spec.tsx</location>
+    </locations>
+    <ideas>
+      <idea acId="AC1">Test keyword extraction from captions with various formats</idea>
+      <idea acId="AC1">Test theme creation with representative keywords</idea>
+      <idea acId="AC2">Test theme detail includes all required fields</idea>
+      <idea acId="AC3">Test Jaccard similarity calculation</idea>
+      <idea acId="AC3">Test content assignment to correct theme based on similarity</idea>
+      <idea acId="AC4">Test theme listing with filters</idea>
+      <idea acId="AC5">Test new content assignment to existing themes</idea>
+      <idea acId="AC5">Test flagging content for new theme when no match</idea>
+    </ideas>
+  </tests>
+</story-context>

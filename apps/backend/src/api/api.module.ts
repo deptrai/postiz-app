@@ -16,9 +16,9 @@ import { AnalyticsDailyBriefService } from '@gitroom/nestjs-libraries/database/p
 import { AnalyticsExportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-export.service';
 import { AlertService } from '@gitroom/nestjs-libraries/database/prisma/alerts/alert.service';
 import { AnalyticsController } from '@gitroom/backend/api/routes/analytics.controller';
-// Epic 4 services temporarily disabled due to missing Prisma models
-// import { PlaybooksController } from '@gitroom/backend/api/routes/playbooks.controller';
-// import { ExperimentsController } from '@gitroom/backend/api/routes/experiments.controller';
+import { PlaybooksController } from '@gitroom/backend/api/routes/playbooks.controller';
+import { ExperimentsController } from '@gitroom/backend/api/routes/experiments.controller';
+// Themes temporarily disabled - will implement in Story 7.x
 // import { ThemesController } from '@gitroom/backend/api/routes/themes.controller';
 import { PoliciesGuard } from '@gitroom/backend/services/auth/permissions/permissions.guard';
 import { PermissionsService } from '@gitroom/backend/services/auth/permissions/permissions.service';
@@ -50,10 +50,14 @@ import { ThirdPartyController } from '@gitroom/backend/api/routes/third-party.co
 import { MonitorController } from '@gitroom/backend/api/routes/monitor.controller';
 import { AlertsController } from '@gitroom/backend/api/routes/alerts.controller';
 import { AlertNotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/alert-notification.service';
+import { AIController } from '@gitroom/backend/api/routes/ai.controller';
+import { AIAssistantService } from '@gitroom/nestjs-libraries/database/prisma/ai/ai-assistant.service';
 
 const authenticatedController = [
   UsersController,
   AnalyticsController,
+  PlaybooksController,
+  ExperimentsController,
   IntegrationsController,
   SettingsController,
   PostsController,
@@ -70,6 +74,7 @@ const authenticatedController = [
   SetsController,
   ThirdPartyController,
   AlertsController,
+  AIController,
 ];
 @Module({
   imports: [UploadModule],
@@ -109,6 +114,7 @@ const authenticatedController = [
     Nowpayments,
     AlertService,
     AlertNotificationService,
+    AIAssistantService,
   ],
   get exports() {
     return [...this.imports, ...this.providers];

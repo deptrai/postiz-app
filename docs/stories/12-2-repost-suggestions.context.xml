@@ -1,0 +1,35 @@
+<story-context id="epic-12/story-12-2" v="1.0">
+  <metadata>
+    <epicId>12</epicId>
+    <storyId>12.2</storyId>
+    <title>Repost Suggestions</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <sourceStoryPath>docs/stories/12-2-repost-suggestions.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>gợi ý repost timing</iWant>
+    <soThat>tôi maximize reach của evergreen content</soThat>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given evergreen content, When user xem suggestions, Then recommend optimal repost timing</criterion>
+    <criterion id="2">Given repost suggestion, When user xem details, Then show expected performance</criterion>
+    <criterion id="3">Given repost history, When suggesting timing, Then avoid too-frequent reposts</criterion>
+    <criterion id="4">Given repost suggestions, When user accept, Then có thể schedule directly</criterion>
+  </acceptanceCriteria>
+
+  <repostTimingFactors>
+    <factor>Time since last post</factor>
+    <factor>Audience growth since original</factor>
+    <factor>Seasonal relevance</factor>
+  </repostTimingFactors>
+
+  <minimumRepostInterval>30 days (configurable)</minimumRepostInterval>
+
+  <dependencies>
+    <dependency>Story 12.1 complete</dependency>
+  </dependencies>
+</story-context>

@@ -1,0 +1,89 @@
+<story-context id="epic-14/story-14-1" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>14.1</storyId>
+    <title>Viral Score Prediction</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/14-1-viral-score-prediction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>dự đoán viral score trước khi đăng</iWant>
+    <soThat>tôi biết content nào có tiềm năng cao</soThat>
+    <tasks>
+      <backend>
+        <task>Create ViralScoreService with calculateViralScore method</task>
+        <task>Define scoring factors and weights</task>
+        <task>Implement improvement suggestions</task>
+        <task>Add API endpoints for viral score</task>
+      </backend>
+      <frontend>
+        <task>Create ViralScoreCard component</task>
+        <task>Create ImprovementSuggestions component</task>
+        <task>Create ContentComparison component</task>
+      </frontend>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Given content metadata, When user request viral score, Then return score 0-100 với breakdown</criterion>
+    <criterion id="2">Given historical data, When calculating score, Then compare với top-performing content</criterion>
+    <criterion id="3">Given score breakdown, When user xem details, Then hiển thị scores cho từng factor</criterion>
+    <criterion id="4">Given low score, When user xem recommendations, Then suggest improvements</criterion>
+    <criterion id="5">Given multiple drafts, When user compare, Then rank drafts theo viral potential</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics.md" section="Epic-14">Epic 14 definition</doc>
+      <doc path="docs/research/feature-improvement-proposals.md" section="Epic-14">Research</doc>
+    </docs>
+    <code>
+      <existingPatterns>
+        <pattern path="libraries/nestjs-libraries/src/database/prisma/themes/">Service patterns</pattern>
+        <pattern path="apps/backend/src/api/routes/">Controller patterns</pattern>
+      </existingPatterns>
+      <newFiles>
+        <file>libraries/nestjs-libraries/src/database/prisma/viral/viral-score.service.ts</file>
+        <file>apps/backend/src/api/routes/viral.controller.ts</file>
+        <file>apps/frontend/src/components/viral/viral-score-card.tsx</file>
+      </newFiles>
+    </code>
+  </artifacts>
+
+  <interfaces>
+    <api>
+      <endpoint method="POST" path="/api/viral/score">Calculate viral score</endpoint>
+      <endpoint method="POST" path="/api/viral/compare">Compare multiple drafts</endpoint>
+    </api>
+    <dataModels>
+      <model name="ViralScore">
+        <field name="overallScore" type="number">0-100</field>
+        <field name="hookScore" type="number">Hook effectiveness</field>
+        <field name="captionScore" type="number">Caption quality</field>
+        <field name="hashtagScore" type="number">Hashtag relevance</field>
+        <field name="timingScore" type="number">Posting time</field>
+        <field name="formatScore" type="number">Format effectiveness</field>
+        <field name="suggestions" type="array">Improvement suggestions</field>
+      </model>
+    </dataModels>
+  </interfaces>
+
+  <scoringFactors>
+    <factor name="hook" weight="25">First 3 seconds effectiveness</factor>
+    <factor name="caption" weight="20">Length, keywords, CTAs</factor>
+    <factor name="hashtags" weight="15">Relevance, trending status</factor>
+    <factor name="timing" weight="20">Posting time vs optimal</factor>
+    <factor name="format" weight="20">Reels vs Post performance</factor>
+  </scoringFactors>
+
+  <scoreInterpretation>
+    <range min="80" max="100">High viral potential</range>
+    <range min="60" max="79">Good potential</range>
+    <range min="40" max="59">Average</range>
+    <range min="0" max="39">Low potential, needs improvement</range>
+  </scoreInterpretation>
+</story-context>

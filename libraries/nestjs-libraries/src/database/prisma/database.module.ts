@@ -42,6 +42,14 @@ import { ThirdPartyService } from '@gitroom/nestjs-libraries/database/prisma/thi
 import { VideoManager } from '@gitroom/nestjs-libraries/videos/video.manager';
 import { FalService } from '@gitroom/nestjs-libraries/openai/fal.service';
 import { AlertNotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/alert-notification.service';
+import { AIAssistantService } from '@gitroom/nestjs-libraries/database/prisma/ai/ai-assistant.service';
+import { AnalyticsDashboardService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-dashboard.service';
+import { PlaybookGeneratorService } from '@gitroom/nestjs-libraries/database/prisma/playbooks/playbook-generator.service';
+import { PlaybookService } from '@gitroom/nestjs-libraries/database/prisma/playbooks/playbook.service';
+import { PlaybookVariantService } from '@gitroom/nestjs-libraries/database/prisma/playbooks/playbook-variant.service';
+import { ExperimentService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment.service';
+import { ExperimentTrackingService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-tracking.service';
+import { ExperimentAnalysisService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-analysis.service';
 
 @Global()
 @Module({
@@ -93,6 +101,14 @@ import { AlertNotificationService } from '@gitroom/nestjs-libraries/database/pri
     ThirdPartyService,
     VideoManager,
     AlertNotificationService,
+    AIAssistantService,
+    AnalyticsDashboardService,
+    PlaybookGeneratorService,
+    PlaybookService,
+    PlaybookVariantService,
+    ExperimentService,
+    ExperimentTrackingService,
+    ExperimentAnalysisService,
   ],
   get exports() {
     return this.providers;
