@@ -15,7 +15,8 @@ export const FacebookContinue: FC<{
   const { closeModal, existingId } = props;
   const call = useCustomProviderFunction();
   const { integration } = useIntegration();
-  const [page, setSelectedPage] = useState<null | string>(null);
+  const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
   const fetch = useFetch();
   const loadPages = useCallback(async () => {
     try {
@@ -25,9 +26,17 @@ export const FacebookContinue: FC<{
       closeModal();
     }
   }, []);
-  const setPage = useCallback(
+  const togglePage = useCallback(
     (id: string) => () => {
-      setSelectedPage(id);
+      setSelectedPages((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(id)) {
+          newSet.delete(id);
+        } else {
+          newSet.add(id);
+        }
+        return newSet;
+      });
     },
     []
   );
@@ -42,20 +51,38 @@ export const FacebookContinue: FC<{
   });
   const t = useT();
 
-  const saveInstagram = useCallback(async () => {
-    await fetch(`/integrations/facebook/${integration?.id}`, {
-      method: 'POST',
-      body: JSON.stringify({
-        page,
-      }),
-    });
-    closeModal();
-  }, [integration, page]);
   const filteredData = useMemo(() => {
     return (
       data?.filter((p: { id: string }) => !existingId.includes(p.id)) || []
     );
-  }, [data]);
+  }, [data, existingId]);
+
+  const selectAll = useCallback(() => {
+    const allIds = filteredData?.map((p: { id: string }) => p.id) || [];
+    setSelectedPages(new Set(allIds));
+  }, [filteredData]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedPages(new Set());
+  }, []);
+
+  const savePages = useCallback(async () => {
+    if (selectedPages.size === 0) return;
+    setIsSaving(true);
+    try {
+      await fetch(`/integrations/facebook/${integration?.id}/bulk`, {
+        method: 'POST',
+        body: JSON.stringify({
+          pages: Array.from(selectedPages),
+        }),
+      });
+      closeModal();
+    } catch (e) {
+      console.error('Failed to save pages:', e);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [integration, selectedPages, fetch, closeModal]);
   if (!isLoading && !data?.length) {
     return (
       <div className="text-center flex justify-center items-center text-[18px] leading-[50px] h-[300px]">
@@ -78,8 +105,27 @@ export const FacebookContinue: FC<{
   }
   return (
     <div className="flex flex-col gap-[20px]">
-      <div>{t('select_page', 'Select Page:')}</div>
-      <div className="grid grid-cols-3 justify-items-center select-none cursor-pointer">
+      <div className="flex items-center justify-between">
+        <div>{t('select_pages', 'Select Pages:')}</div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={selectAll}
+            className="text-sm text-customColor10 hover:underline"
+          >
+            {t('select_all', 'Select All')}
+          </button>
+          <span className="text-textColor/40">|</span>
+          <button
+            type="button"
+            onClick={deselectAll}
+            className="text-sm text-customColor10 hover:underline"
+          >
+            {t('deselect_all', 'Deselect All')}
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 justify-items-center select-none cursor-pointer gap-2">
         {filteredData?.map(
           (p: {
             id: string;
@@ -94,11 +140,18 @@ export const FacebookContinue: FC<{
             <div
               key={p.id}
               className={clsx(
-                'flex flex-col w-full text-center gap-[10px] border border-input p-[10px] hover:bg-seventh',
-                page === p.id && 'bg-seventh'
+                'flex flex-col w-full text-center gap-[10px] border border-input p-[10px] hover:bg-seventh relative',
+                selectedPages.has(p.id) && 'bg-seventh border-customColor10'
               )}
-              onClick={setPage(p.id)}
+              onClick={togglePage(p.id)}
             >
+              {selectedPages.has(p.id) && (
+                <div className="absolute top-2 right-2 w-5 h-5 bg-customColor10 rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
               <div>
                 <img
                   className="w-full"
@@ -111,9 +164,12 @@ export const FacebookContinue: FC<{
           )
         )}
       </div>
-      <div>
-        <Button disabled={!page} onClick={saveInstagram}>
-          {t('save', 'Save')}
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-textColor/60">
+          {selectedPages.size} {t('pages_selected', 'page(s) selected')}
+        </span>
+        <Button disabled={selectedPages.size === 0 || isSaving} onClick={savePages}>
+          {isSaving ? t('saving', 'Saving...') : t('add_selected_pages', 'Add Selected Pages')}
         </Button>
       </div>
     </div>

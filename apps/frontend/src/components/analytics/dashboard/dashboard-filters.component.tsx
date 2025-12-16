@@ -1,6 +1,7 @@
 'use client';
 
 import { FC, useState, useEffect } from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import dayjs from 'dayjs';
 
 export interface DashboardFiltersProps {
@@ -20,6 +21,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
   groups = [],
   integrations = [],
 }) => {
+  const t = useT();
   const [startDate, setStartDate] = useState(dayjs().subtract(30, 'days').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [groupId, setGroupId] = useState<string>('');
@@ -38,14 +40,14 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
 
   return (
     <div className="bg-newBgColorInner p-6 rounded-lg space-y-4">
-      <h3 className="text-lg font-semibold mb-4">Filters</h3>
+      <h3 className="text-lg font-semibold mb-4">{t('filters', 'Filters')}</h3>
 
       {/* Date Range */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Date Range</label>
+        <label className="text-sm font-medium">{t('date_range', 'Date Range')}</label>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-textColor/60">Start Date</label>
+            <label className="text-xs text-textColor/60">{t('start_date', 'Start Date')}</label>
             <input
               type="date"
               value={startDate}
@@ -54,7 +56,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
             />
           </div>
           <div>
-            <label className="text-xs text-textColor/60">End Date</label>
+            <label className="text-xs text-textColor/60">{t('end_date', 'End Date')}</label>
             <input
               type="date"
               value={endDate}
@@ -68,13 +70,13 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
       {/* Group Filter */}
       {groups.length > 0 && (
         <div className="space-y-2">
-          <label className="text-sm font-medium">Page Group</label>
+          <label className="text-sm font-medium">{t('page_group', 'Page Group')}</label>
           <select
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
             className="w-full h-[40px] bg-boxBg text-textColor rounded-md px-3 outline-none border border-fifth focus:border-customColor10"
           >
-            <option value="">All Groups</option>
+            <option value="">{t('all_groups', 'All Groups')}</option>
             {groups.map((group) => (
               <option key={group.id} value={group.id}>
                 {group.name}
@@ -87,7 +89,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
       {/* Integration Filter */}
       {integrations.length > 0 && (
         <div className="space-y-2">
-          <label className="text-sm font-medium">Pages</label>
+          <label className="text-sm font-medium">{t('pages', 'Pages')}</label>
           <select
             multiple
             value={selectedIntegrations}
@@ -103,13 +105,13 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
               </option>
             ))}
           </select>
-          <p className="text-xs text-textColor/60">Hold Ctrl/Cmd to select multiple</p>
+          <p className="text-xs text-textColor/60">{t('hold_ctrl_select', 'Hold Ctrl/Cmd to select multiple')}</p>
         </div>
       )}
 
       {/* Format Filter */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Content Format</label>
+        <label className="text-sm font-medium">{t('content_format', 'Content Format')}</label>
         <div className="flex gap-2">
           {(['all', 'post', 'reel'] as const).map((formatOption) => (
             <button
@@ -129,7 +131,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
 
       {/* Quick Date Ranges */}
       <div className="space-y-2 pt-2 border-t border-fifth">
-        <label className="text-sm font-medium">Quick Select</label>
+        <label className="text-sm font-medium">{t('quick_select', 'Quick Select')}</label>
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => {
@@ -138,7 +140,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
             }}
             className="h-[32px] bg-boxBg text-textColor rounded-md text-sm hover:bg-forth"
           >
-            Last 7 Days
+            {t('last_7_days', 'Last 7 Days')}
           </button>
           <button
             onClick={() => {
@@ -147,7 +149,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
             }}
             className="h-[32px] bg-boxBg text-textColor rounded-md text-sm hover:bg-forth"
           >
-            Last 30 Days
+            {t('last_30_days', 'Last 30 Days')}
           </button>
           <button
             onClick={() => {
@@ -156,7 +158,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
             }}
             className="h-[32px] bg-boxBg text-textColor rounded-md text-sm hover:bg-forth"
           >
-            Last 90 Days
+            {t('last_90_days', 'Last 90 Days')}
           </button>
           <button
             onClick={() => {
@@ -165,7 +167,7 @@ export const DashboardFilters: FC<DashboardFiltersProps> = ({
             }}
             className="h-[32px] bg-boxBg text-textColor rounded-md text-sm hover:bg-forth"
           >
-            This Month
+            {t('this_month', 'This Month')}
           </button>
         </div>
       </div>

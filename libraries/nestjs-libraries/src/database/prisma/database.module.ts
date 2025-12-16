@@ -50,6 +50,7 @@ import { PlaybookVariantService } from '@gitroom/nestjs-libraries/database/prism
 import { ExperimentService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment.service';
 import { ExperimentTrackingService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-tracking.service';
 import { ExperimentAnalysisService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-analysis.service';
+import { ExperimentAutoTrackingService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-auto-tracking.service';
 
 @Global()
 @Module({
@@ -109,6 +110,7 @@ import { ExperimentAnalysisService } from '@gitroom/nestjs-libraries/database/pr
     ExperimentService,
     ExperimentTrackingService,
     ExperimentAnalysisService,
+    ExperimentAutoTrackingService,
   ],
   get exports() {
     return this.providers;

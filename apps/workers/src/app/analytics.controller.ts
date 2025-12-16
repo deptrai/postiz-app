@@ -3,6 +3,7 @@ import { EventPattern, Transport } from '@nestjs/microservices';
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { AnalyticsContentService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-content.service';
 import { AnalyticsDailyMetricService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics-daily-metric.service';
+import { ExperimentAutoTrackingService } from '@gitroom/nestjs-libraries/database/prisma/experiments/experiment-auto-tracking.service';
 import dayjs from 'dayjs';
 
 interface AnalyticsIngestPayload {
@@ -26,7 +27,8 @@ export class AnalyticsController {
   constructor(
     private _prismaService: PrismaService,
     private _analyticsContentService: AnalyticsContentService,
-    private _analyticsDailyMetricService: AnalyticsDailyMetricService
+    private _analyticsDailyMetricService: AnalyticsDailyMetricService,
+    private _experimentAutoTrackingService: ExperimentAutoTrackingService
   ) {}
 
   /**
@@ -84,6 +86,16 @@ export class AnalyticsController {
       this.logger.log(
         `Stored ${stored.length} content items for integration=${integrationId}`
       );
+
+      // Auto-track content to active experiments
+      for (const content of stored) {
+        try {
+          await this._experimentAutoTrackingService.autoTrackContent(content.id);
+        } catch (error) {
+          this.logger.error(`Failed to auto-track content ${content.id}: ${error.message}`);
+          // Don't fail the entire ingestion if auto-tracking fails
+        }
+      }
 
       return {
         success: true,

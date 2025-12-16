@@ -3,6 +3,7 @@
 import { FC, useState, useCallback, useEffect } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import dayjs from 'dayjs';
 
 interface ExperimentVariant {
@@ -49,6 +50,7 @@ interface Playbook {
 
 export const ExperimentsListPage: FC = () => {
   const fetch = useFetch();
+  const t = useT();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -219,16 +221,16 @@ export const ExperimentsListPage: FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-textColor">Experiments</h1>
+          <h1 className="text-2xl font-bold text-textColor">{t('experiments', 'Experiments')}</h1>
           <p className="text-textColor/60 text-sm mt-1">
-            Create A/B/C experiments to test playbook variants
+            {t('experiments_description', 'Create A/B/C experiments to test playbook variants')}
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
           className="px-4 py-2 bg-customColor10 text-white rounded-lg font-medium hover:bg-customColor10/80 transition-all"
         >
-          Create Experiment
+          {t('create_experiment', 'Create Experiment')}
         </button>
       </div>
 
@@ -259,12 +261,12 @@ export const ExperimentsListPage: FC = () => {
       {/* Empty State */}
       {experiments.length === 0 && (
         <div className="text-center py-12 bg-newBgColorInner rounded-lg">
-          <p className="text-textColor/60 mb-4">No experiments found</p>
+          <p className="text-textColor/60 mb-4">{t('no_experiments_found', 'No experiments found')}</p>
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-customColor10 text-white rounded-lg font-medium hover:bg-customColor10/80 transition-all"
           >
-            Create Your First Experiment
+            {t('create_your_first_experiment', 'Create Your First Experiment')}
           </button>
         </div>
       )}
@@ -275,13 +277,13 @@ export const ExperimentsListPage: FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-newBgColor">
-                <th className="text-left p-4 text-textColor/60 font-medium text-sm">Name</th>
-                <th className="text-left p-4 text-textColor/60 font-medium text-sm">Playbook</th>
-                <th className="text-left p-4 text-textColor/60 font-medium text-sm">Status</th>
-                <th className="text-left p-4 text-textColor/60 font-medium text-sm">Variants</th>
-                <th className="text-left p-4 text-textColor/60 font-medium text-sm">Metric</th>
-                <th className="text-left p-4 text-textColor/60 font-medium text-sm">Created</th>
-                <th className="text-right p-4 text-textColor/60 font-medium text-sm">Actions</th>
+                <th className="text-left p-4 text-textColor/60 font-medium text-sm">{t('name', 'Name')}</th>
+                <th className="text-left p-4 text-textColor/60 font-medium text-sm">{t('playbook', 'Playbook')}</th>
+                <th className="text-left p-4 text-textColor/60 font-medium text-sm">{t('status', 'Status')}</th>
+                <th className="text-left p-4 text-textColor/60 font-medium text-sm">{t('variants', 'Variants')}</th>
+                <th className="text-left p-4 text-textColor/60 font-medium text-sm">{t('metric', 'Metric')}</th>
+                <th className="text-left p-4 text-textColor/60 font-medium text-sm">{t('created', 'Created')}</th>
+                <th className="text-right p-4 text-textColor/60 font-medium text-sm">{t('actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -314,7 +316,7 @@ export const ExperimentsListPage: FC = () => {
                         }}
                         className="px-3 py-1 text-sm bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30"
                       >
-                        Start
+                        {t('start', 'Start')}
                       </button>
                     )}
                     {experiment.status === 'active' && (
@@ -325,7 +327,7 @@ export const ExperimentsListPage: FC = () => {
                         }}
                         className="px-3 py-1 text-sm bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30"
                       >
-                        Complete
+                        {t('complete', 'Complete')}
                       </button>
                     )}
                   </td>
@@ -341,7 +343,7 @@ export const ExperimentsListPage: FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-newBgColor rounded-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-textColor">Create Experiment</h2>
+              <h2 className="text-xl font-bold text-textColor">{t('create_experiment', 'Create Experiment')}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-textColor/60 hover:text-textColor"
@@ -354,7 +356,7 @@ export const ExperimentsListPage: FC = () => {
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-textColor mb-1">
-                  Experiment Name
+                  {t('experiment_name', 'Experiment Name')}
                 </label>
                 <input
                   type="text"
@@ -368,7 +370,7 @@ export const ExperimentsListPage: FC = () => {
               {/* Playbook Selection */}
               <div>
                 <label className="block text-sm font-medium text-textColor mb-1">
-                  Select Playbook
+                  {t('select_playbook', 'Select Playbook')}
                 </label>
                 <select
                   value={createForm.playbookId}
@@ -388,7 +390,7 @@ export const ExperimentsListPage: FC = () => {
               {selectedPlaybookVariants.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-textColor mb-1">
-                    Select Variants (2-3)
+                    {t('select_2_3_variants', 'Select 2-3 variants to test')}
                   </label>
                   <div className="space-y-2">
                     {selectedPlaybookVariants.map((variant) => (
@@ -426,7 +428,7 @@ export const ExperimentsListPage: FC = () => {
               {/* Success Metric */}
               <div>
                 <label className="block text-sm font-medium text-textColor mb-1">
-                  Success Metric
+                  {t('success_metric', 'Success Metric')}
                 </label>
                 <select
                   value={createForm.successMetric}
@@ -438,9 +440,9 @@ export const ExperimentsListPage: FC = () => {
                   }
                   className="w-full px-3 py-2 bg-newBgColorInner border border-newBgColor rounded-lg text-textColor"
                 >
-                  <option value="engagement">Engagement</option>
-                  <option value="reach">Reach</option>
-                  <option value="combined">Combined</option>
+                  <option value="engagement">{t('engagement', 'Engagement')}</option>
+                  <option value="reach">{t('reach', 'Reach')}</option>
+                  <option value="combined">{t('combined', 'Combined')}</option>
                 </select>
               </div>
             </div>
@@ -451,14 +453,14 @@ export const ExperimentsListPage: FC = () => {
                 onClick={() => setShowCreateModal(false)}
                 className="px-4 py-2 text-textColor/60 hover:text-textColor"
               >
-                Cancel
+                {t('cancel', 'Cancel')}
               </button>
               <button
                 onClick={createExperiment}
                 disabled={isCreating || createForm.variantIds.length < 2}
                 className="px-4 py-2 bg-customColor10 text-white rounded-lg font-medium hover:bg-customColor10/80 transition-all disabled:opacity-50"
               >
-                {isCreating ? 'Creating...' : 'Create Experiment'}
+                {isCreating ? t('creating', 'Creating...') : t('create_experiment', 'Create Experiment')}
               </button>
             </div>
           </div>

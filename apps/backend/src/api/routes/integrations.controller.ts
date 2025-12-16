@@ -551,6 +551,15 @@ export class IntegrationsController {
     return this._integrationService.saveFacebook(org.id, id, body.page);
   }
 
+  @Post('/facebook/:id/bulk')
+  async saveFacebookBulk(
+    @Param('id') id: string,
+    @Body() body: { pages: string[] },
+    @GetOrgFromRequest() org: Organization
+  ) {
+    return this._integrationService.saveFacebookBulk(org.id, id, body.pages);
+  }
+
   @Post('/linkedin-page/:id')
   async saveLinkedin(
     @Param('id') id: string,
@@ -625,5 +634,10 @@ export class IntegrationsController {
   @Get('/telegram/updates')
   async getUpdates(@Query() query: { word: string; id?: number }) {
     return new TelegramProvider().getBotId(query);
+  }
+
+  @Get('/sync/status')
+  async getSyncStatus(@GetOrgFromRequest() org: Organization) {
+    return this._integrationService.getSyncStatus(org.id);
   }
 }

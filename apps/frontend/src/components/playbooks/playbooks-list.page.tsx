@@ -3,6 +3,8 @@
 import { FC, useState, useCallback, useEffect } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { SyncStatusComponent } from '@gitroom/frontend/components/analytics/sync-status.component';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import dayjs from 'dayjs';
 
 interface PlaybookRecipe {
@@ -54,6 +56,7 @@ interface PlaybooksResponse {
 
 export const PlaybooksListPage: FC = () => {
   const fetch = useFetch();
+  const t = useT();
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -167,17 +170,18 @@ export const PlaybooksListPage: FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-textColor">Playbooks</h1>
+          <h1 className="text-2xl font-bold text-textColor">{t('playbooks', 'Playbooks')}</h1>
           <p className="text-textColor/60 text-sm mt-1">
-            Winning formulas extracted from your top-performing content
+            {t('winning_formulas_extracted_from_your_top_performing_content', 'Winning formulas extracted from your top-performing content')}
           </p>
+          <SyncStatusComponent compact className="mt-2" />
         </div>
         <button
           onClick={generatePlaybooks}
           disabled={isGenerating}
           className="px-4 py-2 bg-customColor10 text-white rounded-lg font-medium hover:bg-customColor10/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isGenerating ? 'Generating...' : 'Generate Playbooks'}
+          {isGenerating ? t('generating', 'Generating...') : t('generate_playbooks', 'Generate Playbooks')}
         </button>
       </div>
 
@@ -192,12 +196,12 @@ export const PlaybooksListPage: FC = () => {
       {playbooks.length === 0 && !error && (
         <div className="bg-newBgColorInner p-8 rounded-lg text-center">
           <div className="text-textColor/60">
-            <p className="text-lg font-medium mb-2">No playbooks yet</p>
+            <p className="text-lg font-medium mb-2">{t('no_playbooks_yet', 'No playbooks yet')}</p>
             <p className="text-sm">
-              Click "Generate Playbooks" to analyze your top content and create winning formulas.
+              {t('click_generate_playbooks', 'Click "Generate Playbooks" to analyze your top content and create winning formulas.')}
             </p>
             <p className="text-sm mt-2">
-              You need at least 3 content items from the last 30 days.
+              {t('need_3_content_items', 'You need at least 3 content items from the last 30 days.')}
             </p>
           </div>
         </div>
@@ -230,13 +234,13 @@ export const PlaybooksListPage: FC = () => {
               {/* Metrics */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <p className="text-xs text-textColor/60">Median Reach</p>
+                  <p className="text-xs text-textColor/60">{t('median_reach', 'Median Reach')}</p>
                   <p className="text-lg font-semibold text-textColor">
                     {formatNumber(playbook.medianReach)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-textColor/60">Engagement Rate</p>
+                  <p className="text-xs text-textColor/60">{t('engagement_rate', 'Engagement Rate')}</p>
                   <p className="text-lg font-semibold text-textColor">
                     {playbook.avgEngagementRate?.toFixed(2) || '-'}%
                   </p>
@@ -246,7 +250,7 @@ export const PlaybooksListPage: FC = () => {
               {/* Consistency Score */}
               <div className="mb-4">
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-textColor/60">Consistency Score</span>
+                  <span className="text-textColor/60">{t('consistency_score', 'Consistency Score')}</span>
                   <span className="text-textColor">{playbook.consistencyScore || 0}%</span>
                 </div>
                 <div className="h-2 bg-newBgColor rounded-full overflow-hidden">
@@ -259,7 +263,7 @@ export const PlaybooksListPage: FC = () => {
 
               {/* Footer */}
               <div className="flex items-center justify-between text-xs text-textColor/60">
-                <span>{playbook.contentCount} source items</span>
+                <span>{playbook.contentCount} {t('source_items', 'source items')}</span>
                 <span>{dayjs(playbook.createdAt).format('MMM D, YYYY')}</span>
               </div>
             </div>
@@ -301,7 +305,7 @@ export const PlaybooksListPage: FC = () => {
               {/* Hooks */}
               {selectedPlaybook.recipe.captionBucket.hooks.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-textColor mb-2">Hook Patterns</h3>
+                  <h3 className="font-semibold text-textColor mb-2">{t('hook_patterns', 'Hook Patterns')}</h3>
                   <div className="space-y-2">
                     {selectedPlaybook.recipe.captionBucket.hooks.map((hook, i) => (
                       <div
@@ -318,7 +322,7 @@ export const PlaybooksListPage: FC = () => {
               {/* CTA Patterns */}
               {selectedPlaybook.recipe.captionBucket.ctaPatterns.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-textColor mb-2">CTA Patterns</h3>
+                  <h3 className="font-semibold text-textColor mb-2">{t('cta_patterns', 'CTA Patterns')}</h3>
                   <div className="space-y-2">
                     {selectedPlaybook.recipe.captionBucket.ctaPatterns.map((cta, i) => (
                       <div
@@ -335,7 +339,7 @@ export const PlaybooksListPage: FC = () => {
               {/* Hashtags */}
               {selectedPlaybook.recipe.hashtagBucket.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-textColor mb-2">Top Hashtags</h3>
+                  <h3 className="font-semibold text-textColor mb-2">{t('top_hashtags', 'Top Hashtags')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {selectedPlaybook.recipe.hashtagBucket.map((tag, i) => (
                       <span
@@ -351,10 +355,10 @@ export const PlaybooksListPage: FC = () => {
 
               {/* Best Times */}
               <div>
-                <h3 className="font-semibold text-textColor mb-2">Best Posting Times</h3>
+                <h3 className="font-semibold text-textColor mb-2">{t('best_posting_times', 'Best Posting Times')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-newBgColor p-3 rounded-lg">
-                    <p className="text-xs text-textColor/60 mb-1">Best Hours</p>
+                    <p className="text-xs text-textColor/60 mb-1">{t('best_hours', 'Best Hours')}</p>
                     <p className="text-textColor">
                       {selectedPlaybook.recipe.timeBucket.bestHours
                         .map((h) => `${h}:00`)
@@ -362,7 +366,7 @@ export const PlaybooksListPage: FC = () => {
                     </p>
                   </div>
                   <div className="bg-newBgColor p-3 rounded-lg">
-                    <p className="text-xs text-textColor/60 mb-1">Best Days</p>
+                    <p className="text-xs text-textColor/60 mb-1">{t('best_days', 'Best Days')}</p>
                     <p className="text-textColor">
                       {selectedPlaybook.recipe.timeBucket.bestDays
                         .map(getDayName)
@@ -374,22 +378,22 @@ export const PlaybooksListPage: FC = () => {
 
               {/* Metrics Summary */}
               <div>
-                <h3 className="font-semibold text-textColor mb-2">Performance Evidence</h3>
+                <h3 className="font-semibold text-textColor mb-2">{t('performance_evidence', 'Performance Evidence')}</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-newBgColor p-3 rounded-lg text-center">
-                    <p className="text-xs text-textColor/60 mb-1">Median Reach</p>
+                    <p className="text-xs text-textColor/60 mb-1">{t('median_reach', 'Median Reach')}</p>
                     <p className="text-lg font-semibold text-textColor">
                       {formatNumber(selectedPlaybook.medianReach)}
                     </p>
                   </div>
                   <div className="bg-newBgColor p-3 rounded-lg text-center">
-                    <p className="text-xs text-textColor/60 mb-1">Engagement Rate</p>
+                    <p className="text-xs text-textColor/60 mb-1">{t('engagement_rate', 'Engagement Rate')}</p>
                     <p className="text-lg font-semibold text-textColor">
                       {selectedPlaybook.avgEngagementRate?.toFixed(2) || '-'}%
                     </p>
                   </div>
                   <div className="bg-newBgColor p-3 rounded-lg text-center">
-                    <p className="text-xs text-textColor/60 mb-1">Consistency</p>
+                    <p className="text-xs text-textColor/60 mb-1">{t('consistency', 'Consistency')}</p>
                     <p className="text-lg font-semibold text-textColor">
                       {selectedPlaybook.consistencyScore || 0}%
                     </p>
@@ -400,23 +404,23 @@ export const PlaybooksListPage: FC = () => {
               {/* Variants Section */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-textColor">Variants</h3>
+                  <h3 className="font-semibold text-textColor">{t('variants', 'Variants')}</h3>
                   <button
                     onClick={() => generateVariants(selectedPlaybook.id)}
                     disabled={isGeneratingVariants}
                     className="px-3 py-1 text-sm bg-customColor10/20 text-customColor10 rounded-lg hover:bg-customColor10/30 transition-all disabled:opacity-50"
                   >
-                    {isGeneratingVariants ? 'Generating...' : 'Generate Variants'}
+                    {isGeneratingVariants ? t('generating_variants', 'Generating...') : t('generate_variants', 'Generate Variants')}
                   </button>
                 </div>
                 
                 {isLoadingVariants && (
-                  <p className="text-sm text-textColor/60">Loading variants...</p>
+                  <p className="text-sm text-textColor/60">{t('loading_variants', 'Loading variants...')}</p>
                 )}
                 
                 {!isLoadingVariants && variants.length === 0 && (
                   <p className="text-sm text-textColor/60">
-                    No variants yet. Click "Generate Variants" to create hook, time, and hashtag variations.
+                    {t('no_variants_yet', 'No variants yet. Click "Generate Variants" to create hook, time, and hashtag variations.')}
                   </p>
                 )}
                 
@@ -433,12 +437,12 @@ export const PlaybooksListPage: FC = () => {
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(JSON.stringify(variant.recipe, null, 2));
-                                alert('Recipe copied to clipboard!');
+                                alert(t('recipe_copied', 'Recipe copied to clipboard!'));
                               }}
                               className="px-2 py-0.5 text-xs bg-customColor10/20 text-customColor10 rounded hover:bg-customColor10/30"
-                              title="Copy recipe to clipboard"
+                              title={t('copy', 'Copy')}
                             >
-                              Copy
+                              {t('copy', 'Copy')}
                             </button>
                             <span className="px-2 py-0.5 bg-customColor10/20 text-customColor10 text-xs rounded-full capitalize">
                               {variant.type}
@@ -461,7 +465,7 @@ export const PlaybooksListPage: FC = () => {
                 onClick={() => setSelectedPlaybook(null)}
                 className="px-4 py-2 bg-customColor10 text-white rounded-lg font-medium hover:bg-customColor10/80 transition-all"
               >
-                Close
+                {t('close', 'Close')}
               </button>
             </div>
           </div>

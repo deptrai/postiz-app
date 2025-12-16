@@ -69,6 +69,7 @@ export class PlaybookService {
       recipe: playbook.recipe,
       evidence: playbook.evidence,
       consistencyScore: playbook.consistencyScore,
+      contentCount: playbook._count.sourceContent,
       variants: playbook.variants.map(v => ({
         id: v.id,
         name: v.name,

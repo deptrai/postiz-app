@@ -1,8 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { InstagramProvider } from '@gitroom/nestjs-libraries/integrations/social/instagram.provider';
 import { FacebookProvider } from '@gitroom/nestjs-libraries/integrations/social/facebook.provider';
+import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import {
   AnalyticsData,
   AuthTokenDetails,
@@ -28,13 +29,95 @@ dayjs.extend(utc);
 @Injectable()
 export class IntegrationService {
   private storage = UploadFactory.createStorage();
+  private readonly logger = new Logger(IntegrationService.name);
   constructor(
     private _integrationRepository: IntegrationRepository,
     private _autopostsRepository: AutopostRepository,
     private _integrationManager: IntegrationManager,
     private _notificationService: NotificationService,
-    private _workerServiceProducer: BullMqClient
+    private _workerServiceProducer: BullMqClient,
+    private _prismaService: PrismaService
   ) {}
+
+  /**
+   * Auto-track a Facebook integration for analytics and trigger initial sync
+   */
+  private async autoTrackAndSyncFacebookPage(
+    organizationId: string,
+    integrationId: string,
+    pageName: string
+  ): Promise<void> {
+    try {
+      // Check if already tracked
+      const existing = await this._prismaService.analyticsTrackedIntegration.findUnique({
+        where: {
+          organizationId_integrationId: {
+            organizationId,
+            integrationId,
+          },
+        },
+      });
+
+      if (!existing) {
+        // Check tracking limit (max 20)
+        const count = await this._prismaService.analyticsTrackedIntegration.count({
+          where: { organizationId },
+        });
+
+        if (count < 20) {
+          // Add to tracked integrations
+          await this._prismaService.analyticsTrackedIntegration.create({
+            data: {
+              organizationId,
+              integrationId,
+            },
+          });
+          this.logger.log(`Auto-tracked Facebook page: ${pageName} (${integrationId})`);
+        } else {
+          this.logger.warn(`Cannot auto-track ${pageName}: Organization has reached 20 tracked integrations limit`);
+          return;
+        }
+      }
+
+      // Trigger immediate backfill sync for last 30 days
+      const endDate = dayjs().format('YYYY-MM-DD');
+      const startDate = dayjs().subtract(30, 'day').format('YYYY-MM-DD');
+
+      let current = dayjs(startDate);
+      const end = dayjs(endDate);
+
+      while (current.isBefore(end) || current.isSame(end, 'day')) {
+        const date = current.format('YYYY-MM-DD');
+        const jobId = `analytics-auto-sync-${organizationId}-${integrationId}-${date}`;
+
+        this._workerServiceProducer.emit('analytics-ingest', {
+          id: jobId,
+          options: {
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+          },
+          payload: {
+            organizationId,
+            integrationId,
+            date,
+            jobId,
+            isBackfill: true,
+          },
+        });
+
+        current = current.add(1, 'day');
+      }
+
+      this.logger.log(`Triggered 30-day backfill sync for ${pageName} (${integrationId})`);
+    } catch (error: any) {
+      this.logger.error(`Failed to auto-track/sync Facebook page ${pageName}: ${error.message}`);
+    }
+  }
 
   async changeActiveCron(orgId: string) {
     const data = await this._autopostsRepository.getAutoposts(orgId);
@@ -364,7 +447,104 @@ export class IntegrationService {
       profile: getIntegrationInformation.username,
     });
 
+    // Auto-track and sync the new Facebook page
+    await this.autoTrackAndSyncFacebookPage(org, id, getIntegrationInformation.name);
+
     return { success: true };
+  }
+
+  async saveFacebookBulk(org: string, id: string, pages: string[]) {
+    if (!pages || pages.length === 0) {
+      throw new HttpException('No pages provided', HttpStatus.BAD_REQUEST);
+    }
+
+    const getIntegration = await this._integrationRepository.getIntegrationById(
+      org,
+      id
+    );
+    if (getIntegration && !getIntegration.inBetweenSteps) {
+      throw new HttpException('Invalid request', HttpStatus.BAD_REQUEST);
+    }
+
+    const facebook = this._integrationManager.getSocialIntegration(
+      'facebook'
+    ) as FacebookProvider;
+    const userToken = getIntegration?.token!;
+
+    const results: { pageId: string; success: boolean; error?: string }[] = [];
+
+    // Process first page - update existing integration
+    const firstPage = pages[0];
+    let firstPageName = '';
+    try {
+      const firstPageInfo = await facebook.fetchPageInformation(userToken, firstPage);
+      firstPageName = firstPageInfo.name;
+      await this.checkForDeletedOnceAndUpdate(org, firstPageInfo.id);
+      await this._integrationRepository.updateIntegration(id, {
+        picture: firstPageInfo.picture,
+        internalId: firstPageInfo.id,
+        name: firstPageInfo.name,
+        inBetweenSteps: false,
+        token: firstPageInfo.access_token,
+        profile: firstPageInfo.username,
+      });
+      results.push({ pageId: firstPage, success: true });
+      
+      // Auto-track and sync the first page
+      await this.autoTrackAndSyncFacebookPage(org, id, firstPageInfo.name);
+    } catch (e: any) {
+      results.push({ pageId: firstPage, success: false, error: e.message });
+    }
+
+    // Process additional pages - create new integrations
+    for (let i = 1; i < pages.length; i++) {
+      const pageId = pages[i];
+      try {
+        const pageInfo = await facebook.fetchPageInformation(userToken, pageId);
+        await this.checkForDeletedOnceAndUpdate(org, pageInfo.id);
+        
+        // Create new integration for this page
+        const newIntegration = await this.createOrUpdateIntegration(
+          undefined,
+          false,
+          org,
+          pageInfo.name,
+          pageInfo.picture,
+          'social',
+          pageInfo.id,
+          'facebook',
+          pageInfo.access_token,
+          pageInfo.access_token,
+          60 * 60 * 24 * 59, // 59 days
+          pageInfo.username,
+          false
+        );
+        results.push({ pageId, success: true });
+        
+        // Auto-track and sync the new page (get integration ID from the created record)
+        const createdIntegration = await this._prismaService.integration.findFirst({
+          where: {
+            organizationId: org,
+            internalId: pageInfo.id,
+            deletedAt: null,
+          },
+          select: { id: true },
+        });
+        if (createdIntegration) {
+          await this.autoTrackAndSyncFacebookPage(org, createdIntegration.id, pageInfo.name);
+        }
+      } catch (e: any) {
+        results.push({ pageId, success: false, error: e.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    return { 
+      success: successCount > 0, 
+      added: successCount, 
+      total: pages.length,
+      results 
+    };
   }
 
   async checkAnalytics(
@@ -710,5 +890,61 @@ export class IntegrationService {
         ];
       }, [] as number[])
     );
+  }
+
+  /**
+   * Get sync status for organization's tracked integrations
+   */
+  async getSyncStatus(organizationId: string) {
+    // Get tracked integrations
+    const trackedIntegrations = await this._prismaService.analyticsTrackedIntegration.findMany({
+      where: { organizationId },
+      include: {
+        integration: {
+          select: {
+            id: true,
+            name: true,
+            providerIdentifier: true,
+          },
+        },
+      },
+    });
+
+    // Get latest content sync date for each integration
+    const syncStatuses = await Promise.all(
+      trackedIntegrations.map(async (tracked) => {
+        const latestContent = await this._prismaService.analyticsContent.findFirst({
+          where: {
+            organizationId,
+            integrationId: tracked.integrationId,
+          },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        });
+
+        const contentCount = await this._prismaService.analyticsContent.count({
+          where: {
+            organizationId,
+            integrationId: tracked.integrationId,
+          },
+        });
+
+        return {
+          integrationId: tracked.integrationId,
+          integrationName: tracked.integration?.name || 'Unknown',
+          provider: tracked.integration?.providerIdentifier || 'unknown',
+          lastSyncedAt: latestContent?.updatedAt || null,
+          contentCount,
+          isTracked: true,
+        };
+      })
+    );
+
+    return {
+      success: true,
+      trackedCount: trackedIntegrations.length,
+      integrations: syncStatuses,
+      lastUpdated: new Date().toISOString(),
+    };
   }
 }
