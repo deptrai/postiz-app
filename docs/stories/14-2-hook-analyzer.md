@@ -1,6 +1,6 @@
 # Story 14.2: Hook Analyzer
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -34,51 +34,51 @@ So that **tôi tạo hooks thu hút hơn**.
 
 ### Backend Implementation
 
-- [ ] Create HookAnalyzerService (AC: #1, #2)
-  - [ ] Implement `analyzeHook(videoMetadata)` method
-  - [ ] Define hook effectiveness factors
-  - [ ] Calculate effectiveness score
+- [x] Create HookAnalyzerService (AC: #1, #2)
+  - [x] Implement `analyzeHook(videoMetadata)` method
+  - [x] Define hook effectiveness factors
+  - [x] Calculate effectiveness score
 
-- [ ] Build Hook Patterns Database (AC: #3)
-  - [ ] Extract patterns from viral content
-  - [ ] Categorize by opening type
-  - [ ] Store pattern metadata
+- [x] Build Hook Patterns Database (AC: #3)
+  - [x] Extract patterns from viral content
+  - [x] Categorize by opening type
+  - [x] Store pattern metadata
 
-- [ ] Add Hook Recommendations (AC: #4)
-  - [ ] Generate recommendations based on niche
-  - [ ] Suggest proven hook patterns
+- [x] Add Hook Recommendations (AC: #4)
+  - [x] Generate recommendations based on niche
+  - [x] Suggest proven hook patterns
 
-- [ ] Add Hook Analyzer API endpoints (AC: #1, #5)
-  - [ ] POST /api/viral/hook/analyze - Analyze hook
-  - [ ] GET /api/viral/hook/patterns - Get successful patterns
-  - [ ] Add Swagger documentation
+- [x] Add Hook Analyzer API endpoints (AC: #1, #5)
+  - [x] POST /api/viral/hook/analyze - Analyze hook
+  - [x] GET /api/viral/hook/patterns - Get successful patterns
+  - [x] Add Swagger documentation
 
 ### Frontend Implementation
 
-- [ ] Create HookAnalysisCard component (AC: #1, #2)
-  - [ ] Effectiveness score display
-  - [ ] Factor breakdown
-  - [ ] Visual indicators
+- [x] Create HookAnalysisCard component (AC: #1, #2)
+  - [x] Effectiveness score display
+  - [x] Factor breakdown
+  - [x] Visual indicators
 
-- [ ] Create HookPatterns component (AC: #3, #4)
-  - [ ] List of successful patterns
-  - [ ] Examples from viral content
-  - [ ] Apply to draft button
+- [x] Create HookPatterns component (AC: #3, #4)
+  - [x] List of successful patterns
+  - [x] Examples from viral content
+  - [x] Apply to draft button
 
-- [ ] Create HookComparison component (AC: #5)
-  - [ ] Side-by-side comparison
-  - [ ] Ranking display
+- [x] Create HookComparison component (AC: #5)
+  - [x] Side-by-side comparison
+  - [x] Ranking display
 
 ### Testing
 
-- [ ] Backend tests
-  - [ ] Unit test: Hook analysis
-  - [ ] Unit test: Pattern matching
-  - [ ] Unit test: Recommendation generation
+- [x] Backend tests
+  - [x] Unit test: Hook analysis
+  - [x] Unit test: Pattern matching
+  - [x] Unit test: Recommendation generation
 
-- [ ] Frontend tests
-  - [ ] Component test: HookAnalysisCard
-  - [ ] Component test: HookPatterns
+- [x] Frontend tests
+  - [x] Component test: HookAnalysisCard
+  - [x] Component test: HookPatterns
 
 ## Dev Notes
 
