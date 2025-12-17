@@ -130,6 +130,27 @@ export const useMenuItem = () => {
       path: '/monetization',
     },
     {
+      name: t('viral', 'Viral Score'),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      path: '/viral',
+    },
+    {
       name: t('playbooks', 'Playbooks'),
       icon: (
         <svg
