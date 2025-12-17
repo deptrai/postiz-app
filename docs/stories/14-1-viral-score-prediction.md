@@ -1,6 +1,6 @@
 # Story 14.1: Viral Score Prediction
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -70,9 +70,9 @@ So that **tôi biết content nào có tiềm năng cao**.
   - [x] Side-by-side comparison
   - [x] Ranking display
 
-- [ ] Add Viral Score page/modal
-  - [ ] Input form for content metadata
-  - [ ] Real-time score calculation
+- [x] Add Viral Score page/modal
+  - [x] Input form for content metadata
+  - [x] Real-time score calculation
 
 ### Testing
 
