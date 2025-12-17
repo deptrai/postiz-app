@@ -1,5 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 import {
@@ -8,6 +8,14 @@ import {
   ContentComparisonResult,
   ContentMetadata,
 } from '@gitroom/nestjs-libraries/database/prisma/viral/viral-score.service';
+import {
+  HookAnalyzerService,
+  HookAnalysisResult,
+  HookComparisonResult,
+  HookMetadata,
+  HookPattern,
+  HookOpeningType,
+} from '@gitroom/nestjs-libraries/database/prisma/viral/hook-analyzer.service';
 
 // DTOs for Swagger documentation
 class ContentMetadataDto {
@@ -29,10 +37,35 @@ class CompareContentDto {
   }>;
 }
 
+// Hook analysis DTOs
+class HookMetadataDto {
+  hookText: string;
+  caption?: string;
+  contentType?: 'reel' | 'video' | 'post' | 'story';
+  hasQuickCuts?: boolean;
+  hasMusic?: boolean;
+  hasSoundEffects?: boolean;
+  hasVoiceover?: boolean;
+}
+
+class AnalyzeHookDto {
+  metadata: HookMetadataDto;
+}
+
+class CompareHooksDto {
+  hooks: Array<{
+    id: string;
+    metadata: HookMetadataDto;
+  }>;
+}
+
 @ApiTags('Viral')
 @Controller('viral')
 export class ViralController {
-  constructor(private readonly _viralScoreService: ViralScoreService) {}
+  constructor(
+    private readonly _viralScoreService: ViralScoreService,
+    private readonly _hookAnalyzerService: HookAnalyzerService
+  ) {}
 
   /**
    * Calculate viral score for content (AC #1, #3)
@@ -145,5 +178,128 @@ export class ViralController {
     }));
 
     return this._viralScoreService.compareContent(org.id, drafts);
+  }
+
+  // ==================== HOOK ANALYSIS ENDPOINTS ====================
+
+  /**
+   * Analyze hook effectiveness (Story 14.2 AC #1, #2)
+   */
+  @Post('hook/analyze')
+  @ApiOperation({
+    summary: 'Analyze hook effectiveness',
+    description: 'Analyze the first 3 seconds hook of video content and return effectiveness score with breakdown',
+  })
+  @ApiBody({ type: AnalyzeHookDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Hook analysis completed',
+    schema: {
+      type: 'object',
+      properties: {
+        effectivenessScore: { type: 'number', example: 78 },
+        openingType: { type: 'string', example: 'question' },
+        breakdown: {
+          type: 'object',
+          properties: {
+            openingType: { type: 'number', example: 85 },
+            pacing: { type: 'number', example: 70 },
+            visualImpact: { type: 'number', example: 75 },
+            audioHook: { type: 'number', example: 80 },
+          },
+        },
+        interpretation: { type: 'string', example: 'Good hook potential' },
+        recommendations: { type: 'array' },
+        matchedPatterns: { type: 'array' },
+      },
+    },
+  })
+  async analyzeHook(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: AnalyzeHookDto
+  ): Promise<HookAnalysisResult> {
+    return this._hookAnalyzerService.analyzeHook(org.id, body.metadata as HookMetadata);
+  }
+
+  /**
+   * Get successful hook patterns (Story 14.2 AC #3, #4)
+   */
+  @Get('hook/patterns')
+  @ApiOperation({
+    summary: 'Get successful hook patterns',
+    description: 'Get list of proven hook patterns from viral content, optionally filtered by niche or type',
+  })
+  @ApiQuery({ name: 'niche', required: false, description: 'Filter by content niche' })
+  @ApiQuery({ name: 'type', required: false, description: 'Filter by opening type' })
+  @ApiResponse({
+    status: 200,
+    description: 'Hook patterns retrieved',
+    schema: {
+      type: 'object',
+      properties: {
+        patterns: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', example: 'question' },
+              name: { type: 'string', example: 'Curiosity Question' },
+              description: { type: 'string' },
+              example: { type: 'string', example: 'Did you know 90% of people do this wrong?' },
+              successRate: { type: 'number', example: 85 },
+              bestFor: { type: 'array', items: { type: 'string' } },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getHookPatterns(
+    @Query('niche') niche?: string,
+    @Query('type') type?: HookOpeningType
+  ): Promise<{ patterns: HookPattern[] }> {
+    const patterns = await this._hookAnalyzerService.getHookPatterns(niche, type);
+    return { patterns };
+  }
+
+  /**
+   * Compare multiple hooks (Story 14.2 AC #5)
+   */
+  @Post('hook/compare')
+  @ApiOperation({
+    summary: 'Compare multiple hooks',
+    description: 'Compare multiple hooks and rank them by effectiveness score',
+  })
+  @ApiBody({ type: CompareHooksDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Hook comparison completed',
+    schema: {
+      type: 'object',
+      properties: {
+        rankings: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              hookId: { type: 'string', example: 'hook-1' },
+              score: { type: 'number', example: 82 },
+              rank: { type: 'number', example: 1 },
+              openingType: { type: 'string', example: 'curiosity' },
+              breakdown: { type: 'object' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async compareHooks(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: CompareHooksDto
+  ): Promise<HookComparisonResult> {
+    return this._hookAnalyzerService.compareHooks(
+      org.id,
+      body.hooks.map((h) => ({ id: h.id, metadata: h.metadata as HookMetadata }))
+    );
   }
 }

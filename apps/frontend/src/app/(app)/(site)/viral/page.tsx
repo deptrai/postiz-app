@@ -1,11 +1,16 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { ViralScoreCard, ScoreBreakdown } from '@gitroom/frontend/components/viral/viral-score-card';
 import { ImprovementSuggestions, ImprovementSuggestion } from '@gitroom/frontend/components/viral/improvement-suggestions';
 import { ContentComparison, RankedContent } from '@gitroom/frontend/components/viral/content-comparison';
+import { HookAnalysisCard, HookScoreBreakdown, HookRecommendation, HookPattern, HookOpeningType } from '@gitroom/frontend/components/viral/hook-analysis-card';
+import { HookPatterns } from '@gitroom/frontend/components/viral/hook-patterns';
+import { HookComparison } from '@gitroom/frontend/components/viral/hook-comparison';
+
+type TabType = 'viral' | 'hook';
 
 interface ViralScoreResult {
   overallScore: number;
@@ -14,9 +19,21 @@ interface ViralScoreResult {
   suggestions: ImprovementSuggestion[];
 }
 
+interface HookAnalysisResult {
+  effectivenessScore: number;
+  openingType: HookOpeningType;
+  breakdown: HookScoreBreakdown;
+  interpretation: string;
+  recommendations: HookRecommendation[];
+  matchedPatterns: HookPattern[];
+}
+
 export default function ViralScorePage() {
   const t = useT();
   const fetch = useFetch();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('viral');
 
   // Form state
   const [caption, setCaption] = useState('');
@@ -25,15 +42,45 @@ export default function ViralScorePage() {
   const [contentType, setContentType] = useState<'reel' | 'video' | 'post' | 'story'>('reel');
   const [scheduledTime, setScheduledTime] = useState('');
 
+  // Hook form state
+  const [hasQuickCuts, setHasQuickCuts] = useState(false);
+  const [hasMusic, setHasMusic] = useState(true);
+  const [hasSoundEffects, setHasSoundEffects] = useState(false);
+  const [hasVoiceover, setHasVoiceover] = useState(false);
+
   // Result state
   const [result, setResult] = useState<ViralScoreResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Hook analysis state
+  const [hookResult, setHookResult] = useState<HookAnalysisResult | null>(null);
+  const [hookPatterns, setHookPatterns] = useState<HookPattern[]>([]);
+  const [isLoadingHook, setIsLoadingHook] = useState(false);
+  const [hookHooks, setHookHooks] = useState<Array<{ id: string; hookText: string; contentType: string }>>([]);
+  const [hookComparisonResult, setHookComparisonResult] = useState<any[] | null>(null);
+  const [isComparingHooks, setIsComparingHooks] = useState(false);
+
   // Comparison state
   const [drafts, setDrafts] = useState<Array<{ id: string; caption: string; contentType: string }>>([]);
   const [comparisonResult, setComparisonResult] = useState<RankedContent[] | null>(null);
   const [isComparing, setIsComparing] = useState(false);
+
+  // Load hook patterns on mount
+  useEffect(() => {
+    const loadPatterns = async () => {
+      try {
+        const response = await fetch('/viral/hook/patterns');
+        if (response.ok) {
+          const data = await response.json();
+          setHookPatterns(data.patterns || []);
+        }
+      } catch (err) {
+        console.error('Failed to load hook patterns:', err);
+      }
+    };
+    loadPatterns();
+  }, [fetch]);
 
   const calculateScore = useCallback(async () => {
     setIsLoading(true);
@@ -121,6 +168,98 @@ export default function ViralScorePage() {
     setComparisonResult(null);
   }, []);
 
+  // Hook analysis functions
+  const analyzeHook = useCallback(async () => {
+    if (!hookText.trim()) return;
+
+    setIsLoadingHook(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/viral/hook/analyze', {
+        method: 'POST',
+        body: JSON.stringify({
+          metadata: {
+            hookText,
+            caption: caption || undefined,
+            contentType,
+            hasQuickCuts,
+            hasMusic,
+            hasSoundEffects,
+            hasVoiceover,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze hook');
+      }
+
+      const data = await response.json();
+      setHookResult(data);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setIsLoadingHook(false);
+    }
+  }, [hookText, caption, contentType, hasQuickCuts, hasMusic, hasSoundEffects, hasVoiceover, fetch]);
+
+  const addHookForComparison = useCallback(() => {
+    if (!hookText.trim()) return;
+
+    const newHook = {
+      id: `hook-${Date.now()}`,
+      hookText,
+      contentType,
+    };
+
+    setHookHooks((prev) => [...prev, newHook]);
+    setHookText('');
+  }, [hookText, contentType]);
+
+  const compareHooks = useCallback(async () => {
+    if (hookHooks.length < 2) return;
+
+    setIsComparingHooks(true);
+
+    try {
+      const response = await fetch('/viral/hook/compare', {
+        method: 'POST',
+        body: JSON.stringify({
+          hooks: hookHooks.map((h) => ({
+            id: h.id,
+            metadata: {
+              hookText: h.hookText,
+              contentType: h.contentType,
+              hasMusic,
+              hasVoiceover,
+            },
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to compare hooks');
+      }
+
+      const data = await response.json();
+      setHookComparisonResult(data.rankings);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setIsComparingHooks(false);
+    }
+  }, [hookHooks, hasMusic, hasVoiceover, fetch]);
+
+  const clearHooks = useCallback(() => {
+    setHookHooks([]);
+    setHookComparisonResult(null);
+  }, []);
+
+  const applyPattern = useCallback((pattern: HookPattern) => {
+    setHookText(pattern.example);
+  }, []);
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
@@ -148,17 +287,54 @@ export default function ViralScorePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Input Form */}
-        <div className="bg-third rounded-xl p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {t('viral.form.title', 'Content Details')}
-          </h3>
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-gray-700 pb-2">
+        <button
+          onClick={() => setActiveTab('viral')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+            activeTab === 'viral'
+              ? 'bg-purple-500 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Viral Score
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('hook')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+            activeTab === 'hook'
+              ? 'bg-purple-500 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Hook Analyzer
+          </span>
+        </button>
+      </div>
 
-          {/* Content Type */}
-          <div className="mb-4">
-            <label className="block text-sm text-gray-400 mb-2">
-              {t('viral.form.contentType', 'Content Type')}
+      {/* VIRAL SCORE TAB */}
+      {activeTab === 'viral' && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Input Form */}
+            <div className="bg-third rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                {t('viral.form.title', 'Content Details')}
+              </h3>
+
+              {/* Content Type */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">
+                  {t('viral.form.contentType', 'Content Type')}
             </label>
             <div className="flex gap-2">
               {(['reel', 'video', 'post', 'story'] as const).map((type) => (
@@ -374,12 +550,198 @@ export default function ViralScorePage() {
               </p>
             </div>
           )}
-        </div>
-      </div>
+            </div>
+          </div>
 
-      {/* Comparison Results */}
-      {comparisonResult && comparisonResult.length > 0 && (
-        <ContentComparison rankings={comparisonResult} isLoading={isComparing} />
+          {/* Comparison Results */}
+          {comparisonResult && comparisonResult.length > 0 && (
+            <ContentComparison rankings={comparisonResult} isLoading={isComparing} />
+          )}
+        </>
+      )}
+
+      {/* HOOK ANALYZER TAB */}
+      {activeTab === 'hook' && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Hook Input Form */}
+            <div className="bg-third rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4">Hook Details</h3>
+
+              {/* Content Type */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">Content Type</label>
+                <div className="flex gap-2">
+                  {(['reel', 'video', 'post', 'story'] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setContentType(type)}
+                      className={`px-4 py-2 rounded-lg text-sm capitalize transition-colors ${
+                        contentType === type
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-input text-gray-300 hover:bg-input/80'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Hook Text */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">Hook (First 3 Seconds)</label>
+                <textarea
+                  value={hookText}
+                  onChange={(e) => setHookText(e.target.value)}
+                  placeholder="Did you know this secret hack changes everything?"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-input rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+              </div>
+
+              {/* Audio/Visual Options */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">Audio & Visual Elements</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 p-3 bg-input rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasQuickCuts}
+                      onChange={(e) => setHasQuickCuts(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Quick Cuts</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-3 bg-input rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasMusic}
+                      onChange={(e) => setHasMusic(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Music</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-3 bg-input rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasSoundEffects}
+                      onChange={(e) => setHasSoundEffects(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Sound Effects</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-3 bg-input rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasVoiceover}
+                      onChange={(e) => setHasVoiceover(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Voiceover</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={analyzeHook}
+                  disabled={isLoadingHook || !hookText.trim()}
+                  className="flex-1 px-6 py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  {isLoadingHook ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Analyze Hook
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={addHookForComparison}
+                  disabled={!hookText.trim()}
+                  className="px-4 py-3 bg-input hover:bg-input/80 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  title="Add to comparison"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Hook List for Comparison */}
+              {hookHooks.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium text-gray-400">Hooks for Comparison ({hookHooks.length})</h4>
+                    <button onClick={clearHooks} className="text-xs text-red-400 hover:text-red-300">Clear All</button>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    {hookHooks.map((hook, index) => (
+                      <div key={hook.id} className="flex items-center gap-2 p-2 bg-input/50 rounded-lg text-sm">
+                        <span className="text-purple-400">#{index + 1}</span>
+                        <span className="flex-1 truncate text-gray-300">{hook.hookText}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={compareHooks}
+                    disabled={isComparingHooks || hookHooks.length < 2}
+                    className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+                  >
+                    {isComparingHooks ? 'Comparing...' : 'Compare Hooks'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Hook Results */}
+            <div className="space-y-6">
+              {hookResult ? (
+                <HookAnalysisCard
+                  effectivenessScore={hookResult.effectivenessScore}
+                  openingType={hookResult.openingType}
+                  breakdown={hookResult.breakdown}
+                  interpretation={hookResult.interpretation}
+                  isLoading={isLoadingHook}
+                />
+              ) : (
+                <div className="bg-third rounded-xl p-12 text-center">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-gray-400 mb-2">No Analysis Yet</h3>
+                  <p className="text-gray-500">Enter your hook text and click Analyze Hook to see effectiveness.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Hook Patterns */}
+          <HookPatterns patterns={hookPatterns} onApplyPattern={applyPattern} />
+
+          {/* Hook Comparison Results */}
+          {hookComparisonResult && hookComparisonResult.length > 0 && (
+            <HookComparison rankings={hookComparisonResult} isLoading={isComparingHooks} />
+          )}
+        </>
       )}
     </div>
   );

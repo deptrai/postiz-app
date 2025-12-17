@@ -62,6 +62,7 @@ import { MonetizationAlertService } from '@gitroom/nestjs-libraries/database/pri
 import { MonetizationAlertJobService } from '@gitroom/nestjs-libraries/database/prisma/monetization/monetization-alert-job.service';
 import { WatchTimeAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/monetization/watch-time-analytics.service';
 import { ViralScoreService } from '@gitroom/nestjs-libraries/database/prisma/viral/viral-score.service';
+import { HookAnalyzerService } from '@gitroom/nestjs-libraries/database/prisma/viral/hook-analyzer.service';
 
 @Global()
 @Module({
@@ -133,6 +134,7 @@ import { ViralScoreService } from '@gitroom/nestjs-libraries/database/prisma/vir
     MonetizationAlertJobService,
     WatchTimeAnalyticsService,
     ViralScoreService,
+    HookAnalyzerService,
   ],
   get exports() {
     return this.providers;
