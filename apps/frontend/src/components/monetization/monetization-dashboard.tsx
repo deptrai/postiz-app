@@ -182,6 +182,8 @@ export const MonetizationDashboard: FC = () => {
   const [watchTimeFilters, setWatchTimeFilters] = useState<WatchTimeFilterValues>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const fetch = useFetch();
 
   useEffect(() => {
@@ -292,6 +294,32 @@ export const MonetizationDashboard: FC = () => {
     }
   };
 
+  const handleSyncAnalytics = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+    try {
+      const response = await fetch('/monetization/sync-analytics', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSyncMessage(t('sync_triggered_success', `Đã kích hoạt đồng bộ cho ${data.integrations?.length || 0} trang. Dữ liệu sẽ cập nhật trong 2-5 phút.`));
+        // Reload data after 5 seconds
+        setTimeout(() => {
+          loadMonetizationData();
+          setSyncMessage(null);
+        }, 5000);
+      } else {
+        setSyncMessage(data.error || t('sync_failed', 'Đồng bộ thất bại'));
+      }
+    } catch (err) {
+      setSyncMessage(t('sync_error', 'Lỗi khi đồng bộ dữ liệu'));
+      console.error('Failed to sync analytics:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleTrendPeriodChange = async (days: number) => {
     setTrendDays(days);
     try {
@@ -396,30 +424,57 @@ export const MonetizationDashboard: FC = () => {
         <p className="text-textColor/60 mb-4">
           {t('track_your_progress_towards_facebook_monetization_eligibility', 'Track your progress towards Facebook monetization eligibility')}
         </p>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full" />
-            <span className="text-sm text-textColor/80">{eligibleCount} {t('eligible', 'Eligible')}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full" />
+              <span className="text-sm text-textColor/80">{eligibleCount} {t('eligible', 'Eligible')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+              <span className="text-sm text-textColor/80">
+                {[status.inStreamAds, status.reels, status.stars, status.fanSubscription].filter(
+                  (f) => f.status === 'close'
+                ).length}{' '}
+                {t('close_to_eligible', 'Close')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gray-500 rounded-full" />
+              <span className="text-sm text-textColor/80">
+                {[status.inStreamAds, status.reels, status.stars, status.fanSubscription].filter(
+                  (f) => f.status === 'not_eligible'
+                ).length}{' '}
+                {t('not_eligible', 'Not Eligible')}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-            <span className="text-sm text-textColor/80">
-              {[status.inStreamAds, status.reels, status.stars, status.fanSubscription].filter(
-                (f) => f.status === 'close'
-              ).length}{' '}
-              {t('close_to_eligible', 'Close')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gray-500 rounded-full" />
-            <span className="text-sm text-textColor/80">
-              {[status.inStreamAds, status.reels, status.stars, status.fanSubscription].filter(
-                (f) => f.status === 'not_eligible'
-              ).length}{' '}
-              {t('not_eligible', 'Not Eligible')}
-            </span>
-          </div>
+          <button
+            onClick={handleSyncAnalytics}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-4 py-2 bg-btnPrimary hover:bg-btnPrimary/80 disabled:bg-btnPrimary/50 text-white rounded-lg transition-colors"
+          >
+            <svg
+              className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            {isSyncing ? t('syncing', 'Đang đồng bộ...') : t('sync_data', 'Đồng bộ Dữ liệu')}
+          </button>
         </div>
+        {syncMessage && (
+          <div className={`mt-3 p-3 rounded-lg text-sm ${syncMessage.includes('thất bại') || syncMessage.includes('Lỗi') ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+            {syncMessage}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

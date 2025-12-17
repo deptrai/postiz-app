@@ -29,33 +29,42 @@ export class AnalyticsContentService {
   ) {
     const { externalContentId, contentType, caption, hashtags, publishedAt } = metadata;
 
-    // Upsert using unique constraint for idempotency
-    return this._prismaService.analyticsContent.upsert({
+    // Find existing content (Prisma doesn't support null in unique constraint lookups)
+    const existing = await this._prismaService.analyticsContent.findFirst({
       where: {
-        organizationId_integrationId_externalContentId_deletedAt: {
-          organizationId,
-          integrationId,
-          externalContentId,
-          deletedAt: null,
-        },
-      },
-      update: {
-        contentType,
-        caption,
-        hashtags: hashtags ? JSON.stringify(hashtags) : null,
-        publishedAt,
-        updatedAt: new Date(),
-      },
-      create: {
         organizationId,
         integrationId,
         externalContentId,
-        contentType,
-        caption,
-        hashtags: hashtags ? JSON.stringify(hashtags) : null,
-        publishedAt,
+        deletedAt: null,
       },
     });
+
+    if (existing) {
+      // Update existing
+      return this._prismaService.analyticsContent.update({
+        where: { id: existing.id },
+        data: {
+          contentType,
+          caption,
+          hashtags: hashtags ? JSON.stringify(hashtags) : null,
+          publishedAt,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new
+      return this._prismaService.analyticsContent.create({
+        data: {
+          organizationId,
+          integrationId,
+          externalContentId,
+          contentType,
+          caption,
+          hashtags: hashtags ? JSON.stringify(hashtags) : null,
+          publishedAt,
+        },
+      });
+    }
   }
 
   /**

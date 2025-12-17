@@ -68,7 +68,7 @@ export class AnalyticsController {
       // Fetch content from Facebook Graph API
       const content = await this.fetchFacebookContent(
         integration.internalId, // Facebook page ID
-        integration.token, // Access token
+        integration.token, // Access token (stored in plain text)
         date
       );
 
@@ -92,7 +92,7 @@ export class AnalyticsController {
         try {
           await this._experimentAutoTrackingService.autoTrackContent(content.id);
         } catch (error) {
-          this.logger.error(`Failed to auto-track content ${content.id}: ${error.message}`);
+          this.logger.error(`Failed to auto-track content ${content.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
           // Don't fail the entire ingestion if auto-tracking fails
         }
       }
@@ -381,7 +381,7 @@ export class AnalyticsController {
         try {
           const metrics = await this.fetchPostMetrics(
             contentItem.externalContentId,
-            integration.token
+            integration.token // Access token (stored in plain text)
           );
 
           await this._analyticsDailyMetricService.upsertMetric(

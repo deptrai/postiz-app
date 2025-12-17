@@ -8,6 +8,8 @@ import { WatchTimeAnalyticsService } from '@gitroom/nestjs-libraries/database/pr
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
+import { BullMqClient } from '@gitroom/nestjs-libraries/bull-mq-transport-new/client';
+import dayjs from 'dayjs';
 
 @ApiTags('Monetization')
 @Controller('/monetization')
@@ -17,7 +19,8 @@ export class MonetizationController {
     private readonly _recommendationEngine: RecommendationEngine,
     private readonly _monetizationAlertJobService: MonetizationAlertJobService,
     private readonly _watchTimeAnalyticsService: WatchTimeAnalyticsService,
-    private readonly _prisma: PrismaService
+    private readonly _prisma: PrismaService,
+    private readonly _workerServiceProducer: BullMqClient
   ) {}
 
   @Get('/status')
@@ -461,6 +464,125 @@ export class MonetizationController {
       return {
         success: true,
         format: exportFormat,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  @Post('/sync-analytics')
+  @ApiOperation({ summary: 'Manually trigger analytics sync for tracked integrations' })
+  @ApiResponse({
+    status: 200,
+    description: 'Analytics sync triggered successfully',
+  })
+  async syncAnalytics(@GetOrgFromRequest() org: Organization) {
+    try {
+      // Get tracked Facebook integrations for this organization
+      const trackedIntegrations = await this._prisma.analyticsTrackedIntegration.findMany({
+        where: {
+          integration: {
+            organizationId: org.id,
+            providerIdentifier: 'facebook',
+            disabled: false,
+            deletedAt: null,
+          },
+        },
+        include: {
+          integration: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (trackedIntegrations.length === 0) {
+        return {
+          success: false,
+          error: 'No tracked Facebook integrations found',
+        };
+      }
+
+      // Trigger ingestion for last 7 days for each integration
+      const startDate = dayjs().subtract(7, 'days').format('YYYY-MM-DD');
+      const endDate = dayjs().format('YYYY-MM-DD');
+      
+      const jobs = [];
+
+      for (const tracked of trackedIntegrations) {
+        let currentDate = dayjs(startDate);
+        const end = dayjs(endDate);
+
+        while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
+          const date = currentDate.format('YYYY-MM-DD');
+          const jobId = `analytics-manual-sync-${org.id}-${tracked.integration.id}-${date}`;
+
+          // Enqueue content ingestion job
+          this._workerServiceProducer.emit('analytics-ingest', {
+            id: jobId,
+            options: {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 2000,
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            },
+            payload: {
+              organizationId: org.id,
+              integrationId: tracked.integration.id,
+              date,
+              jobId,
+            },
+          });
+
+          // Enqueue metrics ingestion job (delayed 2 minutes)
+          const metricsJobId = `analytics-manual-metrics-${org.id}-${tracked.integration.id}-${date}`;
+          this._workerServiceProducer.emit('analytics-ingest-metrics', {
+            id: metricsJobId,
+            options: {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 2000,
+              },
+              delay: 120000, // 2 minutes delay
+              removeOnComplete: true,
+              removeOnFail: false,
+            },
+            payload: {
+              organizationId: org.id,
+              integrationId: tracked.integration.id,
+              date,
+              jobId: metricsJobId,
+            },
+          });
+
+          jobs.push({
+            integration: tracked.integration.name,
+            date,
+          });
+
+          currentDate = currentDate.add(1, 'day');
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Analytics sync triggered successfully',
+        integrations: trackedIntegrations.map(t => t.integration.name),
+        dateRange: {
+          start: startDate,
+          end: endDate,
+        },
+        jobsEnqueued: jobs.length,
+        estimatedTime: '2-5 minutes',
       };
     } catch (error) {
       return {
