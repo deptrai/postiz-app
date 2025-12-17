@@ -52,6 +52,7 @@ import { AlertsController } from '@gitroom/backend/api/routes/alerts.controller'
 import { AlertNotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/alert-notification.service';
 import { AIController } from '@gitroom/backend/api/routes/ai.controller';
 import { AIAssistantService } from '@gitroom/nestjs-libraries/database/prisma/ai/ai-assistant.service';
+import { ViralController } from '@gitroom/backend/api/routes/viral.controller';
 
 const authenticatedController = [
   UsersController,
@@ -77,6 +78,7 @@ const authenticatedController = [
   ThirdPartyController,
   AlertsController,
   AIController,
+  ViralController,
 ];
 @Module({
   imports: [UploadModule],

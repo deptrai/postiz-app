@@ -1,6 +1,6 @@
 # Story 14.1: Viral Score Prediction
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -34,41 +34,41 @@ So that **tôi biết content nào có tiềm năng cao**.
 
 ### Backend Implementation
 
-- [ ] Create ViralScoreService (AC: #1, #2)
-  - [ ] Implement `calculateViralScore(contentMetadata)` method
-  - [ ] Define scoring factors and weights
-  - [ ] Compare với historical viral content
+- [x] Create ViralScoreService (AC: #1, #2)
+  - [x] Implement `calculateViralScore(contentMetadata)` method
+  - [x] Define scoring factors and weights
+  - [x] Compare với historical viral content
 
-- [ ] Implement Scoring Factors (AC: #3)
-  - [ ] Hook score (first 3 seconds analysis)
-  - [ ] Caption score (length, style, keywords)
-  - [ ] Hashtag score (relevance, trending)
-  - [ ] Timing score (posting time vs optimal)
-  - [ ] Format score (Reels vs Post)
+- [x] Implement Scoring Factors (AC: #3)
+  - [x] Hook score (first 3 seconds analysis)
+  - [x] Caption score (length, style, keywords)
+  - [x] Hashtag score (relevance, trending)
+  - [x] Timing score (posting time vs optimal)
+  - [x] Format score (Reels vs Post)
 
-- [ ] Add Improvement Suggestions (AC: #4)
-  - [ ] Generate suggestions based on low-scoring factors
-  - [ ] Prioritize by impact
+- [x] Add Improvement Suggestions (AC: #4)
+  - [x] Generate suggestions based on low-scoring factors
+  - [x] Prioritize by impact
 
-- [ ] Add Viral Score API endpoints (AC: #1, #5)
-  - [ ] POST /api/viral/score - Calculate viral score
-  - [ ] POST /api/viral/compare - Compare multiple drafts
-  - [ ] Add Swagger documentation
+- [x] Add Viral Score API endpoints (AC: #1, #5)
+  - [x] POST /api/viral/score - Calculate viral score
+  - [x] POST /api/viral/compare - Compare multiple drafts
+  - [x] Add Swagger documentation
 
 ### Frontend Implementation
 
-- [ ] Create ViralScoreCard component (AC: #1, #3)
-  - [ ] Overall score display (0-100)
-  - [ ] Score breakdown by factor
-  - [ ] Visual indicators (color-coded)
+- [x] Create ViralScoreCard component (AC: #1, #3)
+  - [x] Overall score display (0-100)
+  - [x] Score breakdown by factor
+  - [x] Visual indicators (color-coded)
 
-- [ ] Create ImprovementSuggestions component (AC: #4)
-  - [ ] List of actionable suggestions
-  - [ ] Impact indicators
+- [x] Create ImprovementSuggestions component (AC: #4)
+  - [x] List of actionable suggestions
+  - [x] Impact indicators
 
-- [ ] Create ContentComparison component (AC: #5)
-  - [ ] Side-by-side comparison
-  - [ ] Ranking display
+- [x] Create ContentComparison component (AC: #5)
+  - [x] Side-by-side comparison
+  - [x] Ranking display
 
 - [ ] Add Viral Score page/modal
   - [ ] Input form for content metadata
@@ -76,14 +76,14 @@ So that **tôi biết content nào có tiềm năng cao**.
 
 ### Testing
 
-- [ ] Backend tests
-  - [ ] Unit test: Score calculation
-  - [ ] Unit test: Factor scoring
-  - [ ] Unit test: Suggestion generation
+- [x] Backend tests
+  - [x] Unit test: Score calculation
+  - [x] Unit test: Factor scoring
+  - [x] Unit test: Suggestion generation
 
-- [ ] Frontend tests
-  - [ ] Component test: ViralScoreCard
-  - [ ] Component test: ImprovementSuggestions
+- [x] Frontend tests
+  - [x] Component test: ViralScoreCard
+  - [x] Component test: ImprovementSuggestions
 
 ## Dev Notes
 
@@ -139,6 +139,27 @@ Claude (Cascade)
 
 ### File List
 
+**Backend:**
+- `libraries/nestjs-libraries/src/database/prisma/viral/viral-score.service.ts` - Core scoring service
+- `apps/backend/src/api/routes/viral.controller.ts` - API endpoints
+- `libraries/nestjs-libraries/src/database/prisma/database.module.ts` - Module registration
+
+**Frontend:**
+- `apps/frontend/src/components/viral/viral-score-card.tsx` - Score display component
+- `apps/frontend/src/components/viral/improvement-suggestions.tsx` - Suggestions component
+- `apps/frontend/src/components/viral/content-comparison.tsx` - Comparison component
+
+**Tests:**
+- `libraries/nestjs-libraries/src/database/prisma/viral/viral-score.service.spec.ts` - Backend unit tests
+- `libraries/nestjs-libraries/src/database/prisma/viral/run-tests.ts` - Test runner
+- `apps/frontend/src/components/viral/viral-score-card.test.tsx` - Frontend tests
+- `apps/frontend/src/components/viral/improvement-suggestions.test.tsx` - Frontend tests
+- `apps/frontend/src/components/viral/content-comparison.test.tsx` - Frontend tests
+
 ## Change Log
 
 - 2025-12-14: Story 14.1 drafted by Mary (Business Analyst)
+- 2025-12-17: Backend ViralScoreService implemented with all scoring factors
+- 2025-12-17: API endpoints POST /viral/score and POST /viral/compare added
+- 2025-12-17: Frontend components (ViralScoreCard, ImprovementSuggestions, ContentComparison) created
+- 2025-12-17: Backend tests (7/7 passed) and frontend tests created
