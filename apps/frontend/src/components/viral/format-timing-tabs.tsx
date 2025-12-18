@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { TimingWindow, ConfidenceLevel } from './viral-timing-card';
 
 export type ContentFormat = 'reel' | 'video' | 'post' | 'story';

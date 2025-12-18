@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 // Types matching backend
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
@@ -80,6 +81,8 @@ export function ViralTimingCard({
   insights,
   isLoading = false,
 }: ViralTimingCardProps) {
+  const t = useT();
+  
   if (isLoading) {
     return (
       <div className="bg-third rounded-xl p-6 animate-pulse">
@@ -96,13 +99,13 @@ export function ViralTimingCard({
         <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        Optimal Timing
+        {t('optimal_timing')}
       </h3>
 
       {/* Best Overall Time */}
       <div className={`p-4 rounded-lg border mb-6 ${getConfidenceBgColor(bestOverallTime.confidence)}`}>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-400">Best Time to Post</span>
+          <span className="text-sm text-gray-400">{t('best_time_to_post')}</span>
           <span className={`text-xs px-2 py-1 rounded-full capitalize ${getConfidenceColor(bestOverallTime.confidence)} bg-black/20`}>
             {bestOverallTime.confidence} confidence
           </span>
@@ -122,7 +125,7 @@ export function ViralTimingCard({
 
       {/* Recommended Windows */}
       <div className="mb-6">
-        <h4 className="text-sm font-medium text-gray-400 mb-3">Recommended Windows</h4>
+        <h4 className="text-sm font-medium text-gray-400 mb-3">{t('recommended_windows')}</h4>
         <div className="space-y-3">
           {recommendedWindows.slice(0, 5).map((window, index) => (
             <div
@@ -159,7 +162,7 @@ export function ViralTimingCard({
       {/* Insights */}
       {insights.length > 0 && (
         <div className="border-t border-gray-700 pt-4">
-          <h4 className="text-sm font-medium text-gray-400 mb-3">Insights</h4>
+          <h4 className="text-sm font-medium text-gray-400 mb-3">{t('insights')}</h4>
           <ul className="space-y-2">
             {insights.map((insight, index) => (
               <li key={index} className="flex items-start gap-2 text-sm text-gray-300">

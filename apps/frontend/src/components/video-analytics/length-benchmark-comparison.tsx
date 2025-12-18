@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 export type VideoFormat = 'reel' | 'video' | 'story';
 
@@ -64,6 +65,8 @@ export function LengthBenchmarkComparison({
   benchmark,
   isLoading = false,
 }: LengthBenchmarkComparisonProps) {
+  const t = useT();
+  
   if (isLoading) {
     return (
       <div className="bg-third rounded-xl p-6 animate-pulse">
@@ -79,7 +82,7 @@ export function LengthBenchmarkComparison({
   return (
     <div className="bg-third rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Industry Benchmark</h3>
+        <h3 className="text-lg font-semibold text-white">{t('length_benchmark')}</h3>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 uppercase bg-gray-700 px-2 py-1 rounded">
             {benchmark.niche}

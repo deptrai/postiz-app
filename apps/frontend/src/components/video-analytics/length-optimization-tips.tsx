@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 export type TipPriority = 'high' | 'medium' | 'low';
 export type TipCategory = 'hook' | 'pacing' | 'content' | 'format' | 'general';
@@ -80,6 +81,7 @@ export function LengthOptimizationTips({
   tips,
   isLoading = false,
 }: LengthOptimizationTipsProps) {
+  const t = useT();
   const [expandedTip, setExpandedTip] = useState<number | null>(null);
 
   if (isLoading) {
@@ -102,9 +104,9 @@ export function LengthOptimizationTips({
     <div className="bg-third rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">Optimization Tips</h3>
+          <h3 className="text-lg font-semibold text-white">{t('length_tips')}</h3>
           <p className="text-sm text-gray-400">
-            {tips.length} recommendations • {highPriorityCount} high priority
+            {tips.length} {t('suggestions')} • {highPriorityCount} {t('high_priority')}
           </p>
         </div>
         <div className="flex items-center gap-2">

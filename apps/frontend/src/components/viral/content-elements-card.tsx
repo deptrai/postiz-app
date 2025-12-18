@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 // Types matching backend
 export type CaptionTone = 'casual' | 'professional' | 'humorous' | 'educational' | 'inspirational';
@@ -103,6 +104,7 @@ function getPotentialColor(potential: 'high' | 'medium' | 'low'): string {
 }
 
 export function ContentElementsCard({ analysis, isLoading = false }: ContentElementsCardProps) {
+  const t = useT();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   if (isLoading) {

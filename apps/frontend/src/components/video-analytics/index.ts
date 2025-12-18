@@ -25,3 +25,16 @@ export type { LengthBenchmarkComparisonProps, LengthBenchmark } from './length-b
 
 export { LengthOptimizationTips } from './length-optimization-tips';
 export type { LengthOptimizationTipsProps, LengthOptimizationTip, TipPriority, TipCategory } from './length-optimization-tips';
+
+// Story 15.4: Thumbnail Effectiveness
+export { ThumbnailPerformanceTable } from './thumbnail-performance-table';
+export type { ThumbnailPerformanceTableProps, ThumbnailPerformance, ThumbnailStyle } from './thumbnail-performance-table';
+
+export { StylePerformanceChart } from './style-performance-chart';
+export type { StylePerformanceChartProps, StylePerformance } from './style-performance-chart';
+
+export { ThumbnailSuggestions } from './thumbnail-suggestions';
+export type { ThumbnailSuggestionsProps, ThumbnailSuggestion } from './thumbnail-suggestions';
+
+export { SuccessPatternsCard } from './success-patterns-card';
+export type { SuccessPatternsCardProps, SuccessPattern } from './success-patterns-card';

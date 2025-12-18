@@ -2,6 +2,7 @@
 
 import React from 'react';
 import clsx from 'clsx';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { HookOpeningType, HookPattern } from './hook-analysis-card';
 
 interface HookPatternsProps {

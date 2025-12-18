@@ -23,9 +23,19 @@ import {
   OptimalLengthRecommendation,
   LengthBenchmark,
   LengthOptimizationTip,
+  LengthRange,
+  ThumbnailPerformanceTable,
+  StylePerformanceChart,
+  ThumbnailSuggestions,
+  SuccessPatternsCard,
+  ThumbnailPerformance,
+  StylePerformance,
+  ThumbnailSuggestion,
+  SuccessPattern,
+  ThumbnailStyle,
 } from '@gitroom/frontend/components/video-analytics';
 
-type TabType = 'retention' | 'benchmark' | 'compare' | 'length';
+type TabType = 'retention' | 'benchmark' | 'compare' | 'length' | 'thumbnail';
 
 interface RetentionCurveResult {
   videoId: string;
@@ -70,11 +80,26 @@ export default function VideoAnalyticsPage() {
   const [bestPerformingRange, setBestPerformingRange] = useState<string>('15-30');
   const [totalLengthVideos, setTotalLengthVideos] = useState<number>(0);
 
+  // Thumbnail effectiveness state (Story 15.4)
+  const [thumbnailPerformances, setThumbnailPerformances] = useState<ThumbnailPerformance[] | null>(null);
+  const [thumbnailAvgCtr, setThumbnailAvgCtr] = useState<number>(0);
+  const [thumbnailBestPerformer, setThumbnailBestPerformer] = useState<ThumbnailPerformance | undefined>();
+  const [thumbnailWorstPerformer, setThumbnailWorstPerformer] = useState<ThumbnailPerformance | undefined>();
+  const [stylePerformances, setStylePerformances] = useState<StylePerformance[] | null>(null);
+  const [styleBest, setStyleBest] = useState<ThumbnailStyle>('face');
+  const [styleWorst, setStyleWorst] = useState<ThumbnailStyle>('minimal');
+  const [styleRecommendations, setStyleRecommendations] = useState<string[]>([]);
+  const [thumbnailSuggestions, setThumbnailSuggestions] = useState<ThumbnailSuggestion[] | null>(null);
+  const [successPatterns, setSuccessPatterns] = useState<SuccessPattern[] | null>(null);
+  const [patternTopPerformers, setPatternTopPerformers] = useState<ThumbnailPerformance[]>([]);
+  const [patternInsights, setPatternInsights] = useState<string[]>([]);
+
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingBenchmark, setIsLoadingBenchmark] = useState(false);
   const [isLoadingComparison, setIsLoadingComparison] = useState(false);
   const [isLoadingLength, setIsLoadingLength] = useState(false);
+  const [isLoadingThumbnail, setIsLoadingThumbnail] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Analyze retention curve
@@ -251,13 +276,75 @@ export default function VideoAnalyticsPage() {
     }
   }, [format, niche, fetch]);
 
+  // Analyze thumbnail performance (Story 15.4)
+  const analyzeThumbnailPerformance = useCallback(async () => {
+    setIsLoadingThumbnail(true);
+    setError(null);
+
+    try {
+      // Get thumbnail performance
+      const perfResponse = await fetch(`/video-analytics/thumbnail`, {
+        method: 'GET',
+      });
+
+      if (!perfResponse.ok) {
+        throw new Error('Failed to get thumbnail performance');
+      }
+
+      const perfData = await perfResponse.json();
+      setThumbnailPerformances(perfData.thumbnails);
+      setThumbnailAvgCtr(perfData.avgCtr);
+      setThumbnailBestPerformer(perfData.bestPerformer);
+      setThumbnailWorstPerformer(perfData.worstPerformer);
+
+      // Get style performance
+      const styleResponse = await fetch(`/video-analytics/thumbnail/styles`, {
+        method: 'GET',
+      });
+
+      if (styleResponse.ok) {
+        const styleData = await styleResponse.json();
+        setStylePerformances(styleData.styles);
+        setStyleBest(styleData.bestStyle);
+        setStyleWorst(styleData.worstStyle);
+        setStyleRecommendations(styleData.recommendations);
+      }
+
+      // Get suggestions
+      const suggestionsResponse = await fetch(`/video-analytics/thumbnail/suggestions`, {
+        method: 'GET',
+      });
+
+      if (suggestionsResponse.ok) {
+        const suggestionsData = await suggestionsResponse.json();
+        setThumbnailSuggestions(suggestionsData);
+      }
+
+      // Get success patterns
+      const patternsResponse = await fetch(`/video-analytics/thumbnail/patterns`, {
+        method: 'GET',
+      });
+
+      if (patternsResponse.ok) {
+        const patternsData = await patternsResponse.json();
+        setSuccessPatterns(patternsData.patterns);
+        setPatternTopPerformers(patternsData.topPerformers);
+        setPatternInsights(patternsData.insights);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoadingThumbnail(false);
+    }
+  }, [fetch]);
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Video Analytics</h1>
-          <p className="text-gray-400 mt-1">Analyze video retention and optimize performance</p>
+          <h1 className="text-2xl font-bold text-white">{t('video_analytics')}</h1>
+          <p className="text-gray-400 mt-1">{t('analyze_video_retention')}</p>
         </div>
       </div>
 
@@ -271,7 +358,7 @@ export default function VideoAnalyticsPage() {
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          📈 Retention Curve
+          📈 {t('retention_curve')}
         </button>
         <button
           onClick={() => setActiveTab('benchmark')}
@@ -281,7 +368,7 @@ export default function VideoAnalyticsPage() {
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          📊 Benchmark
+          📊 {t('benchmark')}
         </button>
         <button
           onClick={() => setActiveTab('compare')}
@@ -291,7 +378,7 @@ export default function VideoAnalyticsPage() {
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          🔄 Compare Videos
+          🔄 {t('compare_videos')}
         </button>
         <button
           onClick={() => setActiveTab('length')}
@@ -301,7 +388,17 @@ export default function VideoAnalyticsPage() {
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          ⏱️ Length Optimization
+          ⏱️ {t('length_optimization')}
+        </button>
+        <button
+          onClick={() => setActiveTab('thumbnail')}
+          className={`px-4 py-2 rounded-t-lg transition-colors ${
+            activeTab === 'thumbnail'
+              ? 'bg-purple-500/20 text-purple-400 border-b-2 border-purple-500'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          🖼️ {t('thumbnail')}
         </button>
       </div>
 
@@ -317,11 +414,11 @@ export default function VideoAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Form */}
           <div className="bg-third rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Video Details</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{t('video_details')}</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Video ID</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('video_id')}</label>
                 <input
                   type="text"
                   value={videoId}
@@ -332,7 +429,7 @@ export default function VideoAnalyticsPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Video Title (optional)</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('video_title_optional')}</label>
                 <input
                   type="text"
                   value={videoTitle}
@@ -344,7 +441,7 @@ export default function VideoAnalyticsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Total Viewers</label>
+                  <label className="block text-sm text-gray-400 mb-1">{t('total_viewers')}</label>
                   <input
                     type="number"
                     value={totalViewers}
@@ -354,7 +451,7 @@ export default function VideoAnalyticsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Duration (sec)</label>
+                  <label className="block text-sm text-gray-400 mb-1">{t('duration_sec')}</label>
                   <input
                     type="number"
                     value={videoDuration}
@@ -370,7 +467,7 @@ export default function VideoAnalyticsPage() {
                 disabled={isLoading || !videoId.trim()}
                 className="w-full bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
               >
-                {isLoading ? 'Analyzing...' : 'Analyze Retention'}
+                {isLoading ? t('analyzing') : t('analyze_retention')}
               </button>
             </div>
           </div>
@@ -404,9 +501,9 @@ export default function VideoAnalyticsPage() {
             ) : (
               <div className="bg-third rounded-xl p-12 text-center">
                 <div className="text-6xl mb-4">📊</div>
-                <h3 className="text-xl font-semibold text-white mb-2">No Data Yet</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">{t('no_data_yet')}</h3>
                 <p className="text-gray-400">
-                  Enter a video ID and click "Analyze Retention" to see your retention curve
+                  {t('enter_video_id_to_analyze')}
                 </p>
               </div>
             )}
@@ -582,7 +679,7 @@ export default function VideoAnalyticsPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Format</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('format')}</label>
                 <select
                   value={format}
                   onChange={(e) => setFormat(e.target.value as 'reel' | 'video' | 'story')}
@@ -595,7 +692,7 @@ export default function VideoAnalyticsPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Niche</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('niche')}</label>
                 <select
                   value={niche}
                   onChange={(e) => setNiche(e.target.value)}
@@ -679,6 +776,81 @@ export default function VideoAnalyticsPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Thumbnail Tab (Story 15.4) */}
+      {activeTab === 'thumbnail' && (
+        <div className="space-y-6">
+          {/* Analyze Button */}
+          <div className="bg-third rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">{t('thumbnail_analysis')}</h3>
+                <p className="text-sm text-gray-400">{t('analyze_ctr_performance')}</p>
+              </div>
+              <button
+                onClick={analyzeThumbnailPerformance}
+                disabled={isLoadingThumbnail}
+                className="bg-purple-500 hover:bg-purple-600 disabled:bg-purple-500/50 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                {isLoadingThumbnail ? t('analyzing') : t('analyze_thumbnails')}
+              </button>
+            </div>
+          </div>
+
+          {thumbnailPerformances ? (
+            <>
+              {/* Performance Table */}
+              <ThumbnailPerformanceTable
+                thumbnails={thumbnailPerformances}
+                totalVideos={thumbnailPerformances.length}
+                avgCtr={thumbnailAvgCtr}
+                bestPerformer={thumbnailBestPerformer}
+                worstPerformer={thumbnailWorstPerformer}
+                isLoading={isLoadingThumbnail}
+              />
+
+              {/* Style Performance Chart */}
+              {stylePerformances && (
+                <StylePerformanceChart
+                  styles={stylePerformances}
+                  bestStyle={styleBest}
+                  worstStyle={styleWorst}
+                  recommendations={styleRecommendations}
+                  isLoading={isLoadingThumbnail}
+                />
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Suggestions */}
+                {thumbnailSuggestions && (
+                  <ThumbnailSuggestions
+                    suggestions={thumbnailSuggestions}
+                    isLoading={isLoadingThumbnail}
+                  />
+                )}
+
+                {/* Success Patterns */}
+                {successPatterns && (
+                  <SuccessPatternsCard
+                    patterns={successPatterns}
+                    topPerformers={patternTopPerformers}
+                    insights={patternInsights}
+                    isLoading={isLoadingThumbnail}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-third rounded-xl p-12 text-center">
+              <div className="text-6xl mb-4">🖼️</div>
+              <h3 className="text-xl font-semibold text-white mb-2">{t('no_thumbnail_data')}</h3>
+              <p className="text-gray-400">
+                {t('click_analyze_thumbnails')}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

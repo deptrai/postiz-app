@@ -2,6 +2,7 @@
 
 import { FC } from 'react';
 import { clsx } from 'clsx';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 interface ViralAlertData {
   id: string;

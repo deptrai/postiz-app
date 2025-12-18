@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 export type VideoFormat = 'reel' | 'video' | 'story';
 
@@ -65,6 +66,8 @@ export function OptimalLengthCard({
   recommendation,
   isLoading = false,
 }: OptimalLengthCardProps) {
+  const t = useT();
+  
   if (isLoading) {
     return (
       <div className="bg-third rounded-xl p-6 animate-pulse">
@@ -81,7 +84,7 @@ export function OptimalLengthCard({
   return (
     <div className="bg-third rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Optimal Length</h3>
+        <h3 className="text-lg font-semibold text-white">{t('optimal_length')}</h3>
         <span className="text-xs text-gray-400 uppercase">
           {recommendation.format}
         </span>

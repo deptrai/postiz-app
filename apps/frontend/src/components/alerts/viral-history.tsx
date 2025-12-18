@@ -2,6 +2,7 @@
 
 import { FC, useState, useCallback, useEffect } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ViralSpikeCard } from './viral-spike-card';
 
 interface ViralAlertData {
@@ -40,6 +41,7 @@ interface ViralHistoryResponse {
 }
 
 export const ViralHistory: FC = () => {
+  const t = useT();
   const fetch = useFetch();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [data, setData] = useState<ViralHistoryResponse | null>(null);
@@ -96,10 +98,10 @@ export const ViralHistory: FC = () => {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <span className="text-2xl">🔥</span>
-            Viral Content
+            {t('viral_content')}
           </h2>
           <p className="text-sm text-gray-400 mt-1">
-            Content with engagement spikes &gt;200% in 24h
+            {t('viral_content_description')}
           </p>
         </div>
         <button
@@ -110,12 +112,12 @@ export const ViralHistory: FC = () => {
           {isChecking ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-400"></div>
-              Checking...
+              {t('checking')}
             </>
           ) : (
             <>
               <span>🔍</span>
-              Check for Viral Content
+              {t('check_viral_content')}
             </>
           )}
         </button>

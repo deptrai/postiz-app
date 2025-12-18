@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
   LineChart,
   Line,
@@ -56,6 +57,8 @@ export function RetentionCurveChart({
   isLoading = false,
   onPointClick,
 }: RetentionCurveChartProps) {
+  const t = useT();
+  
   if (isLoading) {
     return (
       <div className="bg-third rounded-xl p-6">
@@ -125,7 +128,7 @@ export function RetentionCurveChart({
     <div className="bg-third rounded-xl p-6">
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-white mb-1">Retention Curve</h3>
+        <h3 className="text-lg font-semibold text-white mb-1">{t('retention_curve')}</h3>
         {videoTitle && (
           <p className="text-sm text-gray-400">{videoTitle}</p>
         )}
@@ -200,7 +203,7 @@ export function RetentionCurveChart({
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <span className="text-xs text-gray-400">High Severity (>20%)</span>
+              <span className="text-xs text-gray-400">High Severity ({'>'} 20%)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-amber-500"></div>

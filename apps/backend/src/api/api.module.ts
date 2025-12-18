@@ -56,6 +56,7 @@ import { ViralController } from '@gitroom/backend/api/routes/viral.controller';
 import { VideoAnalyticsController } from '@gitroom/backend/api/routes/video-analytics.controller';
 import { RetentionAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/retention-analytics.service';
 import { VideoLengthAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/video-length-analytics.service';
+import { ThumbnailAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/thumbnail-analytics.service';
 
 const authenticatedController = [
   UsersController,
@@ -125,6 +126,7 @@ const authenticatedController = [
     AIAssistantService,
     RetentionAnalyticsService,
     VideoLengthAnalyticsService,
+    ThumbnailAnalyticsService,
   ],
   get exports() {
     return [...this.imports, ...this.providers];

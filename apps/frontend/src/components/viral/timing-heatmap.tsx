@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 // Types matching backend
 export interface HeatmapCell {
@@ -58,6 +59,8 @@ export function TimingHeatmap({
   onCellClick,
   isLoading = false,
 }: TimingHeatmapProps) {
+  const t = useT();
+  
   if (isLoading) {
     return (
       <div className="bg-third rounded-xl p-6 animate-pulse">

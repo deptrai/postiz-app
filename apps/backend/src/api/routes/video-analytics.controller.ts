@@ -18,6 +18,14 @@ import {
   LengthOptimizationTip,
   VideoFormat as LengthVideoFormat,
 } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/video-length-analytics.service';
+import {
+  ThumbnailAnalyticsService,
+  ThumbnailPerformanceResult,
+  StylePerformanceResult,
+  ThumbnailSuggestion,
+  SuccessPatternsResult,
+  ThumbnailStyle,
+} from '@gitroom/nestjs-libraries/database/prisma/video-analytics/thumbnail-analytics.service';
 
 // DTOs for Swagger documentation
 class VideoRetentionDto {
@@ -43,7 +51,8 @@ class CompareVideosDto {
 export class VideoAnalyticsController {
   constructor(
     private readonly _retentionAnalyticsService: RetentionAnalyticsService,
-    private readonly _videoLengthAnalyticsService: VideoLengthAnalyticsService
+    private readonly _videoLengthAnalyticsService: VideoLengthAnalyticsService,
+    private readonly _thumbnailAnalyticsService: ThumbnailAnalyticsService
   ) {}
 
   /**
@@ -486,5 +495,167 @@ export class VideoAnalyticsController {
     @Query('format') format: LengthVideoFormat
   ): Promise<LengthOptimizationTip[]> {
     return this._videoLengthAnalyticsService.getLengthOptimizationTips(org.id, format);
+  }
+
+  // ==================== Thumbnail Analytics Endpoints ====================
+
+  /**
+   * Get thumbnail performance for all videos (AC #1)
+   */
+  @Get('thumbnail')
+  @ApiOperation({
+    summary: 'Get thumbnail performance',
+    description: 'Get CTR analysis for all video thumbnails',
+  })
+  @ApiQuery({
+    name: 'style',
+    required: false,
+    enum: ['text-heavy', 'face', 'action', 'minimal', 'before-after', 'curiosity-gap'],
+    description: 'Filter by thumbnail style',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Thumbnail performance data',
+    schema: {
+      type: 'object',
+      properties: {
+        organizationId: { type: 'string' },
+        thumbnails: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              videoId: { type: 'string' },
+              videoTitle: { type: 'string' },
+              style: { type: 'string' },
+              impressions: { type: 'number' },
+              clicks: { type: 'number' },
+              ctr: { type: 'number', example: 8.5 },
+            },
+          },
+        },
+        totalVideos: { type: 'number' },
+        avgCtr: { type: 'number' },
+      },
+    },
+  })
+  async getThumbnailPerformance(
+    @GetOrgFromRequest() org: Organization,
+    @Query('style') style?: ThumbnailStyle
+  ): Promise<ThumbnailPerformanceResult> {
+    return this._thumbnailAnalyticsService.getThumbnailPerformance(org.id, { style });
+  }
+
+  /**
+   * Get performance breakdown by thumbnail style (AC #2, #3)
+   */
+  @Get('thumbnail/styles')
+  @ApiOperation({
+    summary: 'Get style performance',
+    description: 'Get CTR breakdown by thumbnail style with rankings',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Style performance data',
+    schema: {
+      type: 'object',
+      properties: {
+        organizationId: { type: 'string' },
+        styles: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              style: { type: 'string' },
+              styleLabel: { type: 'string' },
+              avgCtr: { type: 'number' },
+              videoCount: { type: 'number' },
+              rank: { type: 'number' },
+              benchmark: { type: 'number' },
+              vsIndustry: { type: 'string', enum: ['above', 'at', 'below'] },
+            },
+          },
+        },
+        bestStyle: { type: 'string' },
+        worstStyle: { type: 'string' },
+        recommendations: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  async getStylePerformance(
+    @GetOrgFromRequest() org: Organization
+  ): Promise<StylePerformanceResult> {
+    return this._thumbnailAnalyticsService.getStylePerformance(org.id);
+  }
+
+  /**
+   * Get A/B test suggestions and best practices (AC #4)
+   */
+  @Get('thumbnail/suggestions')
+  @ApiOperation({
+    summary: 'Get thumbnail suggestions',
+    description: 'Get A/B test ideas and best practices for thumbnails',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Thumbnail suggestions',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['ab-test', 'best-practice'] },
+          priority: { type: 'string', enum: ['high', 'medium', 'low'] },
+          title: { type: 'string' },
+          description: { type: 'string' },
+          expectedImprovement: { type: 'string' },
+          actionItems: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
+  })
+  async getThumbnailSuggestions(
+    @GetOrgFromRequest() org: Organization
+  ): Promise<ThumbnailSuggestion[]> {
+    return this._thumbnailAnalyticsService.getThumbnailSuggestions(org.id);
+  }
+
+  /**
+   * Get success patterns from top-performing thumbnails (AC #5)
+   */
+  @Get('thumbnail/patterns')
+  @ApiOperation({
+    summary: 'Get success patterns',
+    description: 'Get common elements and patterns from top-performing thumbnails',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Success patterns data',
+    schema: {
+      type: 'object',
+      properties: {
+        organizationId: { type: 'string' },
+        patterns: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              element: { type: 'string' },
+              elementLabel: { type: 'string' },
+              frequency: { type: 'number' },
+              avgCtrImpact: { type: 'number' },
+              description: { type: 'string' },
+            },
+          },
+        },
+        topPerformers: { type: 'array' },
+        insights: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  async getSuccessPatterns(
+    @GetOrgFromRequest() org: Organization
+  ): Promise<SuccessPatternsResult> {
+    return this._thumbnailAnalyticsService.getSuccessPatterns(org.id);
   }
 }

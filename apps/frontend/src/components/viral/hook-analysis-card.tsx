@@ -2,6 +2,7 @@
 
 import React from 'react';
 import clsx from 'clsx';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 // Types matching backend
 export type HookOpeningType = 'question' | 'statement' | 'action' | 'curiosity' | 'problem' | 'unknown';
@@ -82,6 +83,7 @@ export function HookAnalysisCard({
   interpretation,
   isLoading = false,
 }: HookAnalysisCardProps) {
+  const t = useT();
   const openingInfo = OPENING_TYPE_INFO[openingType];
 
   if (isLoading) {
