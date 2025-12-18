@@ -57,7 +57,7 @@ const getPriorityColor = (priority: 'high' | 'medium' | 'low'): string => {
   }
 };
 
-const FactorBar: FC<{ label: string; score: number; weight: string }> = ({
+const FactorBar: FC<{ label: string; score: number; weight: string }> = React.memo(({
   label,
   score,
   weight,
@@ -77,9 +77,9 @@ const FactorBar: FC<{ label: string; score: number; weight: string }> = ({
       />
     </div>
   </div>
-);
+));
 
-export const QualityScoreCard: FC<QualityScoreCardProps> = ({
+export const QualityScoreCard: FC<QualityScoreCardProps> = React.memo(({
   overallScore,
   breakdown,
   interpretation,
@@ -87,6 +87,30 @@ export const QualityScoreCard: FC<QualityScoreCardProps> = ({
   isLoading = false,
 }) => {
   const t = useT();
+
+  const getFactorLabel = (factor: ImprovementSuggestion['factor']): string => {
+    switch (factor) {
+      case 'engagement':
+        return t('quality.factors.engagement', 'Engagement');
+      case 'watchTime':
+        return t('quality.factors.watchTime', 'Watch Time');
+      case 'compliance':
+        return t('quality.factors.compliance', 'Compliance');
+      case 'consistency':
+        return t('quality.factors.consistency', 'Consistency');
+    }
+  };
+
+  const getPriorityLabel = (priority: ImprovementSuggestion['priority']): string => {
+    switch (priority) {
+      case 'high':
+        return t('quality.priority.high', 'High');
+      case 'medium':
+        return t('quality.priority.medium', 'Medium');
+      case 'low':
+        return t('quality.priority.low', 'Low');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -232,12 +256,10 @@ export const QualityScoreCard: FC<QualityScoreCardProps> = ({
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium capitalize">
-                    {improvement.factor === 'watchTime'
-                      ? 'Watch Time'
-                      : improvement.factor}
+                    {getFactorLabel(improvement.factor)}
                   </span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700">
-                    {improvement.priority}
+                    {getPriorityLabel(improvement.priority)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-300">{improvement.suggestion}</p>
@@ -248,6 +270,6 @@ export const QualityScoreCard: FC<QualityScoreCardProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default QualityScoreCard;

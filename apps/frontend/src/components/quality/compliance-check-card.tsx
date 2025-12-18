@@ -69,7 +69,7 @@ const getCategoryLabel = (category: PolicyCategory): string => {
   }
 };
 
-export const ComplianceCheckCard: FC<ComplianceCheckCardProps> = ({
+export const ComplianceCheckCard: FC<ComplianceCheckCardProps> = React.memo(({
   isCompliant,
   complianceScore,
   violations,
@@ -255,6 +255,6 @@ export const ComplianceCheckCard: FC<ComplianceCheckCardProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default ComplianceCheckCard;

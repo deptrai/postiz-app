@@ -144,7 +144,6 @@ export async function middleware(request: NextRequest) {
 
     return topResponse;
   } catch (err) {
-    console.log('err', err);
     return NextResponse.redirect(new URL('/auth/logout', nextUrl.href));
   }
 }

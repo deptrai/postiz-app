@@ -67,13 +67,7 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-const truncateCaption = (caption: string | null, maxLength: number = 60): string => {
-  if (!caption) return 'No caption';
-  if (caption.length <= maxLength) return caption;
-  return caption.substring(0, maxLength) + '...';
-};
-
-export const QualityContentList: FC<QualityContentListProps> = ({
+export const QualityContentList: FC<QualityContentListProps> = React.memo(({
   items,
   total,
   isLoading = false,
@@ -83,6 +77,12 @@ export const QualityContentList: FC<QualityContentListProps> = ({
   onSortChange,
 }) => {
   const t = useT();
+
+  const truncateCaption = (caption: string | null, maxLength: number = 60): string => {
+    if (!caption) return t('adFriendly.report.noCaption', 'No caption');
+    if (caption.length <= maxLength) return caption;
+    return caption.substring(0, maxLength) + '...';
+  };
 
   const handleSort = (newSortBy: 'score' | 'date' | 'engagement') => {
     if (onSortChange) {
@@ -221,6 +221,6 @@ export const QualityContentList: FC<QualityContentListProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default QualityContentList;

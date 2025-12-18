@@ -210,7 +210,7 @@ export function RetentionSuggestions({
                     className="w-full py-2 px-4 bg-current/20 hover:bg-current/30 rounded-lg transition-colors text-sm font-medium"
                     onClick={() => {
                       // Jump to drop-off point in chart
-                      console.log('Jump to', suggestion.dropOffPoint);
+                      // TODO: Implement chart navigation
                     }}
                   >
                     View on Chart →

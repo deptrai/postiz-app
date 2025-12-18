@@ -42,6 +42,7 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    unoptimized: process.env.NODE_ENV === 'development',
   },
   async redirects() {
     return [

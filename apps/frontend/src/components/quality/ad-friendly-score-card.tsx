@@ -129,7 +129,7 @@ const getImpactLabel = (impact: AdImpact): string => {
   }
 };
 
-export const AdFriendlyScoreCard: FC<AdFriendlyScoreCardProps> = ({
+export const AdFriendlyScoreCard: FC<AdFriendlyScoreCardProps> = React.memo(({
   overallScore,
   isAdFriendly,
   interpretation,
@@ -292,6 +292,6 @@ export const AdFriendlyScoreCard: FC<AdFriendlyScoreCardProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default AdFriendlyScoreCard;

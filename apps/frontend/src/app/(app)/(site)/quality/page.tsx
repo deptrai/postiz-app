@@ -54,6 +54,29 @@ export default function QualityDashboardPage() {
   const t = useT();
   const fetch = useFetch();
 
+  const mapQualityInterpretation = useCallback(
+    (value: string | null | undefined): string => {
+      if (!value) return value || '';
+      const normalized = value.toLowerCase().trim();
+
+      if (normalized.includes('excellent')) {
+        return t('quality.score.excellent', 'Excellent');
+      }
+      if (normalized.includes('good')) {
+        return t('quality.score.good', 'Good');
+      }
+      if (normalized.includes('average')) {
+        return t('quality.score.average', 'Average');
+      }
+      if (normalized.includes('poor')) {
+        return t('quality.score.poor', 'Poor');
+      }
+
+      return value;
+    },
+    [t]
+  );
+
   // State
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
   const [selectedScore, setSelectedScore] = useState<QualityScore | null>(null);
@@ -77,7 +100,12 @@ export default function QualityDashboardPage() {
         `/quality/list?sortBy=${sortBy}&sortOrder=${sortOrder}&limit=20`
       );
       const data = await response.json();
-      setContentList(data.items || []);
+      setContentList(
+        (data.items || []).map((item: QualityListItem) => ({
+          ...item,
+          interpretation: mapQualityInterpretation(item.interpretation),
+        }))
+      );
       setTotalContent(data.total || 0);
 
       // Auto-select first item if none selected
@@ -89,7 +117,7 @@ export default function QualityDashboardPage() {
     } finally {
       setIsLoadingList(false);
     }
-  }, [fetch, sortBy, sortOrder, selectedContentId]);
+  }, [fetch, sortBy, sortOrder, selectedContentId, mapQualityInterpretation]);
 
   // Fetch trends
   const fetchTrends = useCallback(async () => {
@@ -112,7 +140,10 @@ export default function QualityDashboardPage() {
       try {
         const response = await fetch(`/quality/score/${contentId}`);
         const data = await response.json();
-        setSelectedScore(data);
+        setSelectedScore({
+          ...data,
+          interpretation: mapQualityInterpretation(data?.interpretation),
+        });
       } catch (error) {
         console.error('Failed to fetch quality score:', error);
         setSelectedScore(null);
@@ -120,7 +151,7 @@ export default function QualityDashboardPage() {
         setIsLoadingScore(false);
       }
     },
-    [fetch]
+    [fetch, mapQualityInterpretation]
   );
 
   // Initial load

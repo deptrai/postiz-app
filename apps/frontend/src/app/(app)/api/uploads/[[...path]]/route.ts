@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createReadStream, statSync } from 'fs';
 // @ts-ignore
 import mime from 'mime';
+import path from 'path';
 async function* nodeStreamToIterator(stream: any) {
   for await (const chunk of stream) {
     yield chunk;
@@ -27,22 +28,40 @@ export const GET = (
     };
   }
 ) => {
-  const filePath =
-    process.env.UPLOAD_DIRECTORY + '/' + context.params.path.join('/');
-  const response = createReadStream(filePath);
-  const fileStats = statSync(filePath);
-  const contentType = mime.getType(filePath) || 'application/octet-stream';
-  const iterator = nodeStreamToIterator(response);
-  const webStream = iteratorToStream(iterator);
-  return new Response(webStream, {
-    headers: {
-      'Content-Type': contentType,
-      // Set the appropriate content-type header
-      'Content-Length': fileStats.size.toString(),
-      // Set the content-length header
-      'Last-Modified': fileStats.mtime.toUTCString(),
-      // Set the last-modified header
-      'Cache-Control': 'public, max-age=31536000, immutable', // Example cache-control header
-    },
-  });
+  const baseDir = process.env.UPLOAD_DIRECTORY;
+  if (!baseDir) {
+    return new Response('Upload directory is not configured', { status: 404 });
+  }
+
+  const safeParts = (context.params.path || []).filter(
+    (p) => p && p !== '.' && p !== '..' && !p.includes('..')
+  );
+
+  if (!safeParts.length) {
+    return new Response('Not found', { status: 404 });
+  }
+
+  const resolvedBaseDir = path.isAbsolute(baseDir)
+    ? baseDir
+    : path.resolve(process.cwd(), baseDir);
+
+  const filePath = path.join(resolvedBaseDir, ...safeParts);
+
+  try {
+    const fileStats = statSync(filePath);
+    const response = createReadStream(filePath);
+    const contentType = mime.getType(filePath) || 'application/octet-stream';
+    const iterator = nodeStreamToIterator(response);
+    const webStream = iteratorToStream(iterator);
+    return new Response(webStream, {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': fileStats.size.toString(),
+        'Last-Modified': fileStats.mtime.toUTCString(),
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
+  } catch (error) {
+    return new Response('Not found', { status: 404 });
+  }
 };

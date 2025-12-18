@@ -49,21 +49,6 @@ const getPriorityIcon = (priority: 'high' | 'medium' | 'low'): React.ReactNode =
   }
 };
 
-const getFactorLabel = (factor: string): string => {
-  switch (factor) {
-    case 'engagement':
-      return 'Engagement';
-    case 'watchTime':
-      return 'Watch Time';
-    case 'compliance':
-      return 'Compliance';
-    case 'consistency':
-      return 'Consistency';
-    default:
-      return factor;
-  }
-};
-
 const getFactorIcon = (factor: string): React.ReactNode => {
   switch (factor) {
     case 'engagement':
@@ -95,11 +80,35 @@ const getFactorIcon = (factor: string): React.ReactNode => {
   }
 };
 
-export const ImprovementHighlights: FC<ImprovementHighlightsProps> = ({
+export const ImprovementHighlights: FC<ImprovementHighlightsProps> = React.memo(({
   improvements,
   isLoading = false,
 }) => {
   const t = useT();
+
+  const getFactorLabel = (factor: ImprovementItem['factor']): string => {
+    switch (factor) {
+      case 'engagement':
+        return t('quality.factors.engagement', 'Engagement');
+      case 'watchTime':
+        return t('quality.factors.watchTime', 'Watch Time');
+      case 'compliance':
+        return t('quality.factors.compliance', 'Compliance');
+      case 'consistency':
+        return t('quality.factors.consistency', 'Consistency');
+    }
+  };
+
+  const getPriorityLabel = (priority: ImprovementItem['priority']): string => {
+    switch (priority) {
+      case 'high':
+        return t('quality.priority.high', 'High');
+      case 'medium':
+        return t('quality.priority.medium', 'Medium');
+      case 'low':
+        return t('quality.priority.low', 'Low');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -210,7 +219,7 @@ export const ImprovementHighlights: FC<ImprovementHighlightsProps> = ({
                             : 'bg-blue-500/30'
                       }`}
                     >
-                      {improvement.priority}
+                      {getPriorityLabel(improvement.priority)}
                     </span>
                   </div>
                 </div>
@@ -222,6 +231,6 @@ export const ImprovementHighlights: FC<ImprovementHighlightsProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default ImprovementHighlights;

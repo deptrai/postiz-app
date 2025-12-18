@@ -35,7 +35,7 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-export const QualityTrendChart: FC<QualityTrendChartProps> = ({
+export const QualityTrendChart: FC<QualityTrendChartProps> = React.memo(({
   trends,
   period,
   isLoading = false,
@@ -237,10 +237,10 @@ export const QualityTrendChart: FC<QualityTrendChartProps> = ({
         </h4>
         <div className="grid grid-cols-4 gap-3">
           {[
-            { key: 'engagementAvg', label: 'Engagement', color: 'bg-blue-500' },
-            { key: 'watchTimeAvg', label: 'Watch Time', color: 'bg-purple-500' },
-            { key: 'complianceAvg', label: 'Compliance', color: 'bg-green-500' },
-            { key: 'consistencyAvg', label: 'Consistency', color: 'bg-yellow-500' },
+            { key: 'engagementAvg', label: t('quality.factors.engagement', 'Engagement'), color: 'bg-blue-500' },
+            { key: 'watchTimeAvg', label: t('quality.factors.watchTime', 'Watch Time'), color: 'bg-purple-500' },
+            { key: 'complianceAvg', label: t('quality.factors.compliance', 'Compliance'), color: 'bg-green-500' },
+            { key: 'consistencyAvg', label: t('quality.factors.consistency', 'Consistency'), color: 'bg-yellow-500' },
           ].map((factor) => {
             const avg = Math.round(
               trends.reduce((sum, t) => sum + (t[factor.key as keyof QualityTrendPoint] as number || 0), 0) /
@@ -258,6 +258,6 @@ export const QualityTrendChart: FC<QualityTrendChartProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default QualityTrendChart;

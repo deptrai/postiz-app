@@ -1026,6 +1026,10 @@
     "quality.improvements.allGood": "Làm rất tốt! Không cần cải thiện đáng kể.",
     "quality.improvements.currentScore": "Hiện tại",
 
+    "quality.priority.high": "Cao",
+    "quality.priority.medium": "Trung bình",
+    "quality.priority.low": "Thấp",
+
     "bait.page.checkCaption": "Kiểm tra Caption",
     "bait.page.placeholder": "Nhập caption để kiểm tra engagement bait...\n\nVí dụ: \"Like nếu bạn đồng ý! Share cho bạn bè!\"",
     "bait.page.detectButton": "Phát hiện Bait",

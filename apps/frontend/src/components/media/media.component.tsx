@@ -699,7 +699,6 @@ export const MultiMediaComponent: FC<{
                                 media={media as any}
                                 onClose={close}
                                 onSelect={(value: any) => {
-                                  console.log(value);
                                   onChange({
                                     target: {
                                       name: 'upload',

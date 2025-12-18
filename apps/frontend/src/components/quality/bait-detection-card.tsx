@@ -99,7 +99,7 @@ const getTypeIcon = (type: string): React.ReactNode => {
   }
 };
 
-export const BaitDetectionCard: FC<BaitDetectionCardProps> = ({
+export const BaitDetectionCard: FC<BaitDetectionCardProps> = React.memo(({
   caption,
   baitScore,
   hasBait,
@@ -233,6 +233,6 @@ export const BaitDetectionCard: FC<BaitDetectionCardProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default BaitDetectionCard;
