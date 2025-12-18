@@ -176,7 +176,7 @@ export const QualityTrendChart: FC<QualityTrendChartProps> = ({
             </div>
 
             {/* Line chart */}
-            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
               {/* Area fill */}
               <defs>
                 <linearGradient id="qualityGradient" x1="0" y1="0" x2="0" y2="1">
@@ -189,12 +189,12 @@ export const QualityTrendChart: FC<QualityTrendChartProps> = ({
                 <>
                   {/* Area */}
                   <path
-                    d={`M ${chartData.points[0].x}% 100% L ${chartData.points.map((p) => `${p.x}% ${p.y}%`).join(' L ')} L ${chartData.points[chartData.points.length - 1].x}% 100% Z`}
+                    d={`M ${chartData.points[0].x} 100 L ${chartData.points.map((p) => `${p.x} ${p.y}`).join(' L ')} L ${chartData.points[chartData.points.length - 1].x} 100 Z`}
                     fill="url(#qualityGradient)"
                   />
                   {/* Line */}
                   <path
-                    d={`M ${chartData.points.map((p) => `${p.x}% ${p.y}%`).join(' L ')}`}
+                    d={`M ${chartData.points.map((p) => `${p.x} ${p.y}`).join(' L ')}`}
                     fill="none"
                     stroke="#3b82f6"
                     strokeWidth="2"
@@ -207,12 +207,12 @@ export const QualityTrendChart: FC<QualityTrendChartProps> = ({
               {chartData.points.map((point, index) => (
                 <g key={index}>
                   <circle
-                    cx={`${point.x}%`}
-                    cy={`${point.y}%`}
-                    r="4"
+                    cx={point.x}
+                    cy={point.y}
+                    r="2"
                     fill={getScoreColor(point.averageScore)}
                     stroke="#1f2937"
-                    strokeWidth="2"
+                    strokeWidth="0.5"
                   />
                 </g>
               ))}
