@@ -21,3 +21,12 @@ export type { PrePublishCheckerProps, PrePublishCheckResult, Warning } from './p
 
 export { BaitReport } from './bait-report';
 export type { BaitReportProps, BaitTrendPoint, BaitReportItem } from './bait-report';
+
+export { ComplianceCheckCard } from './compliance-check-card';
+export type { ComplianceCheckCardProps, PolicyViolation, ViolationSeverity, PolicyCategory } from './compliance-check-card';
+
+export { PolicyViolationDetail } from './policy-violation-detail';
+export type { PolicyViolationDetailProps } from './policy-violation-detail';
+
+export { ComplianceHistory } from './compliance-history';
+export type { ComplianceHistoryProps, ComplianceTrendPoint, ComplianceHistoryItem } from './compliance-history';

@@ -1,6 +1,6 @@
 # Story 16.3: Policy Compliance Check
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -149,6 +149,14 @@ Claude (Cascade)
 
 ### File List
 
+- `libraries/nestjs-libraries/src/database/prisma/quality/policy-compliance.service.ts`
+- `libraries/nestjs-libraries/src/database/prisma/quality/policy-compliance.service.spec.ts`
+- `apps/backend/src/api/routes/compliance.controller.ts`
+- `apps/frontend/src/components/quality/compliance-check-card.tsx`
+- `apps/frontend/src/components/quality/policy-violation-detail.tsx`
+- `apps/frontend/src/components/quality/compliance-history.tsx`
+
 ## Change Log
 
 - 2025-12-14: Story 16.3 drafted by Mary (Business Analyst)
+- 2025-12-18: Story 16.3 implemented by Dev Agent (Amelia)

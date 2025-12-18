@@ -61,6 +61,8 @@ import { QualityController } from '@gitroom/backend/api/routes/quality.controlle
 import { ContentQualityService } from '@gitroom/nestjs-libraries/database/prisma/quality/content-quality.service';
 import { BaitController } from '@gitroom/backend/api/routes/bait.controller';
 import { EngagementBaitService } from '@gitroom/nestjs-libraries/database/prisma/quality/engagement-bait.service';
+import { ComplianceController } from '@gitroom/backend/api/routes/compliance.controller';
+import { PolicyComplianceService } from '@gitroom/nestjs-libraries/database/prisma/quality/policy-compliance.service';
 
 const authenticatedController = [
   UsersController,
@@ -90,6 +92,7 @@ const authenticatedController = [
   VideoAnalyticsController,
   QualityController,
   BaitController,
+  ComplianceController,
 ];
 @Module({
   imports: [UploadModule],
@@ -135,6 +138,7 @@ const authenticatedController = [
     ThumbnailAnalyticsService,
     ContentQualityService,
     EngagementBaitService,
+    PolicyComplianceService,
   ],
   get exports() {
     return [...this.imports, ...this.providers];
