@@ -993,5 +993,8 @@
     "sensitiveTopic.list.title": "Chủ đề Nhạy cảm",
     "sensitiveTopic.list.noTopics": "Không phát hiện chủ đề nhạy cảm!",
     "sensitiveTopic.list.allClear": "Nội dung của bạn thân thiện với quảng cáo.",
-    "sensitiveTopic.list.impact": "Ảnh hưởng Quảng cáo"
+    "sensitiveTopic.list.impact": "Ảnh hưởng Quảng cáo",
+
+    "quality.dashboard.title": "Bảng điều khiển Chất lượng",
+    "quality.dashboard.subtitle": "Theo dõi và cải thiện điểm chất lượng nội dung của bạn"
 }
