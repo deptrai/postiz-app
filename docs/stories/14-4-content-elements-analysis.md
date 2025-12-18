@@ -1,6 +1,6 @@
 # Story 14.4: Content Elements Analysis
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

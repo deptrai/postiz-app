@@ -9,8 +9,12 @@ import { ContentComparison, RankedContent } from '@gitroom/frontend/components/v
 import { HookAnalysisCard, HookScoreBreakdown, HookRecommendation, HookPattern, HookOpeningType } from '@gitroom/frontend/components/viral/hook-analysis-card';
 import { HookPatterns } from '@gitroom/frontend/components/viral/hook-patterns';
 import { HookComparison } from '@gitroom/frontend/components/viral/hook-comparison';
+import { ViralTimingCard, TimingWindow, BestOverallTime, ConfidenceLevel } from '@gitroom/frontend/components/viral/viral-timing-card';
+import { TimingHeatmap, HeatmapCell, TimeSlot } from '@gitroom/frontend/components/viral/timing-heatmap';
+import { FormatTimingTabs, ContentFormat } from '@gitroom/frontend/components/viral/format-timing-tabs';
+import { ContentElementsCard, ContentElementsAnalysis } from '@gitroom/frontend/components/viral/content-elements-card';
 
-type TabType = 'viral' | 'hook';
+type TabType = 'viral' | 'hook' | 'timing' | 'elements';
 
 interface ViralScoreResult {
   overallScore: number;
@@ -65,6 +69,32 @@ export default function ViralScorePage() {
   const [drafts, setDrafts] = useState<Array<{ id: string; caption: string; contentType: string }>>([]);
   const [comparisonResult, setComparisonResult] = useState<RankedContent[] | null>(null);
   const [isComparing, setIsComparing] = useState(false);
+
+  // Timing state
+  const [timingResult, setTimingResult] = useState<{
+    recommendedWindows: TimingWindow[];
+    bestOverallTime: BestOverallTime;
+    formatSpecific: { format: ContentFormat; windows: TimingWindow[] };
+    nicheSpecific?: { niche: string; windows: TimingWindow[] };
+    insights: string[];
+  } | null>(null);
+  const [heatmapResult, setHeatmapResult] = useState<{
+    heatmap: HeatmapCell[][];
+    peakTimes: TimeSlot[];
+    lowTimes: TimeSlot[];
+    averageEngagement: number;
+  } | null>(null);
+  const [isLoadingTiming, setIsLoadingTiming] = useState(false);
+  const [timingFormat, setTimingFormat] = useState<ContentFormat>('reel');
+  const [timingNiche, setTimingNiche] = useState<string>('');
+
+  // Elements analysis state
+  const [elementsResult, setElementsResult] = useState<ContentElementsAnalysis | null>(null);
+  const [isLoadingElements, setIsLoadingElements] = useState(false);
+  const [elementsCaption, setElementsCaption] = useState('');
+  const [elementsHashtags, setElementsHashtags] = useState('');
+  const [elementsContentType, setElementsContentType] = useState<'reel' | 'video' | 'post' | 'story'>('reel');
+  const [elementsVideoLength, setElementsVideoLength] = useState<number | undefined>(undefined);
 
   // Load hook patterns on mount
   useEffect(() => {
@@ -176,6 +206,7 @@ export default function ViralScorePage() {
     setError(null);
 
     try {
+      console.log('[Hook Analyzer] Starting analysis...');
       const response = await fetch('/viral/hook/analyze', {
         method: 'POST',
         body: JSON.stringify({
@@ -191,13 +222,17 @@ export default function ViralScorePage() {
         }),
       });
 
+      console.log('[Hook Analyzer] Response status:', response.status);
       if (!response.ok) {
         throw new Error('Failed to analyze hook');
       }
 
       const data = await response.json();
+      console.log('[Hook Analyzer] Received data:', data);
       setHookResult(data);
+      console.log('[Hook Analyzer] State updated');
     } catch (err: any) {
+      console.error('[Hook Analyzer] Error:', err);
       setError(err.message || 'An error occurred');
     } finally {
       setIsLoadingHook(false);
@@ -256,9 +291,91 @@ export default function ViralScorePage() {
     setHookComparisonResult(null);
   }, []);
 
+  // Timing functions
+  const loadTimingData = useCallback(async (format: ContentFormat, niche?: string) => {
+    setIsLoadingTiming(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams();
+      params.set('contentType', format);
+      if (niche) params.set('niche', niche);
+
+      const [timingResponse, heatmapResponse] = await Promise.all([
+        fetch(`/viral/timing?${params.toString()}`),
+        fetch(`/viral/timing/heatmap?${params.toString()}`),
+      ]);
+
+      if (timingResponse.ok) {
+        const data = await timingResponse.json();
+        setTimingResult(data);
+      }
+
+      if (heatmapResponse.ok) {
+        const data = await heatmapResponse.json();
+        setHeatmapResult(data);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load timing data');
+    } finally {
+      setIsLoadingTiming(false);
+    }
+  }, [fetch]);
+
+  // Load timing data when format or niche changes
+  useEffect(() => {
+    if (activeTab === 'timing') {
+      loadTimingData(timingFormat, timingNiche || undefined);
+    }
+  }, [activeTab, timingFormat, timingNiche, loadTimingData]);
+
+  const handleTimingFormatChange = useCallback((format: ContentFormat) => {
+    setTimingFormat(format);
+  }, []);
+
   const applyPattern = useCallback((pattern: HookPattern) => {
     setHookText(pattern.example);
   }, []);
+
+  // Elements analysis function
+  const analyzeElements = useCallback(async () => {
+    if (!elementsCaption.trim()) {
+      setError('Please enter a caption to analyze');
+      return;
+    }
+
+    setIsLoadingElements(true);
+    setError(null);
+
+    try {
+      const hashtagsArray = elementsHashtags
+        .split(/[,\s#]+/)
+        .filter(tag => tag.trim())
+        .map(tag => tag.trim());
+
+      const response = await fetch('/viral/elements/analyze', {
+        method: 'POST',
+        body: JSON.stringify({
+          caption: elementsCaption,
+          hashtags: hashtagsArray.length > 0 ? hashtagsArray : undefined,
+          contentType: elementsContentType,
+          videoLength: elementsVideoLength,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setElementsResult(data);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Failed to analyze content elements');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze content elements');
+    } finally {
+      setIsLoadingElements(false);
+    }
+  }, [elementsCaption, elementsHashtags, elementsContentType, elementsVideoLength, fetch]);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -317,6 +434,36 @@ export default function ViralScorePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             Hook Analyzer
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('timing')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+            activeTab === 'timing'
+              ? 'bg-purple-500 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Optimal Timing
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('elements')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+            activeTab === 'elements'
+              ? 'bg-purple-500 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Content Elements
           </span>
         </button>
       </div>
@@ -741,6 +888,209 @@ export default function ViralScorePage() {
           {hookComparisonResult && hookComparisonResult.length > 0 && (
             <HookComparison rankings={hookComparisonResult} isLoading={isComparingHooks} />
           )}
+        </>
+      )}
+
+      {/* TIMING TAB */}
+      {activeTab === 'timing' && (
+        <>
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 mb-4">
+              <p className="text-red-400">{error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Timing Options */}
+            <div className="space-y-6">
+              {/* Niche Selector */}
+              <div className="bg-third rounded-xl p-6">
+                <h3 className="text-lg font-semibold mb-4">Timing Options</h3>
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-400 mb-2">Niche (Optional)</label>
+                  <select
+                    value={timingNiche}
+                    onChange={(e) => setTimingNiche(e.target.value)}
+                    className="w-full px-4 py-3 bg-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">All Niches</option>
+                    <option value="fitness">Fitness</option>
+                    <option value="food">Food</option>
+                    <option value="beauty">Beauty</option>
+                    <option value="tech">Tech</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="lifestyle">Lifestyle</option>
+                    <option value="business">Business</option>
+                    <option value="education">Education</option>
+                  </select>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Select a niche to get customized timing recommendations based on your audience's behavior patterns.
+                </p>
+              </div>
+
+              {/* Format Timing Tabs */}
+              <FormatTimingTabs
+                activeFormat={timingFormat}
+                onFormatChange={handleTimingFormatChange}
+                formatWindows={timingResult?.formatSpecific}
+                isLoading={isLoadingTiming}
+              />
+            </div>
+
+            {/* Timing Results */}
+            <div className="space-y-6">
+              {timingResult ? (
+                <ViralTimingCard
+                  recommendedWindows={timingResult.recommendedWindows}
+                  bestOverallTime={timingResult.bestOverallTime}
+                  insights={timingResult.insights}
+                  isLoading={isLoadingTiming}
+                />
+              ) : (
+                <div className="bg-third rounded-xl p-12 text-center">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-gray-400 mb-2">Loading Timing Data...</h3>
+                  <p className="text-gray-500">Analyzing optimal posting times for your content.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Heatmap */}
+          {heatmapResult && (
+            <TimingHeatmap
+              heatmap={heatmapResult.heatmap}
+              peakTimes={heatmapResult.peakTimes}
+              lowTimes={heatmapResult.lowTimes}
+              averageEngagement={heatmapResult.averageEngagement}
+              isLoading={isLoadingTiming}
+            />
+          )}
+        </>
+      )}
+
+      {/* ELEMENTS TAB */}
+      {activeTab === 'elements' && (
+        <>
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 mb-4">
+              <p className="text-red-400">{error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Input Form */}
+            <div className="bg-third rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4">Analyze Content Elements</h3>
+
+              {/* Content Type */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">Content Type</label>
+                <div className="flex gap-2">
+                  {(['reel', 'video', 'post', 'story'] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setElementsContentType(type)}
+                      className={`px-4 py-2 rounded-lg text-sm capitalize transition-colors ${
+                        elementsContentType === type
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-input text-gray-300 hover:bg-input/80'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Caption */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">Caption</label>
+                <textarea
+                  value={elementsCaption}
+                  onChange={(e) => setElementsCaption(e.target.value)}
+                  placeholder="Paste your caption here to analyze its elements..."
+                  rows={6}
+                  className="w-full px-4 py-3 bg-input rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+              </div>
+
+              {/* Hashtags */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">Hashtags (optional)</label>
+                <input
+                  type="text"
+                  value={elementsHashtags}
+                  onChange={(e) => setElementsHashtags(e.target.value)}
+                  placeholder="#viral #trending #content"
+                  className="w-full px-4 py-3 bg-input rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Separate with spaces or commas</p>
+              </div>
+
+              {/* Video Length (for reel/video) */}
+              {(elementsContentType === 'reel' || elementsContentType === 'video') && (
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-400 mb-2">Video Length (seconds)</label>
+                  <input
+                    type="number"
+                    value={elementsVideoLength || ''}
+                    onChange={(e) => setElementsVideoLength(e.target.value ? parseInt(e.target.value) : undefined)}
+                    placeholder="30"
+                    min={1}
+                    className="w-full px-4 py-3 bg-input rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              )}
+
+              {/* Analyze Button */}
+              <button
+                onClick={analyzeElements}
+                disabled={isLoadingElements || !elementsCaption.trim()}
+                className="w-full py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {isLoadingElements ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Analyze Elements
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Results */}
+            <div>
+              {elementsResult ? (
+                <ContentElementsCard
+                  analysis={elementsResult}
+                  isLoading={isLoadingElements}
+                />
+              ) : (
+                <div className="bg-third rounded-xl p-12 text-center">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-gray-400 mb-2">No Analysis Yet</h3>
+                  <p className="text-gray-500">Enter your content details and click Analyze Elements to see breakdown.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </>
       )}
     </div>

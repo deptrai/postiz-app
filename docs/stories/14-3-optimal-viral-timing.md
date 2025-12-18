@@ -1,6 +1,6 @@
 # Story 14.3: Optimal Viral Timing
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

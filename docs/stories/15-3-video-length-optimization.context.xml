@@ -1,0 +1,221 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>15</epicId>
+    <storyId>3</storyId>
+    <title>Video Length Optimization</title>
+    <status>draft</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/15-3-video-length-optimization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>biết video length tối ưu cho từng format và niche</iWant>
+    <soThat>tôi maximize engagement và watch time</soThat>
+    <tasks>
+      <task id="backend-1" ac="1,2">Create VideoLengthAnalyticsService with getPerformanceByLength method</task>
+      <task id="backend-2" ac="2,4">Add getOptimalLength method for recommendations</task>
+      <task id="backend-3" ac="3">Add getNicheLengthBenchmarks method</task>
+      <task id="backend-4" ac="5">Add getLengthOptimizationTips method</task>
+      <task id="backend-5" ac="1-5">Add Video Length API endpoints with Swagger docs</task>
+      <task id="frontend-1" ac="1">Create LengthPerformanceChart component</task>
+      <task id="frontend-2" ac="2,4">Create OptimalLengthCard component</task>
+      <task id="frontend-3" ac="3">Create LengthBenchmarkComparison component</task>
+      <task id="frontend-4" ac="5">Create LengthOptimizationTips component</task>
+      <task id="frontend-5" ac="1-5">Integrate into Video Analytics page</task>
+      <task id="test-1" ac="1-5">Backend unit tests</task>
+      <task id="test-2" ac="1-5">Frontend component tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>video performance data</given>
+      <when>user xem length analysis</when>
+      <then>hiển thị performance breakdown by video length ranges (0-15s, 15-30s, 30-60s, 60-180s, 180s+)</then>
+    </criterion>
+    <criterion id="2">
+      <given>performance data by length</given>
+      <when>user xem analysis</when>
+      <then>hiển thị optimal length recommendation per format (reel, video, story)</then>
+    </criterion>
+    <criterion id="3">
+      <given>length analysis data</given>
+      <when>user xem recommendations</when>
+      <then>hiển thị comparison với niche benchmarks (industry optimal lengths)</then>
+    </criterion>
+    <criterion id="4">
+      <given>user's video history</given>
+      <when>user xem insights</when>
+      <then>hiển thị "sweet spot" length range với highest engagement rate</then>
+    </criterion>
+    <criterion id="5">
+      <given>length recommendations</given>
+      <when>user xem details</when>
+      <then>hiển thị actionable tips để optimize video length</then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/research/feature-improvement-proposals.md</path>
+        <title>Feature Improvement Proposals</title>
+        <section>Epic 15: Video Performance Analyzer</section>
+        <snippet>Story 15.3: Video Length Optimization - biết video length tối ưu để maximize engagement. ACs: Analyze performance by video length, recommend optimal length per format, compare với niche benchmarks.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/13-4-watch-time-analytics.md</path>
+        <title>Story 13.4: Watch Time Analytics</title>
+        <section>Prerequisite Story</section>
+        <snippet>Watch time analytics: total watch time, average view duration, completion rate. Provides foundation data for length optimization analysis.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/15-2-retention-curve-analysis.md</path>
+        <title>Story 15.2: Retention Curve Analysis</title>
+        <section>Related Story</section>
+        <snippet>Retention curve analysis với drop-off detection. Complements length optimization by showing where viewers drop off.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/monetization/watch-time-analytics.service.ts</path>
+        <kind>service</kind>
+        <symbol>WatchTimeAnalyticsService</symbol>
+        <lines>1-417</lines>
+        <reason>Foundation service for watch time data. DURATION_ESTIMATES constant defines estimated durations per content type. getWatchTimeMetrics() provides base data for length analysis.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-content.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsContentService</symbol>
+        <lines>1-165</lines>
+        <reason>Content metadata service. ContentMetadata interface includes contentType. Used to categorize videos by format for length analysis.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-daily-metric.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsDailyMetricService</symbol>
+        <lines>1-190</lines>
+        <reason>Daily metrics service. DailyMetricData includes videoViews, reactions, comments, shares - needed for calculating engagement rate per length range.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/viral/viral-timing.service.ts</path>
+        <kind>service</kind>
+        <symbol>ViralTimingService</symbol>
+        <lines>1-249</lines>
+        <reason>Reference pattern for format-specific analysis. Shows how to handle different content formats with format-specific recommendations.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/viral/format-timing-tabs.tsx</path>
+        <kind>component</kind>
+        <symbol>FormatTimingTabs</symbol>
+        <lines>1-165</lines>
+        <reason>Reference for format selector UI. Shows tabbed interface for different content formats.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@nestjs/common</package>
+        <version>^10.0.0</version>
+      </node>
+      <node>
+        <package>@prisma/client</package>
+        <version>^5.0.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>^18.0.0</version>
+      </node>
+      <node>
+        <package>recharts</package>
+        <version>^2.0.0</version>
+        <note>Recommended for bar chart visualization of length performance</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow existing NestJS service pattern with @Injectable() decorator</constraint>
+    <constraint type="pattern">Use PrismaService for database access</constraint>
+    <constraint type="pattern">Export interfaces for all data types</constraint>
+    <constraint type="pattern">Frontend components use 'use client' directive</constraint>
+    <constraint type="pattern">Use Tailwind CSS for styling</constraint>
+    <constraint type="testing">Unit tests required for all service methods</constraint>
+    <constraint type="testing">Component tests for frontend components</constraint>
+    <constraint type="api">Add Swagger documentation for all endpoints</constraint>
+    <constraint type="data">[ASSUMPTION: Video duration available from content metadata or estimated from content type]</constraint>
+    <constraint type="data">[ASSUMPTION: Benchmark data pre-configured based on industry research]</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>LengthPerformance</name>
+      <kind>interface</kind>
+      <signature>
+interface LengthPerformance {
+  range: string; // "0-15s", "15-30s", etc.
+  minSeconds: number;
+  maxSeconds: number;
+  videoCount: number;
+  totalViews: number;
+  avgEngagementRate: number;
+  avgCompletionRate: number;
+  topPerformer?: { contentId: string; views: number };
+}
+      </signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/video-analytics/video-length-analytics.service.ts</path>
+    </interface>
+    <interface>
+      <name>OptimalLengthRecommendation</name>
+      <kind>interface</kind>
+      <signature>
+interface OptimalLengthRecommendation {
+  format: 'reel' | 'video' | 'story';
+  optimalRange: { min: number; max: number };
+  sweetSpot: number;
+  confidence: 'high' | 'medium' | 'low';
+  basedOnVideos: number;
+  avgEngagementInRange: number;
+}
+      </signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/video-analytics/video-length-analytics.service.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/video-analytics/length</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/video-analytics/length - Returns LengthPerformance[] for all ranges</signature>
+      <path>apps/backend/src/api/routes/video-analytics.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/video-analytics/length/optimal</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/video-analytics/length/optimal?format=reel - Returns OptimalLengthRecommendation</signature>
+      <path>apps/backend/src/api/routes/video-analytics.controller.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Jest for backend unit tests. Tests should be co-located with services (*.spec.ts).
+      Use React Testing Library for frontend component tests.
+      Follow existing test patterns in monetization/ and viral/ directories.
+      Mock PrismaService for database operations.
+      Test edge cases: no videos, single video, videos across all ranges.
+    </standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/video-analytics/*.spec.ts</location>
+      <location>apps/frontend/src/components/video-analytics/*.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test performance calculation for each length range</idea>
+      <idea ac="2">Test optimal length detection with various video distributions</idea>
+      <idea ac="3">Test benchmark comparison calculation</idea>
+      <idea ac="4">Test sweet spot detection algorithm</idea>
+      <idea ac="5">Test tips generation based on analysis data</idea>
+      <idea ac="1">Test LengthPerformanceChart renders correctly with data</idea>
+      <idea ac="2">Test OptimalLengthCard shows correct recommendations</idea>
+    </ideas>
+  </tests>
+</story-context>

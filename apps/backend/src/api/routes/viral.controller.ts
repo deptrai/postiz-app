@@ -16,6 +16,19 @@ import {
   HookPattern,
   HookOpeningType,
 } from '@gitroom/nestjs-libraries/database/prisma/viral/hook-analyzer.service';
+import {
+  ViralTimingService,
+  OptimalTimingResult,
+  TimingHeatmapResult,
+  TimingOptions,
+  ContentFormat,
+} from '@gitroom/nestjs-libraries/database/prisma/viral/viral-timing.service';
+import {
+  ContentElementsService,
+  ContentElementsAnalysis,
+  SuccessfulPatterns,
+  ContentMetadata as ElementsContentMetadata,
+} from '@gitroom/nestjs-libraries/database/prisma/viral/content-elements.service';
 
 // DTOs for Swagger documentation
 class ContentMetadataDto {
@@ -59,12 +72,29 @@ class CompareHooksDto {
   }>;
 }
 
+// Timing DTOs
+class TimingOptionsDto {
+  contentType?: 'reel' | 'video' | 'post' | 'story';
+  niche?: string;
+  timezone?: string;
+}
+
+// Content Elements DTOs
+class ContentElementsDto {
+  caption?: string;
+  hashtags?: string[];
+  contentType?: 'reel' | 'video' | 'post' | 'story';
+  videoLength?: number;
+}
+
 @ApiTags('Viral')
 @Controller('viral')
 export class ViralController {
   constructor(
     private readonly _viralScoreService: ViralScoreService,
-    private readonly _hookAnalyzerService: HookAnalyzerService
+    private readonly _hookAnalyzerService: HookAnalyzerService,
+    private readonly _viralTimingService: ViralTimingService,
+    private readonly _contentElementsService: ContentElementsService
   ) {}
 
   /**
@@ -301,5 +331,249 @@ export class ViralController {
       org.id,
       body.hooks.map((h) => ({ id: h.id, metadata: h.metadata as HookMetadata }))
     );
+  }
+
+  // ========== VIRAL TIMING ENDPOINTS ==========
+
+  /**
+   * Get optimal viral timing (AC #1, #2, #3, #4, #5)
+   */
+  @Get('timing')
+  @ApiOperation({
+    summary: 'Get optimal viral timing',
+    description: 'Get recommended posting windows for maximum viral potential based on historical data, audience patterns, and content format',
+  })
+  @ApiQuery({ name: 'contentType', required: false, enum: ['reel', 'video', 'post', 'story'] })
+  @ApiQuery({ name: 'niche', required: false, type: String })
+  @ApiQuery({ name: 'timezone', required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Optimal timing recommendations',
+    schema: {
+      type: 'object',
+      properties: {
+        recommendedWindows: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              startHour: { type: 'number', example: 19 },
+              endHour: { type: 'number', example: 22 },
+              dayOfWeek: { type: 'number', example: 3 },
+              label: { type: 'string', example: 'Prime Time' },
+              score: { type: 'number', example: 90 },
+              confidence: { type: 'string', example: 'high' },
+              successRate: { type: 'number', example: 0.78 },
+              dataPoints: { type: 'number', example: 200 },
+            },
+          },
+        },
+        bestOverallTime: {
+          type: 'object',
+          properties: {
+            dayOfWeek: { type: 'number', example: 3 },
+            hour: { type: 'number', example: 20 },
+            dayName: { type: 'string', example: 'Wednesday' },
+            timeLabel: { type: 'string', example: '7 PM - 10 PM' },
+            confidence: { type: 'string', example: 'high' },
+            successRate: { type: 'number', example: 0.78 },
+          },
+        },
+        formatSpecific: {
+          type: 'object',
+          properties: {
+            format: { type: 'string', example: 'reel' },
+            windows: { type: 'array' },
+          },
+        },
+        nicheSpecific: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            niche: { type: 'string', example: 'fitness' },
+            windows: { type: 'array' },
+          },
+        },
+        insights: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+    },
+  })
+  async getOptimalTiming(
+    @GetOrgFromRequest() org: Organization,
+    @Query('contentType') contentType?: ContentFormat,
+    @Query('niche') niche?: string,
+    @Query('timezone') timezone?: string
+  ): Promise<OptimalTimingResult> {
+    return this._viralTimingService.getOptimalViralTiming(org.id, {
+      contentType,
+      niche,
+      timezone,
+    });
+  }
+
+  /**
+   * Get timing heatmap (AC #2)
+   */
+  @Get('timing/heatmap')
+  @ApiOperation({
+    summary: 'Get timing heatmap',
+    description: 'Get a visual heatmap of engagement by day and hour',
+  })
+  @ApiQuery({ name: 'contentType', required: false, enum: ['reel', 'video', 'post', 'story'] })
+  @ApiQuery({ name: 'niche', required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Timing heatmap data',
+    schema: {
+      type: 'object',
+      properties: {
+        heatmap: {
+          type: 'array',
+          description: '7x24 grid of engagement values',
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                dayOfWeek: { type: 'number' },
+                hour: { type: 'number' },
+                value: { type: 'number' },
+                label: { type: 'string' },
+              },
+            },
+          },
+        },
+        peakTimes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              dayOfWeek: { type: 'number' },
+              hour: { type: 'number' },
+              score: { type: 'number' },
+            },
+          },
+        },
+        lowTimes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              dayOfWeek: { type: 'number' },
+              hour: { type: 'number' },
+              score: { type: 'number' },
+            },
+          },
+        },
+        averageEngagement: { type: 'number' },
+      },
+    },
+  })
+  async getTimingHeatmap(
+    @GetOrgFromRequest() org: Organization,
+    @Query('contentType') contentType?: ContentFormat,
+    @Query('niche') niche?: string
+  ): Promise<TimingHeatmapResult> {
+    return this._viralTimingService.getTimingHeatmap(org.id, {
+      contentType,
+      niche,
+    });
+  }
+
+  // ========== CONTENT ELEMENTS ENDPOINTS ==========
+
+  /**
+   * Analyze content elements (AC #1, #2, #3, #4, #5)
+   */
+  @Post('elements/analyze')
+  @ApiOperation({
+    summary: 'Analyze content elements',
+    description: 'Analyze all content elements including caption, hashtags, format, and CTA',
+  })
+  @ApiBody({ type: ContentElementsDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Content elements analysis',
+    schema: {
+      type: 'object',
+      properties: {
+        caption: {
+          type: 'object',
+          properties: {
+            length: { type: 'number' },
+            lengthCategory: { type: 'string', enum: ['short', 'medium', 'long'] },
+            tone: { type: 'string' },
+            keywords: { type: 'array' },
+            emojiUsage: { type: 'object' },
+          },
+        },
+        hashtags: {
+          type: 'object',
+          properties: {
+            count: { type: 'number' },
+            optimal: { type: 'boolean' },
+            hashtags: { type: 'array' },
+          },
+        },
+        format: {
+          type: 'object',
+          properties: {
+            format: { type: 'string' },
+            formatScore: { type: 'number' },
+            performanceInsights: { type: 'object' },
+          },
+        },
+        cta: {
+          type: 'object',
+          properties: {
+            detected: { type: 'boolean' },
+            types: { type: 'array' },
+            overallEffectiveness: { type: 'number' },
+          },
+        },
+        overallScore: { type: 'number' },
+        topStrengths: { type: 'array', items: { type: 'string' } },
+        areasToImprove: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  async analyzeContentElements(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: ContentElementsDto
+  ): Promise<ContentElementsAnalysis> {
+    return this._contentElementsService.analyzeContentElements(
+      org.id,
+      body as ElementsContentMetadata
+    );
+  }
+
+  /**
+   * Get successful patterns (AC #1)
+   */
+  @Get('elements/patterns')
+  @ApiOperation({
+    summary: 'Get successful content patterns',
+    description: 'Get patterns from successful viral content for caption, hashtags, format, and CTA',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successful patterns',
+    schema: {
+      type: 'object',
+      properties: {
+        captionPatterns: { type: 'array' },
+        hashtagPatterns: { type: 'array' },
+        formatPatterns: { type: 'array' },
+        ctaPatterns: { type: 'array' },
+      },
+    },
+  })
+  async getSuccessfulPatterns(
+    @GetOrgFromRequest() org: Organization
+  ): Promise<SuccessfulPatterns> {
+    return this._contentElementsService.getSuccessfulPatterns(org.id);
   }
 }

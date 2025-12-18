@@ -53,6 +53,8 @@ import { AlertNotificationService } from '@gitroom/nestjs-libraries/database/pri
 import { AIController } from '@gitroom/backend/api/routes/ai.controller';
 import { AIAssistantService } from '@gitroom/nestjs-libraries/database/prisma/ai/ai-assistant.service';
 import { ViralController } from '@gitroom/backend/api/routes/viral.controller';
+import { VideoAnalyticsController } from '@gitroom/backend/api/routes/video-analytics.controller';
+import { RetentionAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/retention-analytics.service';
 
 const authenticatedController = [
   UsersController,
@@ -79,6 +81,7 @@ const authenticatedController = [
   AlertsController,
   AIController,
   ViralController,
+  VideoAnalyticsController,
 ];
 @Module({
   imports: [UploadModule],
@@ -119,6 +122,7 @@ const authenticatedController = [
     AlertService,
     AlertNotificationService,
     AIAssistantService,
+    RetentionAnalyticsService,
   ],
   get exports() {
     return [...this.imports, ...this.providers];

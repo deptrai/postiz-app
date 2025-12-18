@@ -1,0 +1,222 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>15</epicId>
+    <storyId>2</storyId>
+    <title>Retention Curve Analysis</title>
+    <status>draft</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/15-2-retention-curve-analysis.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Leader</asA>
+    <iWant>xem retention curve của video</iWant>
+    <soThat>tôi biết điểm drop-off và tối ưu content để giữ chân viewers</soThat>
+    <tasks>
+      <task id="backend-1" ac="1,2">Create RetentionAnalyticsService with getRetentionCurve method</task>
+      <task id="backend-2" ac="3">Add getNicheBenchmark method for benchmark comparison</task>
+      <task id="backend-3" ac="4">Add getRetentionSuggestions method for improvement suggestions</task>
+      <task id="backend-4" ac="5">Add compareRetentionCurves method for multi-video comparison</task>
+      <task id="backend-5" ac="1-5">Add Retention API endpoints with Swagger docs</task>
+      <task id="frontend-1" ac="1">Create RetentionCurveChart component</task>
+      <task id="frontend-2" ac="2">Create DropOffIndicator component</task>
+      <task id="frontend-3" ac="3">Create BenchmarkOverlay component</task>
+      <task id="frontend-4" ac="4">Create RetentionSuggestions component</task>
+      <task id="frontend-5" ac="5">Create VideoComparisonView component</task>
+      <task id="frontend-6" ac="1-5">Integrate into Video Analytics page</task>
+      <task id="test-1" ac="1-5">Backend unit tests</task>
+      <task id="test-2" ac="1-5">Frontend component tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <given>video với watch time data</given>
+      <when>user xem retention analysis</when>
+      <then>hiển thị visual retention graph (% viewers remaining at each point)</then>
+    </criterion>
+    <criterion id="2">
+      <given>retention curve data</given>
+      <when>user xem analysis</when>
+      <then>hệ thống identify và highlight drop-off points (>10% drop)</then>
+    </criterion>
+    <criterion id="3">
+      <given>retention data</given>
+      <when>user xem analysis</when>
+      <then>hiển thị comparison với niche benchmark (average retention curve)</then>
+    </criterion>
+    <criterion id="4">
+      <given>identified drop-off points</given>
+      <when>user xem suggestions</when>
+      <then>hệ thống gợi ý improvements dựa trên drop-off patterns</then>
+    </criterion>
+    <criterion id="5">
+      <given>multiple videos</given>
+      <when>user xem retention analysis</when>
+      <then>có thể compare retention curves của 2-3 videos</then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/research/feature-improvement-proposals.md</path>
+        <title>Feature Improvement Proposals</title>
+        <section>Epic 15: Video Performance Analyzer</section>
+        <snippet>Story 15.2: Retention Curve Analysis - xem retention curve của video để biết điểm drop-off. ACs: Visual retention graph, identify drop-off points, compare với benchmark, gợi ý improvements.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/13-4-watch-time-analytics.md</path>
+        <title>Story 13.4: Watch Time Analytics</title>
+        <section>Prerequisite Story</section>
+        <snippet>Watch time analytics chi tiết: total watch time, average view duration, completion rate. Merged from Epic 15.1. Provides foundation data for retention analysis.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 13: Monetization Readiness Tracker</section>
+        <snippet>Story 13.4 merged from Epic 15.1 - Watch Time Analytics. Provides watch time data needed for retention curve calculation.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/monetization/watch-time-analytics.service.ts</path>
+        <kind>service</kind>
+        <symbol>WatchTimeAnalyticsService</symbol>
+        <lines>1-417</lines>
+        <reason>Foundation service for watch time data. Provides WatchTimeMetrics, WatchTimeTrend, TopVideo interfaces. getWatchTimeMetrics() returns totalWatchTimeMinutes, averageViewDurationSeconds, completionRate - data needed for retention curve calculation.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-content.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsContentService</symbol>
+        <lines>1-165</lines>
+        <reason>Content metadata service. ContentMetadata interface includes contentType (post/reel/story), publishedAt. Used to identify video content for retention analysis.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/analytics/analytics-daily-metric.service.ts</path>
+        <kind>service</kind>
+        <symbol>AnalyticsDailyMetricService</symbol>
+        <lines>1-190</lines>
+        <reason>Daily metrics service. DailyMetricData includes videoViews - needed for calculating retention percentages at different points.</reason>
+      </artifact>
+      <artifact>
+        <path>libraries/nestjs-libraries/src/database/prisma/viral/content-elements.service.ts</path>
+        <kind>service</kind>
+        <symbol>ContentElementsService</symbol>
+        <lines>1-886</lines>
+        <reason>Reference pattern for analysis service structure. Shows how to create sub-analyzers, generate suggestions, and calculate scores. Similar pattern can be used for retention analysis.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/viral/content-elements-card.tsx</path>
+        <kind>component</kind>
+        <symbol>ContentElementsCard</symbol>
+        <lines>1-408</lines>
+        <reason>Reference pattern for analysis display component. Shows expandable sections, score display, suggestions list. Similar UI patterns for retention curve display.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/frontend/src/components/viral/viral-timing-card.tsx</path>
+        <kind>component</kind>
+        <symbol>ViralTimingCard</symbol>
+        <lines>1-179</lines>
+        <reason>Reference for chart-based visualization. Shows how to display time-based data with insights.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>@nestjs/common</package>
+        <version>^10.0.0</version>
+      </node>
+      <node>
+        <package>@prisma/client</package>
+        <version>^5.0.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>^18.0.0</version>
+      </node>
+      <node>
+        <package>recharts</package>
+        <version>^2.0.0</version>
+        <note>Recommended for retention curve chart visualization</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow existing NestJS service pattern with @Injectable() decorator</constraint>
+    <constraint type="pattern">Use PrismaService for database access</constraint>
+    <constraint type="pattern">Export interfaces for all data types</constraint>
+    <constraint type="pattern">Frontend components use 'use client' directive</constraint>
+    <constraint type="pattern">Use Tailwind CSS for styling (bg-third, bg-input classes)</constraint>
+    <constraint type="testing">Unit tests required for all service methods</constraint>
+    <constraint type="testing">Component tests for frontend components</constraint>
+    <constraint type="api">Add Swagger documentation for all endpoints</constraint>
+    <constraint type="data">[ASSUMPTION: Retention data calculated from view duration vs video length since Facebook API may not provide granular retention data]</constraint>
+    <constraint type="data">[ASSUMPTION: Benchmark data pre-configured based on industry research]</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>RetentionCurve</name>
+      <kind>interface</kind>
+      <signature>
+interface RetentionCurve {
+  videoId: string;
+  points: Array&lt;{
+    percentage: number; // 0-100 (video progress)
+    retention: number;  // 0-100 (% viewers remaining)
+  }&gt;;
+  dropOffPoints: Array&lt;{
+    percentage: number;
+    dropAmount: number;
+    severity: 'low' | 'medium' | 'high';
+  }&gt;;
+}
+      </signature>
+      <path>libraries/nestjs-libraries/src/database/prisma/video-analytics/retention-analytics.service.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/video-analytics/retention/:videoId</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/video-analytics/retention/:videoId - Returns RetentionCurve for a video</signature>
+      <path>apps/backend/src/api/routes/video-analytics.controller.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/video-analytics/retention/:videoId/benchmark</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/video-analytics/retention/:videoId/benchmark - Returns benchmark comparison</signature>
+      <path>apps/backend/src/api/routes/video-analytics.controller.ts</path>
+    </interface>
+    <interface>
+      <name>POST /api/video-analytics/retention/compare</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/video-analytics/retention/compare - Compare multiple video retention curves</signature>
+      <path>apps/backend/src/api/routes/video-analytics.controller.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Jest for backend unit tests. Tests should be co-located with services (*.spec.ts).
+      Use React Testing Library for frontend component tests.
+      Follow existing test patterns in monetization/ and viral/ directories.
+      Mock PrismaService for database operations.
+      Test edge cases: empty data, single video, multiple videos.
+    </standards>
+    <locations>
+      <location>libraries/nestjs-libraries/src/database/prisma/video-analytics/*.spec.ts</location>
+      <location>apps/frontend/src/components/video-analytics/*.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test retention curve calculation with mock view data</idea>
+      <idea ac="2">Test drop-off detection with various retention patterns</idea>
+      <idea ac="3">Test benchmark comparison calculation</idea>
+      <idea ac="4">Test suggestion generation based on drop-off patterns</idea>
+      <idea ac="5">Test multi-video comparison with 2-3 videos</idea>
+      <idea ac="1">Test RetentionCurveChart renders correctly with data</idea>
+      <idea ac="2">Test DropOffIndicator shows correct markers</idea>
+    </ideas>
+  </tests>
+</story-context>
