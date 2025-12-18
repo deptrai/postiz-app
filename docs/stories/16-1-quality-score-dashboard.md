@@ -1,6 +1,6 @@
 # Story 16.1: Quality Score Dashboard
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -143,6 +143,19 @@ Claude (Cascade)
 
 ### File List
 
+- `libraries/nestjs-libraries/src/database/prisma/quality/content-quality.service.ts`
+- `libraries/nestjs-libraries/src/database/prisma/quality/content-quality.service.spec.ts`
+- `apps/backend/src/api/routes/quality.controller.ts`
+- `apps/frontend/src/components/quality/quality-score-card.tsx`
+- `apps/frontend/src/components/quality/quality-score-card.test.tsx`
+- `apps/frontend/src/components/quality/quality-content-list.tsx`
+- `apps/frontend/src/components/quality/quality-content-list.test.tsx`
+- `apps/frontend/src/components/quality/quality-trend-chart.tsx`
+- `apps/frontend/src/components/quality/improvement-highlights.tsx`
+- `apps/frontend/src/components/quality/index.ts`
+- `apps/frontend/src/app/(app)/(site)/quality/page.tsx`
+
 ## Change Log
 
 - 2025-12-14: Story 16.1 drafted by Mary (Business Analyst)
+- 2025-12-18: Story 16.1 implemented by Dev Agent (Amelia)
