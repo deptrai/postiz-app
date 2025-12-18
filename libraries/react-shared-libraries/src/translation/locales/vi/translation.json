@@ -996,5 +996,77 @@
     "sensitiveTopic.list.impact": "Ảnh hưởng Quảng cáo",
 
     "quality.dashboard.title": "Bảng điều khiển Chất lượng",
-    "quality.dashboard.subtitle": "Theo dõi và cải thiện điểm chất lượng nội dung của bạn"
+    "quality.dashboard.subtitle": "Theo dõi và cải thiện điểm chất lượng nội dung của bạn",
+
+    "quality": "Chất lượng",
+    "viral": "Viral",
+
+    "quality.scoreCard.title": "Điểm Chất lượng",
+    "quality.scoreCard.breakdown": "Phân rã Điểm số",
+    "quality.scoreCard.improvements": "Khu vực cần cải thiện",
+
+    "quality.factors.engagement": "Tương tác",
+    "quality.factors.watchTime": "Thời lượng xem",
+    "quality.factors.compliance": "Tuân thủ",
+    "quality.factors.consistency": "Tính nhất quán",
+
+    "quality.contentList.title": "Nội dung theo Chất lượng",
+    "quality.contentList.empty": "Không tìm thấy nội dung",
+
+    "quality.sort.score": "Điểm",
+    "quality.sort.date": "Ngày",
+    "quality.sort.engagement": "Tương tác",
+
+    "quality.trendChart.title": "Xu hướng Chất lượng",
+    "quality.trendChart.avgScore": "Điểm trung bình",
+    "quality.trendChart.totalContent": "Tổng nội dung",
+    "quality.trendChart.noData": "Không có dữ liệu xu hướng",
+    "quality.trendChart.factorAvg": "Điểm trung bình theo yếu tố",
+
+    "quality.improvements.allGood": "Làm rất tốt! Không cần cải thiện đáng kể.",
+    "quality.improvements.currentScore": "Hiện tại",
+
+    "bait.page.checkCaption": "Kiểm tra Caption",
+    "bait.page.placeholder": "Nhập caption để kiểm tra engagement bait...\n\nVí dụ: \"Like nếu bạn đồng ý! Share cho bạn bè!\"",
+    "bait.page.detectButton": "Phát hiện Bait",
+    "bait.page.detecting": "Đang phát hiện...",
+    "bait.page.noResults": "Nhập caption và nhấn \"Phát hiện\" để kiểm tra các mẫu bait",
+    "bait.page.prePublish": "Kiểm tra Trước Khi Đăng",
+    "bait.page.report": "Báo cáo Bait Lịch sử",
+
+    "bait.period.7days": "7 ngày",
+    "bait.period.14days": "14 ngày",
+    "bait.period.30days": "30 ngày",
+
+    "bait.card.detectedPatterns": "Mẫu đã phát hiện",
+    "bait.card.found": "Tìm thấy",
+    "bait.card.noIssues": "Không có vấn đề",
+    "bait.card.issuesFound": "Phát hiện vấn đề",
+    "bait.card.tryInstead": "Thử thay thế",
+
+    "bait.severity.clean": "Sạch",
+
+    "bait.alternatives.noSuggestions": "Không cần gợi ý - nội dung của bạn trông rất ổn!",
+    "bait.alternatives.description": "Thay các cụm engagement bait bằng các câu chữ tự nhiên hơn để tránh bị thuật toán phạt:",
+    "bait.alternatives.instead": "Thay vì",
+    "bait.alternatives.tryThis": "Hãy thử",
+    "bait.alternatives.copied": "Đã sao chép!",
+
+    "bait.checker.title": "Kiểm tra Trước Khi Đăng",
+    "bait.checker.checking": "Đang kiểm tra...",
+    "bait.checker.placeholder": "Nhập nội dung để kiểm tra engagement bait...",
+    "bait.checker.clean": "Nội dung sạch! Sẵn sàng để đăng.",
+    "bait.checker.issues": "Phát hiện vấn đề",
+    "bait.checker.baitScore": "Điểm Bait",
+    "bait.checker.warnings": "Cảnh báo",
+    "bait.checker.suggestion": "Gợi ý",
+    "bait.checker.recommendations": "Khuyến nghị",
+
+    "bait.report.totalContent": "Tổng nội dung",
+    "bait.report.flaggedContent": "Nội dung bị gắn cờ",
+    "bait.report.avgScore": "Điểm trung bình",
+    "bait.report.trendTitle": "Xu hướng Điểm Bait",
+    "bait.report.noData": "Chưa có dữ liệu",
+    "bait.report.noFlagged": "Không có nội dung bị gắn cờ!",
+    "bait.report.noCaption": "Không có chú thích"
 }
