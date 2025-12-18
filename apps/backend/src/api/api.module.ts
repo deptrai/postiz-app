@@ -55,6 +55,7 @@ import { AIAssistantService } from '@gitroom/nestjs-libraries/database/prisma/ai
 import { ViralController } from '@gitroom/backend/api/routes/viral.controller';
 import { VideoAnalyticsController } from '@gitroom/backend/api/routes/video-analytics.controller';
 import { RetentionAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/retention-analytics.service';
+import { VideoLengthAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/video-length-analytics.service';
 
 const authenticatedController = [
   UsersController,
@@ -123,6 +124,7 @@ const authenticatedController = [
     AlertNotificationService,
     AIAssistantService,
     RetentionAnalyticsService,
+    VideoLengthAnalyticsService,
   ],
   get exports() {
     return [...this.imports, ...this.providers];

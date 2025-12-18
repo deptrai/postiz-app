@@ -10,6 +10,14 @@ import {
   VideoComparison,
   VideoFormat,
 } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/retention-analytics.service';
+import {
+  VideoLengthAnalyticsService,
+  PerformanceByLengthResult,
+  OptimalLengthRecommendation,
+  LengthBenchmark,
+  LengthOptimizationTip,
+  VideoFormat as LengthVideoFormat,
+} from '@gitroom/nestjs-libraries/database/prisma/video-analytics/video-length-analytics.service';
 
 // DTOs for Swagger documentation
 class VideoRetentionDto {
@@ -34,7 +42,8 @@ class CompareVideosDto {
 @Controller('video-analytics')
 export class VideoAnalyticsController {
   constructor(
-    private readonly _retentionAnalyticsService: RetentionAnalyticsService
+    private readonly _retentionAnalyticsService: RetentionAnalyticsService,
+    private readonly _videoLengthAnalyticsService: VideoLengthAnalyticsService
   ) {}
 
   /**
@@ -284,5 +293,198 @@ export class VideoAnalyticsController {
       body.videoIds,
       body.videoData
     );
+  }
+
+  // ==================== Video Length Analytics Endpoints ====================
+
+  /**
+   * Get performance breakdown by video length ranges (AC #1)
+   */
+  @Get('length')
+  @ApiOperation({
+    summary: 'Get performance by length',
+    description: 'Get performance breakdown by video length ranges (0-15s, 15-30s, 30-60s, 60-180s, 180s+)',
+  })
+  @ApiQuery({
+    name: 'format',
+    required: false,
+    enum: ['reel', 'video', 'story'],
+    description: 'Filter by video format',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Performance breakdown by length ranges',
+    schema: {
+      type: 'object',
+      properties: {
+        organizationId: { type: 'string' },
+        format: { type: 'string', enum: ['reel', 'video', 'story'] },
+        performances: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              range: { type: 'string', example: '15-30' },
+              rangeLabel: { type: 'string', example: '15-30 seconds (Medium-Short)' },
+              videoCount: { type: 'number', example: 25 },
+              avgViews: { type: 'number', example: 15000 },
+              avgEngagementRate: { type: 'number', example: 8.5 },
+              avgCompletionRate: { type: 'number', example: 65 },
+            },
+          },
+        },
+        totalVideos: { type: 'number', example: 100 },
+        bestPerformingRange: { type: 'string', example: '15-30' },
+      },
+    },
+  })
+  async getPerformanceByLength(
+    @GetOrgFromRequest() org: Organization,
+    @Query('format') format?: LengthVideoFormat
+  ): Promise<PerformanceByLengthResult> {
+    return this._videoLengthAnalyticsService.getPerformanceByLength(org.id, { format });
+  }
+
+  /**
+   * Get optimal length recommendation (AC #2, #4)
+   */
+  @Get('length/optimal')
+  @ApiOperation({
+    summary: 'Get optimal length recommendation',
+    description: 'Get optimal video length recommendation with sweet spot and confidence score',
+  })
+  @ApiQuery({
+    name: 'format',
+    required: true,
+    enum: ['reel', 'video', 'story'],
+    description: 'Video format to analyze',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Optimal length recommendation',
+    schema: {
+      type: 'object',
+      properties: {
+        format: { type: 'string', example: 'reel' },
+        optimalRange: { type: 'string', example: '15-30' },
+        optimalRangeLabel: { type: 'string', example: '15-30 seconds (Medium-Short)' },
+        sweetSpotSeconds: {
+          type: 'object',
+          properties: {
+            min: { type: 'number', example: 15 },
+            max: { type: 'number', example: 30 },
+          },
+        },
+        confidenceScore: { type: 'number', example: 85 },
+        reasoning: { type: 'string' },
+        userAvgLength: { type: 'number', example: 25 },
+        recommendedAdjustment: { type: 'string', enum: ['shorter', 'longer', 'optimal'] },
+      },
+    },
+  })
+  async getOptimalLength(
+    @GetOrgFromRequest() org: Organization,
+    @Query('format') format: LengthVideoFormat
+  ): Promise<OptimalLengthRecommendation> {
+    return this._videoLengthAnalyticsService.getOptimalLength(org.id, format);
+  }
+
+  /**
+   * Get niche benchmark comparison (AC #3)
+   */
+  @Get('length/benchmark')
+  @ApiOperation({
+    summary: 'Get length benchmark comparison',
+    description: 'Compare your optimal length with industry benchmarks for your niche',
+  })
+  @ApiQuery({
+    name: 'niche',
+    required: true,
+    description: 'Content niche (e.g., fitness, education, entertainment)',
+  })
+  @ApiQuery({
+    name: 'format',
+    required: true,
+    enum: ['reel', 'video', 'story'],
+    description: 'Video format',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Benchmark comparison',
+    schema: {
+      type: 'object',
+      properties: {
+        niche: { type: 'string', example: 'fitness' },
+        format: { type: 'string', example: 'reel' },
+        industryOptimal: {
+          type: 'object',
+          properties: {
+            min: { type: 'number', example: 17 },
+            max: { type: 'number', example: 33 },
+          },
+        },
+        industryOptimalLabel: { type: 'string', example: '17-33 seconds' },
+        userOptimal: {
+          type: 'object',
+          properties: {
+            min: { type: 'number', example: 15 },
+            max: { type: 'number', example: 30 },
+          },
+        },
+        userOptimalLabel: { type: 'string', example: '15-30 seconds' },
+        deviation: { type: 'number', example: -5 },
+        performance: { type: 'string', enum: ['above', 'at', 'below'] },
+        insights: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+    },
+  })
+  async getLengthBenchmark(
+    @GetOrgFromRequest() org: Organization,
+    @Query('niche') niche: string,
+    @Query('format') format: LengthVideoFormat
+  ): Promise<LengthBenchmark> {
+    return this._videoLengthAnalyticsService.getNicheLengthBenchmarks(org.id, niche, format);
+  }
+
+  /**
+   * Get length optimization tips (AC #5)
+   */
+  @Get('length/tips')
+  @ApiOperation({
+    summary: 'Get length optimization tips',
+    description: 'Get actionable tips to optimize your video length',
+  })
+  @ApiQuery({
+    name: 'format',
+    required: true,
+    enum: ['reel', 'video', 'story'],
+    description: 'Video format',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of optimization tips',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          priority: { type: 'string', enum: ['high', 'medium', 'low'] },
+          category: { type: 'string', enum: ['hook', 'pacing', 'content', 'format', 'general'] },
+          issue: { type: 'string' },
+          tip: { type: 'string' },
+          example: { type: 'string' },
+          expectedImprovement: { type: 'string' },
+        },
+      },
+    },
+  })
+  async getLengthOptimizationTips(
+    @GetOrgFromRequest() org: Organization,
+    @Query('format') format: LengthVideoFormat
+  ): Promise<LengthOptimizationTip[]> {
+    return this._videoLengthAnalyticsService.getLengthOptimizationTips(org.id, format);
   }
 }

@@ -12,3 +12,16 @@ export type { RetentionSuggestionsProps, RetentionSuggestion, SuggestionType, Pr
 
 export { VideoComparisonView } from './video-comparison-view';
 export type { VideoComparisonViewProps, VideoComparison, RetentionCurve } from './video-comparison-view';
+
+// Story 15.3: Video Length Optimization
+export { LengthPerformanceChart } from './length-performance-chart';
+export type { LengthPerformanceChartProps, LengthPerformance, LengthRange } from './length-performance-chart';
+
+export { OptimalLengthCard } from './optimal-length-card';
+export type { OptimalLengthCardProps, OptimalLengthRecommendation, VideoFormat } from './optimal-length-card';
+
+export { LengthBenchmarkComparison } from './length-benchmark-comparison';
+export type { LengthBenchmarkComparisonProps, LengthBenchmark } from './length-benchmark-comparison';
+
+export { LengthOptimizationTips } from './length-optimization-tips';
+export type { LengthOptimizationTipsProps, LengthOptimizationTip, TipPriority, TipCategory } from './length-optimization-tips';

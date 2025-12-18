@@ -15,9 +15,17 @@ import {
   BenchmarkComparison,
   VideoComparison,
   RetentionCurve,
+  LengthPerformanceChart,
+  OptimalLengthCard,
+  LengthBenchmarkComparison,
+  LengthOptimizationTips,
+  LengthPerformance,
+  OptimalLengthRecommendation,
+  LengthBenchmark,
+  LengthOptimizationTip,
 } from '@gitroom/frontend/components/video-analytics';
 
-type TabType = 'retention' | 'benchmark' | 'compare';
+type TabType = 'retention' | 'benchmark' | 'compare' | 'length';
 
 interface RetentionCurveResult {
   videoId: string;
@@ -54,10 +62,19 @@ export default function VideoAnalyticsPage() {
   const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkComparison | null>(null);
   const [comparisonResult, setComparisonResult] = useState<VideoComparison | null>(null);
 
+  // Length optimization state (Story 15.3)
+  const [lengthPerformances, setLengthPerformances] = useState<LengthPerformance[] | null>(null);
+  const [optimalLength, setOptimalLength] = useState<OptimalLengthRecommendation | null>(null);
+  const [lengthBenchmark, setLengthBenchmark] = useState<LengthBenchmark | null>(null);
+  const [lengthTips, setLengthTips] = useState<LengthOptimizationTip[] | null>(null);
+  const [bestPerformingRange, setBestPerformingRange] = useState<string>('15-30');
+  const [totalLengthVideos, setTotalLengthVideos] = useState<number>(0);
+
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingBenchmark, setIsLoadingBenchmark] = useState(false);
   const [isLoadingComparison, setIsLoadingComparison] = useState(false);
+  const [isLoadingLength, setIsLoadingLength] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Analyze retention curve
@@ -178,6 +195,62 @@ export default function VideoAnalyticsPage() {
     setCompareVideoIds(newIds);
   };
 
+  // Analyze length performance (Story 15.3)
+  const analyzeLengthPerformance = useCallback(async () => {
+    setIsLoadingLength(true);
+    setError(null);
+
+    try {
+      // Get performance by length
+      const perfResponse = await fetch(`/video-analytics/length?format=${format}`, {
+        method: 'GET',
+      });
+
+      if (!perfResponse.ok) {
+        throw new Error('Failed to get length performance');
+      }
+
+      const perfData = await perfResponse.json();
+      setLengthPerformances(perfData.performances);
+      setBestPerformingRange(perfData.bestPerformingRange);
+      setTotalLengthVideos(perfData.totalVideos);
+
+      // Get optimal length
+      const optimalResponse = await fetch(`/video-analytics/length/optimal?format=${format}`, {
+        method: 'GET',
+      });
+
+      if (optimalResponse.ok) {
+        const optimalData = await optimalResponse.json();
+        setOptimalLength(optimalData);
+      }
+
+      // Get length benchmark
+      const benchmarkResponse = await fetch(`/video-analytics/length/benchmark?niche=${niche}&format=${format}`, {
+        method: 'GET',
+      });
+
+      if (benchmarkResponse.ok) {
+        const benchmarkData = await benchmarkResponse.json();
+        setLengthBenchmark(benchmarkData);
+      }
+
+      // Get optimization tips
+      const tipsResponse = await fetch(`/video-analytics/length/tips?format=${format}`, {
+        method: 'GET',
+      });
+
+      if (tipsResponse.ok) {
+        const tipsData = await tipsResponse.json();
+        setLengthTips(tipsData);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoadingLength(false);
+    }
+  }, [format, niche, fetch]);
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
@@ -219,6 +292,16 @@ export default function VideoAnalyticsPage() {
           }`}
         >
           🔄 Compare Videos
+        </button>
+        <button
+          onClick={() => setActiveTab('length')}
+          className={`px-4 py-2 rounded-t-lg transition-colors ${
+            activeTab === 'length'
+              ? 'bg-purple-500/20 text-purple-400 border-b-2 border-purple-500'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          ⏱️ Length Optimization
         </button>
       </div>
 
@@ -483,6 +566,115 @@ export default function VideoAnalyticsPage() {
                 <h3 className="text-xl font-semibold text-white mb-2">No Comparison Data</h3>
                 <p className="text-gray-400">
                   Enter 2-3 video IDs and click "Compare Videos" to see side-by-side analysis
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Length Optimization Tab (Story 15.3) */}
+      {activeTab === 'length' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Input Form */}
+          <div className="bg-third rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Length Analysis Settings</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Format</label>
+                <select
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value as 'reel' | 'video' | 'story')}
+                  className="w-full bg-input border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option value="reel">Reel (Short-form)</option>
+                  <option value="video">Video (Long-form)</option>
+                  <option value="story">Story</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Niche</label>
+                <select
+                  value={niche}
+                  onChange={(e) => setNiche(e.target.value)}
+                  className="w-full bg-input border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option value="fitness">Fitness</option>
+                  <option value="education">Education</option>
+                  <option value="entertainment">Entertainment</option>
+                  <option value="tech">Tech</option>
+                  <option value="lifestyle">Lifestyle</option>
+                  <option value="food">Food</option>
+                  <option value="travel">Travel</option>
+                  <option value="gaming">Gaming</option>
+                  <option value="tutorial">Tutorial</option>
+                  <option value="news">News</option>
+                </select>
+              </div>
+
+              <button
+                onClick={analyzeLengthPerformance}
+                disabled={isLoadingLength}
+                className="w-full bg-purple-500 hover:bg-purple-600 disabled:bg-purple-500/50 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                {isLoadingLength ? 'Analyzing...' : 'Analyze Length Performance'}
+              </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-700">
+              <h4 className="text-sm font-medium text-gray-400 mb-3">Length Ranges</h4>
+              <div className="space-y-2 text-xs text-gray-500">
+                <p>• <span className="text-white">0-15s:</span> Stories, quick tips</p>
+                <p>• <span className="text-white">15-30s:</span> Optimal for Reels</p>
+                <p>• <span className="text-white">30-60s:</span> Extended Reels</p>
+                <p>• <span className="text-white">1-3min:</span> Standard videos</p>
+                <p>• <span className="text-white">3min+:</span> Long-form content</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Results */}
+          <div className="lg:col-span-2 space-y-6">
+            {lengthPerformances ? (
+              <>
+                <LengthPerformanceChart
+                  performances={lengthPerformances}
+                  bestPerformingRange={bestPerformingRange as LengthRange}
+                  totalVideos={totalLengthVideos}
+                  isLoading={isLoadingLength}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {optimalLength && (
+                    <OptimalLengthCard
+                      recommendation={optimalLength}
+                      isLoading={isLoadingLength}
+                    />
+                  )}
+
+                  {lengthBenchmark && (
+                    <LengthBenchmarkComparison
+                      benchmark={lengthBenchmark}
+                      isLoading={isLoadingLength}
+                    />
+                  )}
+                </div>
+
+                {lengthTips && (
+                  <LengthOptimizationTips
+                    tips={lengthTips}
+                    isLoading={isLoadingLength}
+                  />
+                )}
+              </>
+            ) : (
+              <div className="bg-third rounded-xl p-12 text-center">
+                <div className="text-6xl mb-4">⏱️</div>
+                <h3 className="text-xl font-semibold text-white mb-2">No Length Data</h3>
+                <p className="text-gray-400">
+                  Select your format and niche, then click "Analyze Length Performance" to see optimization insights
                 </p>
               </div>
             )}
