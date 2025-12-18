@@ -1,6 +1,6 @@
 # Story 16.2: Engagement Bait Detection
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -144,6 +144,15 @@ Claude (Cascade)
 
 ### File List
 
+- `libraries/nestjs-libraries/src/database/prisma/quality/engagement-bait.service.ts`
+- `libraries/nestjs-libraries/src/database/prisma/quality/engagement-bait.service.spec.ts`
+- `apps/backend/src/api/routes/bait.controller.ts`
+- `apps/frontend/src/components/quality/bait-detection-card.tsx`
+- `apps/frontend/src/components/quality/authentic-alternatives.tsx`
+- `apps/frontend/src/components/quality/pre-publish-checker.tsx`
+- `apps/frontend/src/components/quality/bait-report.tsx`
+
 ## Change Log
 
 - 2025-12-14: Story 16.2 drafted by Mary (Business Analyst)
+- 2025-12-18: Story 16.2 implemented by Dev Agent (Amelia)

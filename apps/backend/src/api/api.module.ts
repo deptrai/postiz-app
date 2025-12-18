@@ -59,6 +59,8 @@ import { VideoLengthAnalyticsService } from '@gitroom/nestjs-libraries/database/
 import { ThumbnailAnalyticsService } from '@gitroom/nestjs-libraries/database/prisma/video-analytics/thumbnail-analytics.service';
 import { QualityController } from '@gitroom/backend/api/routes/quality.controller';
 import { ContentQualityService } from '@gitroom/nestjs-libraries/database/prisma/quality/content-quality.service';
+import { BaitController } from '@gitroom/backend/api/routes/bait.controller';
+import { EngagementBaitService } from '@gitroom/nestjs-libraries/database/prisma/quality/engagement-bait.service';
 
 const authenticatedController = [
   UsersController,
@@ -87,6 +89,7 @@ const authenticatedController = [
   ViralController,
   VideoAnalyticsController,
   QualityController,
+  BaitController,
 ];
 @Module({
   imports: [UploadModule],
@@ -131,6 +134,7 @@ const authenticatedController = [
     VideoLengthAnalyticsService,
     ThumbnailAnalyticsService,
     ContentQualityService,
+    EngagementBaitService,
   ],
   get exports() {
     return [...this.imports, ...this.providers];
