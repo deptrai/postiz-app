@@ -30,3 +30,12 @@ export type { PolicyViolationDetailProps } from './policy-violation-detail';
 
 export { ComplianceHistory } from './compliance-history';
 export type { ComplianceHistoryProps, ComplianceTrendPoint, ComplianceHistoryItem } from './compliance-history';
+
+export { AdFriendlyScoreCard } from './ad-friendly-score-card';
+export type { AdFriendlyScoreCardProps, SensitiveTopic, CategoryScore, SensitiveCategory, AdImpact } from './ad-friendly-score-card';
+
+export { SensitiveTopicsList } from './sensitive-topics-list';
+export type { SensitiveTopicsListProps } from './sensitive-topics-list';
+
+export { AdFriendlyReport } from './ad-friendly-report';
+export type { AdFriendlyReportProps, AdFriendlyReportItem, AdFriendlyTrendPoint } from './ad-friendly-report';

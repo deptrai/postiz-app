@@ -1,6 +1,6 @@
 # Story 16.4: Advertiser-Friendly Scoring
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -142,6 +142,14 @@ Claude (Cascade)
 
 ### File List
 
+- `libraries/nestjs-libraries/src/database/prisma/quality/advertiser-friendly.service.ts`
+- `libraries/nestjs-libraries/src/database/prisma/quality/advertiser-friendly.service.spec.ts`
+- `apps/backend/src/api/routes/ad-friendly.controller.ts`
+- `apps/frontend/src/components/quality/ad-friendly-score-card.tsx`
+- `apps/frontend/src/components/quality/sensitive-topics-list.tsx`
+- `apps/frontend/src/components/quality/ad-friendly-report.tsx`
+
 ## Change Log
 
 - 2025-12-14: Story 16.4 drafted by Mary (Business Analyst)
+- 2025-12-18: Story 16.4 implemented by Dev Agent (Amelia)
