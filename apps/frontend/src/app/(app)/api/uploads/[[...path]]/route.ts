@@ -20,20 +20,17 @@ function iteratorToStream(iterator: any) {
     },
   });
 }
-export const GET = (
+export async function GET(
   request: NextRequest,
-  context: {
-    params: {
-      path: string[];
-    };
-  }
-) => {
+  context: { params: Promise<{ path?: string[] }> }
+) {
   const baseDir = process.env.UPLOAD_DIRECTORY;
   if (!baseDir) {
-    return new Response('Upload directory is not configured', { status: 404 });
+    return NextResponse.json({ error: 'Upload directory not configured' }, { status: 500 });
   }
 
-  const safeParts = (context.params.path || []).filter(
+  const params = await context.params;
+  const safeParts = (params.path || []).filter(
     (p) => p && p !== '.' && p !== '..' && !p.includes('..')
   );
 
