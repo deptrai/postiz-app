@@ -34,15 +34,14 @@ export const DailyBriefPlaceholder = () => {
     );
   }
 
+  const hasData = data?.summary?.totalPosts > 0 || data?.summary?.totalEngagement > 0;
+
   return (
     <div className="bg-newBgColorInner p-6 rounded-lg">
       <h2 className="text-2xl font-semibold mb-4">Daily Brief</h2>
       <div className="text-textColor/60 mb-4">
-        <p className="mb-2">
-          Your analytics intelligence dashboard is being set up.
-        </p>
         <p className="text-sm">
-          Date: {data?.date || 'N/A'} | Organization: {data?.organizationId || 'N/A'}
+          Date: {data?.date || 'N/A'} | Period: Last 7 days
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -59,9 +58,13 @@ export const DailyBriefPlaceholder = () => {
           <div className="text-2xl font-semibold">{data?.summary?.topPerformer || 'N/A'}</div>
         </div>
       </div>
-      <div className="mt-6 text-sm text-textColor/40">
-        This is a placeholder view. Real analytics data will appear here once ingestion is configured.
-      </div>
+      {!hasData && (
+        <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+          <p className="text-sm text-yellow-500/80">
+            No analytics data available yet. Data will appear here once content ingestion is running.
+          </p>
+        </div>
+      )}
     </div>
   );
 };
