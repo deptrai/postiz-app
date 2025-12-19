@@ -8,13 +8,17 @@ import React, {
   FC,
   ReactNode,
 } from 'react';
-import { useNeynarContext } from '@neynar/react';
+// Temporarily disabled due to @neynar/react compatibility issues with React 18/19
+// import { useNeynarContext } from '@neynar/react';
+
+// Fallback component - Farcaster temporarily disabled
 export const NeynarAuthButton: FC<{
   children: ReactNode;
   onLogin: (code: string) => void;
 }> = (props) => {
   const { children, onLogin } = props;
-  const { client_id } = useNeynarContext();
+  // const { client_id } = useNeynarContext();
+  const client_id = ''; // Disabled fallback
   const [showModal, setShowModal] = useState(false);
   const authWindowRef = useRef<Window | null>(null);
   const neynarLoginUrl = `${
