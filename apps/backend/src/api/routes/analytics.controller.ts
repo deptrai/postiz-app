@@ -92,9 +92,20 @@ export class AnalyticsController {
     const endDate = query.date ? dayjs(query.date) : dayjs();
     const startDate = endDate.subtract(6, 'days');
 
+    // Get current period KPIs
     const kpis = await this._analyticsDashboardService.getKPIs(org.id, {
       startDate: startDate.toDate(),
       endDate: endDate.toDate(),
+      groupId: query.groupId,
+      format: 'all',
+    });
+
+    // Get previous period KPIs for comparison
+    const prevEndDate = startDate.subtract(1, 'day');
+    const prevStartDate = prevEndDate.subtract(6, 'days');
+    const prevKpis = await this._analyticsDashboardService.getKPIs(org.id, {
+      startDate: prevStartDate.toDate(),
+      endDate: prevEndDate.toDate(),
       groupId: query.groupId,
       format: 'all',
     });
@@ -110,16 +121,119 @@ export class AnalyticsController {
       5
     );
 
+    // Get format breakdown
+    const postsKpis = await this._analyticsDashboardService.getKPIs(org.id, {
+      startDate: startDate.toDate(),
+      endDate: endDate.toDate(),
+      groupId: query.groupId,
+      format: 'post',
+    });
+
+    const reelsKpis = await this._analyticsDashboardService.getKPIs(org.id, {
+      startDate: startDate.toDate(),
+      endDate: endDate.toDate(),
+      groupId: query.groupId,
+      format: 'reel',
+    });
+
+    // Calculate trends
+    const trends = [];
+    if (prevKpis.totalPosts > 0) {
+      const postsChange = ((kpis.totalPosts - prevKpis.totalPosts) / prevKpis.totalPosts) * 100;
+      const engagementChange = ((kpis.totalEngagement - prevKpis.totalEngagement) / (prevKpis.totalEngagement || 1)) * 100;
+      const reachChange = ((kpis.totalReach - prevKpis.totalReach) / (prevKpis.totalReach || 1)) * 100;
+
+      trends.push({
+        metric: 'Posts',
+        change: postsChange,
+        direction: postsChange > 0 ? 'up' : postsChange < 0 ? 'down' : 'stable',
+        current: kpis.totalPosts,
+        previous: prevKpis.totalPosts,
+      });
+
+      trends.push({
+        metric: 'Engagement',
+        change: engagementChange,
+        direction: engagementChange > 0 ? 'up' : engagementChange < 0 ? 'down' : 'stable',
+        current: kpis.totalEngagement,
+        previous: prevKpis.totalEngagement,
+      });
+
+      trends.push({
+        metric: 'Reach',
+        change: reachChange,
+        direction: reachChange > 0 ? 'up' : reachChange < 0 ? 'down' : 'stable',
+        current: kpis.totalReach,
+        previous: prevKpis.totalReach,
+      });
+    }
+
+    // Generate recommendations
+    const recommendations = [];
+    
+    if (kpis.engagementRate < 2) {
+      recommendations.push({
+        type: 'warning',
+        title: 'Low Engagement Rate',
+        message: `Your engagement rate is ${kpis.engagementRate.toFixed(2)}%. Consider posting at optimal times and using more engaging content formats.`,
+      });
+    }
+
+    if (reelsKpis.engagementRate > postsKpis.engagementRate && reelsKpis.totalPosts > 0) {
+      recommendations.push({
+        type: 'success',
+        title: 'Reels Performing Better',
+        message: `Reels have ${reelsKpis.engagementRate.toFixed(2)}% engagement rate vs ${postsKpis.engagementRate.toFixed(2)}% for posts. Consider creating more reels.`,
+      });
+    }
+
+    if (trends.find(t => t.metric === 'Engagement' && t.direction === 'down')) {
+      recommendations.push({
+        type: 'info',
+        title: 'Engagement Declining',
+        message: 'Your engagement is trending down. Try refreshing your content strategy or posting more frequently.',
+      });
+    }
+
+    if (kpis.totalPosts > 0 && kpis.averageEngagementPerPost > 100) {
+      recommendations.push({
+        type: 'success',
+        title: 'Strong Performance',
+        message: `Great job! Your average engagement per post is ${Math.round(kpis.averageEngagementPerPost)}. Keep up the good work!`,
+      });
+    }
+
     return {
       date: endDate.format('YYYY-MM-DD'),
       organizationId: org.id,
+      period: {
+        start: startDate.format('YYYY-MM-DD'),
+        end: endDate.format('YYYY-MM-DD'),
+        days: 7,
+      },
       summary: {
         totalPosts: kpis.totalPosts,
         totalEngagement: kpis.totalEngagement,
+        totalReach: kpis.totalReach,
+        totalImpressions: kpis.totalImpressions,
+        engagementRate: kpis.engagementRate,
+        avgEngagement: kpis.averageEngagementPerPost,
         topPerformer: topContent[0]?.externalContentId || null,
       },
-      recommendations: [],
-      trends: [],
+      recommendations,
+      trends,
+      formatBreakdown: {
+        posts: {
+          count: postsKpis.totalPosts,
+          engagement: postsKpis.totalEngagement,
+          engagementRate: postsKpis.engagementRate,
+        },
+        reels: {
+          count: reelsKpis.totalPosts,
+          engagement: reelsKpis.totalEngagement,
+          engagementRate: reelsKpis.engagementRate,
+        },
+      },
       format: query.format || 'json',
       kpis,
       topContent,
