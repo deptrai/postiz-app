@@ -147,15 +147,15 @@ export const DailyBriefPlaceholder = () => {
               <div className="text-sm font-semibold mb-3">{t('posts', 'Bài Viết')}</div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-xs text-textColor/60">Count</span>
+                  <span className="text-xs text-textColor/60">{t('count', 'Số lượng')}</span>
                   <span className="text-sm font-semibold">{formatBreakdown.posts?.count || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-textColor/60">Engagement</span>
+                  <span className="text-xs text-textColor/60">{t('engagement', 'Tương tác')}</span>
                   <span className="text-sm font-semibold">{formatBreakdown.posts?.engagement?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-textColor/60">Engagement Rate</span>
+                  <span className="text-xs text-textColor/60">{t('engagement_rate', 'Tỷ Lệ Tương Tác')}</span>
                   <span className="text-sm font-semibold">{formatBreakdown.posts?.engagementRate?.toFixed(2) || 0}%</span>
                 </div>
               </div>
@@ -164,15 +164,15 @@ export const DailyBriefPlaceholder = () => {
               <div className="text-sm font-semibold mb-3">{t('reels', 'Reels')}</div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-xs text-textColor/60">Count</span>
+                  <span className="text-xs text-textColor/60">{t('count', 'Số lượng')}</span>
                   <span className="text-sm font-semibold">{formatBreakdown.reels?.count || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-textColor/60">Engagement</span>
+                  <span className="text-xs text-textColor/60">{t('engagement', 'Tương tác')}</span>
                   <span className="text-sm font-semibold">{formatBreakdown.reels?.engagement?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-textColor/60">Engagement Rate</span>
+                  <span className="text-xs text-textColor/60">{t('engagement_rate', 'Tỷ Lệ Tương Tác')}</span>
                   <span className="text-sm font-semibold">{formatBreakdown.reels?.engagementRate?.toFixed(2) || 0}%</span>
                 </div>
               </div>
